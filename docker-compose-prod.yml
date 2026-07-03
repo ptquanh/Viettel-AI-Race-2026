@@ -1,0 +1,49 @@
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+
+    # Giữ khiên bảo vệ mạng & Tối ưu đa luồng CPU
+    environment:
+      - OMP_NUM_THREADS=3
+      - HF_HUB_OFFLINE=1
+      - VLLM_NO_USAGE_STATS=1
+      - DO_NOT_TRACK=1
+
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+
+      # --- TỐI ƯU VRAM ---
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.90
+
+      # --- ĐÒN CHÍ MẠNG GIẢM TTFT P95 MÀ CLAUDE ĐỀ XUẤT ---
+      - --max-num-seqs=32
+      - --max-num-batched-tokens=8192
+
+      # --- GIẢM OVERHEAD CHO 3 CORE CPU ---
+      - --disable-log-requests
+      - --disable-log-stats
+      - --enforce-eager
+
+      # --- THAM SỐ GỐC ---
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

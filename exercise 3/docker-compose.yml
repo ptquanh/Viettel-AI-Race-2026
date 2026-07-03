@@ -1,0 +1,36 @@
+services:
+  model:
+    image: viettel-qwen-local:v1 # Tên image build ở máy bạn
+    environment:
+      - NVIDIA_DISABLE_REQUIRE=1 # Thêm dòng này để ép Docker chạy
+      - VLLM_USE_MARLIN=0
+      - VLLM_TEST_DISABLE_MARLIN=1
+      - VLLM_DISABLED_KERNELS=MarlinLinearKernel,MarlinFP8ScaledMMLinearKernel
+      - CUDA_LAUNCH_BLOCKING=1
+    ipc: host
+    entrypoint:
+      - python3 #Don't change this to vllm-server
+      - -m #Don't change this to vllm-server
+      - vllm.entrypoints.openai.api_server #Don't change this to vllm-server
+    command:
+      - --model=/model #Don't change this to vllm-server
+      - --served-model-name=Qwen3.5-2B #Don't change this to vllm-server
+      - --host=0.0.0.0 #Don't change this to vllm-server
+      - --port=8000 #Don't change this to vllm-server
+
+      # --- CHẾ ĐỘ SINH TỒN CHO 4GB VRAM ---
+      - --max-model-len=256 # Giảm tối đa context length để bóp KV Cache
+      - --gpu-memory-utilization=0.85 # Cho phép vLLM vét cạn kiệt 4GB VRAM
+      - --enforce-eager # Tắt CUDA graphs để tiết kiệm ~500MB VRAM overhead
+      - --quantization=bitsandbytes
+
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

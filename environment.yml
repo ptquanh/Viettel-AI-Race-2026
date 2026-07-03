@@ -1,0 +1,24 @@
+name: viettel-ai-race
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - tqdm
+  - ipykernel
+  - pytorch
+  - pytorch-cuda=12.1
+  - aiohttp
+  - httpx
+  - pip:
+    - sseclient-py
+    # Gắn cứng version vLLM dựa trên tag của Docker image BTC
+    - vllm==0.22.1
+    # Để trống version, pip cài vllm xong sẽ tự động kéo bản transformers tương thích
+    - transformers
+    - lm-eval
