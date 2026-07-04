@@ -10,15 +10,18 @@ services:
       - --served-model-name=Qwen3.5-2B
       - --host=0.0.0.0
       - --port=8000
-      
-      # --- ĐÒN CHÍ MẠNG: Hạ từ 262144 xuống 8192 ---
-      # Giúp vLLM giải phóng bộ nhớ đệm ẩn, gom được nhiều request xử lý cùng lúc hơn (Batching)
-      - --max-model-len=8192
-      
-      # Giữ nguyên các tham số chắc chắn chạy được của BTC
+
+      # 1. TRẢ LẠI THAM SỐ GỐC: Vượt ải request mồi (Primer) & RoPE
+      - --max-model-len=262144
+
+      # 2. VŨ KHÍ BÍ MẬT: Phanh hãm số lượng xử lý đồng thời để cứu 3 Core CPU
+      - --max-num-seqs=32
+
+      # 3. THAM SỐ BẮT BUỘC KHÁC
       - --gpu-memory-utilization=0.95
       - --tensor-parallel-size=1
       - --enable-prefix-caching
+
     ports:
       - "8000:8000"
     shm_size: "2g"
@@ -28,4 +31,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
