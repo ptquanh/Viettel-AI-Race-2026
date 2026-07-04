@@ -1,0 +1,87 @@
+{
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Viettel AI Race 2026 - Trace Log Entry Schema",
+    "description": "Cấu trúc cho mỗi dòng trong file trace-round1.jsonl",
+    "type": "object",
+    "properties": {
+      "request_id": {
+        "type": "integer",
+        "description": "Mã định danh duy nhất của request benchmark (bắt đầu từ 0)"
+      },
+      "timestamp_ms": {
+        "type": "integer",
+        "description": "Thời điểm gửi request tính bằng mili-giây kể từ lúc bắt đầu benchmark"
+      },
+      "workload_type": {
+        "type": "string",
+        "enum": ["conversation"],
+        "description": "Loại công việc cần xử lý (trong file này đều là 'conversation')"
+      },
+      "body": {
+        "type": "object",
+        "description": "Payload chi tiết của request gửi tới LLM API",
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Tên mô hình được gọi (ví dụ: 'Qwen3.5-2B')"
+          },
+          "messages": {
+            "type": "array",
+            "description": "Danh sách các tin nhắn hội thoại theo chuẩn OpenAI Chat Completions",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["system", "user", "assistant"],
+                  "description": "Vai trò của người gửi tin nhắn"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Nội dung văn bản của tin nhắn"
+                }
+              },
+              "required": ["role", "content"]
+            }
+          },
+          "max_tokens": {
+            "type": "integer",
+            "description": "Số lượng token tối đa cho kết quả sinh ra"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "Tham số kiểm soát tính ngẫu nhiên của kết quả sinh"
+          },
+          "seed": {
+            "type": "integer",
+            "description": "Random seed để đảm bảo kết quả sinh có thể lặp lại (deterministic)"
+          }
+        },
+        "required": ["model", "messages", "max_tokens", "temperature", "seed"]
+      }
+    },
+    "required": ["request_id", "timestamp_ms", "workload_type", "body"]
+  },
+  "example": {
+    "request_id": 0,
+    "timestamp_ms": 0,
+    "workload_type": "conversation",
+    "body": {
+      "model": "Qwen3.5-2B",
+      "messages": [
+        {
+          "role": "system",
+          "content": "node implementation capacity at batch stream rank, network effective user score..."
+        },
+        {
+          "role": "user",
+          "content": "node implementation capacity at batch stream rank, network effective user score..."
+        }
+      ],
+      "max_tokens": 128,
+      "temperature": 0.7,
+      "seed": 42
+    }
+  }
+}

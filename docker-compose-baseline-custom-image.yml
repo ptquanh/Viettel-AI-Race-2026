@@ -1,6 +1,7 @@
 services:
   model:
-    image: vllm/vllm-openai:v0.22.1
+    # CHỈ THAY ĐỔI DUY NHẤT DÒNG NÀY (Đã test Image Public)
+    image: ptquanh/viettel-qwen35-2b:bf16-v1
     entrypoint:
       - python3
       - -m
@@ -10,23 +11,13 @@ services:
       - --served-model-name=Qwen3.5-2B
       - --host=0.0.0.0
       - --port=8000
-
-      # Tối ưu VRAM
-      - --max-model-len=8192
-      - --gpu-memory-utilization=0.90
-
-      # Đặc trị TTFT P95
-      - --max-num-seqs=64
-      - --max-num-batched-tokens=8192
-      - --disable-log-requests
-
-      # Tham số gốc BTC (BẮT BUỘC)
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
       - --tensor-parallel-size=1
       - --enable-prefix-caching
-
     ports:
       - "8000:8000"
-    shm_size: "4g"
+    shm_size: "2g"
     deploy:
       resources:
         reservations:

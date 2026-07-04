@@ -10,27 +10,22 @@ services:
       - --served-model-name=Qwen3.5-2B
       - --host=0.0.0.0
       - --port=8000
-
-      # Tối ưu VRAM
+      
+      # --- ĐÒN CHÍ MẠNG: Hạ từ 262144 xuống 8192 ---
+      # Giúp vLLM giải phóng bộ nhớ đệm ẩn, gom được nhiều request xử lý cùng lúc hơn (Batching)
       - --max-model-len=8192
-      - --gpu-memory-utilization=0.90
-
-      # Đặc trị TTFT P95
-      - --max-num-seqs=64
-      - --max-num-batched-tokens=8192
-      - --disable-log-requests
-
-      # Tham số gốc BTC (BẮT BUỘC)
+      
+      # Giữ nguyên các tham số chắc chắn chạy được của BTC
+      - --gpu-memory-utilization=0.95
       - --tensor-parallel-size=1
       - --enable-prefix-caching
-
     ports:
       - "8000:8000"
-    shm_size: "4g"
+    shm_size: "2g"
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
