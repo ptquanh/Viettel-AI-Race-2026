@@ -27,8 +27,14 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 19  | `submissions/06072026/1359` | Baseline mới + `--no-enable-log-requests`                                                                |   **15.97**   | Sửa flag tắt log request đúng cách                                        | Điểm số cải thiện (+0.19), tail latency tốt hơn     |
 | 20  | `submissions/06072026/1429` | Baseline mới + `--num-scheduler-steps=8`                                                                 |   **Fail**    | Thử nghiệm multi-step scheduling                                          | Lỗi exited 2 (unrecognized args: không được hỗ trợ) |
 | 21  | `submissions/06072026/1652` | Baseline mới + `--quantization=fp8`                                                                      |   **18.99**   | Bật quantization FP8 cho model weights                                    | Điểm số vọt lên (+3.02), TTFT cải thiện 16%, TPOT tốt |
+| 22  | `submissions/06072026/1727` | Baseline mới + `--enforce-eager`                                                                         |   **Fail**    | Tắt CUDA Graphs để chạy Eager Mode                                        | Lỗi Timeout (exceeded 2700s). Cổ chai CPU-GPU lớn.   |
+| 23  | `submissions/06072026/1748` | Baseline mới + `OMP_NUM_THREADS=1`                                                                       |   **17.33**   | Giới hạn OpenMP luồng CPU về 1 thread                                     | Điểm số giảm (-1.66), TTFT tệ hơn do giới hạn luồng CPU|
+| 24  | `submissions/06072026/1820` | Baseline mới + `--max-model-len=131072`                                                                  |   **12.74**   | Giảm giới hạn context length xuống 131k                                   | Điểm số giảm sâu (-6.25), tăng vọt latency do ảnh hưởng RadixAttention|
 
 > **Lưu ý:** Các submission STT1-3 sử dụng custom image (`viettel-qwen-local:v1`, `ptquanh/viettel-qwen35-2b:bf16-v1`) bị fail do image **chưa được push lên Docker Hub** tại thời điểm submit. Kể từ STT7 (`submissions/04072026/0643`), custom image `ptquanh/viettel-qwen35-2b:bf16-v1` đã được push thành công và hoạt động bình thường (đạt 15.03 điểm).
+
+
+
 
 
 ---

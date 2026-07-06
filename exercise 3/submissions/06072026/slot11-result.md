@@ -1,7 +1,9 @@
-# Kết quả Benchmark - Slot 11 06/07/2026 (max-model-len 49152 Test)
+# Kết quả Benchmark - Slot 11 06/07/2026 (max-num-seqs=128 Test)
 
-- **Cấu hình**: Baseline mới + `--max-model-len=49152` (sử dụng image gốc `vllm/vllm-openai:v0.22.1`).
-- **Mục đích**: Xác minh xem việc hạ giới hạn độ dài mô hình xuống 49k (rất sát mức 42k tokens thực tế) có cải thiện hiệu năng nhờ tối ưu hóa metadata lưu trữ hay không.
+- **Cấu hình**: Baseline mới (STT21: `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8`) + `--max-num-seqs=128` (sử dụng image gốc `vllm/vllm-openai:v0.22.1`).
+- **Mục đích**: Xác minh xem việc nâng giới hạn request xử lý đồng thời lên 128 có giúp tối ưu hóa luồng xử lý và giảm CPU scheduling overhead khi weights đã lượng tử hóa FP8 hay không.
+
+
 
 ## Chỉ số đo được
 

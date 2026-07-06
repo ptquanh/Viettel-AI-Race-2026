@@ -17,6 +17,7 @@ services:
       
       - --enable-chunked-prefill
       - --no-enable-log-requests
+      - --quantization=fp8
       - --tensor-parallel-size=1
       - --enable-prefix-caching
     ports:

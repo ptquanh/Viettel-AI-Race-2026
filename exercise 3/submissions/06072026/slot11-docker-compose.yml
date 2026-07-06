@@ -11,12 +11,16 @@ services:
       - --host=0.0.0.0
       - --port=8000
       
-      # --- ĐƠN BIẾN THỬ NGHIỆM SLOT 11 (06/07) ---
-      - --max-model-len=49152
-      
+      # --- CẤU HÌNH THÀNH CÔNG GẦN NHẤT (Baseline mới) ---
+      - --max-model-len=262144
       - --gpu-memory-utilization=0.95
       - --enable-chunked-prefill
       - --no-enable-log-requests
+      - --quantization=fp8
+      
+      # --- ĐƠN BIẾN THỬ NGHIỆM SLOT 11 (06/07) ---
+      - --max-num-seqs=128
+      
       - --tensor-parallel-size=1
       - --enable-prefix-caching
     ports:

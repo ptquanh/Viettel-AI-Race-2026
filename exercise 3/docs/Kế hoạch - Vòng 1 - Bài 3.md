@@ -221,21 +221,20 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 4    | + `--no-enable-log-requests` | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                |
 | 5    | + `--num-scheduler-steps=8`  | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**           |
 | 6    | + `--quantization=fp8`       | **Thành công vọt điểm (18.99 điểm)**. TTFT P50=569ms (-16%), P95=8520ms, TPOT=51ms, GPQA drop 1%.      | ✅ **Bật mặc định** (baseline mới) |
+| 7    | + `--enforce-eager`          | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s.                                             | ❌ **CẤM DÙNG** (nghẽn CPU nặng)   |
+| 8    | + `OMP_NUM_THREADS=1` (env)  | **Thành công nhưng giảm điểm (17.33 điểm)**. TTFT P50=624ms, P95=8995ms, TPOT=50ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
+| 9    | + `--max-model-len=131072`   | **Thành công nhưng giảm điểm sâu (12.74 điểm)**. TTFT P50=739ms, P95=12682ms, TPOT=68ms, GPQA drop 0%. | ❌ **CẤM HẠ CONTEXT** (tụt cache)  |
 
-> Lịch trình thử nghiệm cho 8 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
+> Lịch trình thử nghiệm cho 5 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
 
-| Slot | Cấu hình = Best Config + ...      | Mục đích                                                          |
-| :--- | :-------------------------------- | :---------------------------------------------------------------- |
-| 7    | + `--enforce-eager`               | Xác minh tắt CUDA graphs (giải phóng VRAM, giảm startup overhead) |
-| 8    | + `OMP_NUM_THREADS=1` (env)       | Xác minh CPU thread limit (giảm CPU contention trên 3 cores)      |
-| 9    | + `--max-model-len=131072`        | Test giảm context length xuống 131k (an toàn, > 42k input max)    |
-| 10   | + `--max-model-len=65536`         | Test giảm context length xuống 65k (tiết kiệm thêm VRAM)          |
-| 11   | + `--max-model-len=49152`         | Test giảm context length xuống 49k (tiết kiệm thêm VRAM tối đa)   |
-| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn                                   |
-| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu                                     |
-| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa                                     |
+| Slot | Cấu hình = Best Config + ...      | Mục đích                                                        |
+| :--- | :-------------------------------- | :-------------------------------------------------------------- |
+| 10   | + `--max-num-seqs=256`            | Thử nghiệm nâng concurrency giới hạn xử lý đồng thời lên 256    |
+| 11   | + `--max-num-seqs=128`            | Thử nghiệm nâng concurrency giới hạn xử lý đồng thời lên 128    |
+| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn (0.90)                          |
+| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu trung gian (0.92)                 |
+| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98)                            |
 
-| 14 | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa |
 
 #### Ngày 07/07 — Deep Parameters Tuning & Combo Exploit (15 Slots)
 
