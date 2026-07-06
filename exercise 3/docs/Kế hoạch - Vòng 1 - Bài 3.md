@@ -224,17 +224,16 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 7    | + `--enforce-eager`          | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s.                                             | ❌ **CẤM DÙNG** (nghẽn CPU nặng)   |
 | 8    | + `OMP_NUM_THREADS=1` (env)  | **Thành công nhưng giảm điểm (17.33 điểm)**. TTFT P50=624ms, P95=8995ms, TPOT=50ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
 | 9    | + `--max-model-len=131072`   | **Thành công nhưng giảm điểm sâu (12.74 điểm)**. TTFT P50=739ms, P95=12682ms, TPOT=68ms, GPQA drop 0%. | ❌ **CẤM HẠ CONTEXT** (tụt cache)  |
+| 10   | + `--max-num-seqs=256`       | **Thành công nhưng giảm điểm (17.82 điểm)**. TTFT P50=618ms, P95=8390ms, TPOT=51ms, GPQA drop 4%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
+| 11   | + `--max-num-seqs=128`       | **Thành công nhưng giảm điểm (17.71 điểm)**. TTFT P50=618ms, P95=8497ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
 
-> Lịch trình thử nghiệm cho 5 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
+> Lịch trình thử nghiệm cho 3 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
 
-| Slot | Cấu hình = Best Config + ...      | Mục đích                                                        |
-| :--- | :-------------------------------- | :-------------------------------------------------------------- |
-| 10   | + `--max-num-seqs=256`            | Thử nghiệm nâng concurrency giới hạn xử lý đồng thời lên 256    |
-| 11   | + `--max-num-seqs=128`            | Thử nghiệm nâng concurrency giới hạn xử lý đồng thời lên 128    |
-| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn (0.90)                          |
-| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu trung gian (0.92)                 |
-| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98)                            |
-
+| Slot | Cấu hình = Best Config + ...      | Mục đích                                        |
+| :--- | :-------------------------------- | :---------------------------------------------- |
+| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn (0.90)          |
+| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu trung gian (0.92) |
+| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98)            |
 
 #### Ngày 07/07 — Deep Parameters Tuning & Combo Exploit (15 Slots)
 
