@@ -1,0 +1,31 @@
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+
+      # --- ĐÒN CHÍ MẠNG: Hạ từ 262144 xuống 8192 ---
+      # Giúp vLLM giải phóng bộ nhớ đệm ẩn, gom được nhiều request xử lý cùng lúc hơn (Batching)
+      - --max-model-len=8192
+
+      # Giữ nguyên các tham số chắc chắn chạy được của BTC
+      - --gpu-memory-utilization=0.95
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

@@ -1,0 +1,58 @@
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+
+    environment:
+      - VLLM_USE_V1=1
+      - VLLM_USE_FASTOKENS=1
+      - VLLM_ENABLE_V1_MULTIPROCESSING=0
+      - OMP_NUM_THREADS=3
+      - HF_HUB_OFFLINE=1
+      - VLLM_NO_USAGE_STATS=1
+      - DO_NOT_TRACK=1
+
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --dtype=auto
+
+      # --- TỐI ƯU VRAM & KV CACHE ---
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.90
+      - --kv-cache-dtype=fp8
+      - --block-size=16
+      - --swap-space=2
+
+      # --- TỐI ƯU TTFT & ĐIỀU PHỐI (CHỐNG NGHẼN CPU) ---
+      - --max-num-seqs=32
+      - --max-num-batched-tokens=8192
+      - --max-num-partial-prefills=1
+      - --max-long-partial-prefills=1
+      - --long-prefill-token-threshold=512
+
+      # --- GIẢM OVERHEAD ---
+      - --disable-log-requests
+      - --disable-log-stats
+      - --enforce-eager
+
+      # --- THAM SỐ GỐC ---
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

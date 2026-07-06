@@ -1,0 +1,36 @@
+services:
+  model:
+    # NÂNG CẤP ENGINE MỚI NHẤT
+    image: vllm/vllm-openai:v0.4.2
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+
+      # Giữ an toàn để vượt qua bài primer của BTC
+      - --max-model-len=32768
+      - --gpu-memory-utilization=0.95
+
+      # --- VŨ KHÍ HẠNG NẶNG (Mở khóa nhờ v0.4.2) ---
+      - --kv-cache-dtype=fp8 # Giảm 50% VRAM, nhét đủ 120 requests
+      - --disable-log-requests # Triệt tiêu overhead cho 3 Core CPU
+
+      # Tham số BTC
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g" # Tăng lên 4G để hỗ trợ buffer tốt hơn
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

@@ -1,0 +1,53 @@
+services:
+  model:
+    # BẮT BUỘC SỬA: Trỏ về image chứa model weights bạn đã push lên Docker Hub
+    image: ptquanh/viettel-qwen-local:v1
+
+    environment:
+      # --- CPU BOTTLENECK MITIGATION (Cứu nguy cho 3 Cores) ---
+      # Ép các thư viện toán học không đẻ thêm luồng phụ gây nghẽn CPU
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+    entrypoint:
+      - python3 #Don't change this to vllm-server
+      - -m #Don't change this to vllm-server
+      - vllm.entrypoints.openai.api_server #Don't change this to vllm-server
+    command:
+      - --model=/model #Don't change this to vllm-server
+      - --served-model-name=Qwen3.5-2B #Don't change this to vllm-server
+      - --host=0.0.0.0 #Don't change this to vllm-server
+      - --port=8000 #Don't change this to vllm-server
+
+      # --- 1. TỐI ƯU HÓA BỘ NHỚ (VRAM 18GB) ---
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.93
+      - --dtype=bfloat16
+
+      # --- 2. TỐI ƯU HÓA TTFT ---
+      - --max-num-batched-tokens=1024
+      # (Đã xóa --enable-chunked-prefill vì V1 Engine luôn bật)
+
+      # --- 3. TỐI ƯU HÓA TPOT & CPU OVERHEAD ---
+      - --max-num-seqs=64
+      # (Đã xóa --num-scheduler-steps vì kiến trúc V1 đã loại bỏ)
+
+      # --- Tham số giữ nguyên ---
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        # Bám sát giới hạn tài nguyên của hệ thống BTC
+        limits:
+          cpus: '3.0'
+          memory: 8G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
