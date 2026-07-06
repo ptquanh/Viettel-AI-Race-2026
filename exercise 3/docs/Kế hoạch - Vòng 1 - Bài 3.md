@@ -227,13 +227,13 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 10   | + `--max-num-seqs=256`            | **Thành công nhưng giảm điểm (17.82 điểm)**. TTFT P50=618ms, P95=8390ms, TPOT=51ms, GPQA drop 4%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
 | 11   | + `--max-num-seqs=128`            | **Thành công nhưng giảm điểm (17.71 điểm)**. TTFT P50=618ms, P95=8497ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
 | 12   | + `--gpu-memory-utilization=0.90` | **Thành công nhưng giảm điểm (17.58 điểm)**. TTFT P50=627ms, P95=8739ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (giảm cache pool) |
+| 13   | + `--gpu-memory-utilization=0.92` | **Thành công nhưng giảm điểm (18.07 điểm)**. TTFT P50=609ms, P95=8488ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (giảm nhẹ cache)  |
 
-> Lịch trình thử nghiệm cho 2 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
+> Lịch trình thử nghiệm cho 1 slot còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
 
-| Slot | Cấu hình = Best Config + ...      | Mục đích                                        |
-| :--- | :-------------------------------- | :---------------------------------------------- |
-| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu trung gian (0.92) |
-| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98)            |
+| Slot | Cấu hình = Best Config + ...      | Mục đích                             |
+| :--- | :-------------------------------- | :----------------------------------- |
+| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98) |
 
 #### Ngày 07/07 — Deep Parameters Tuning & Combo Exploit (15 Slots)
 
