@@ -1,4 +1,4 @@
-# Kết quả Benchmark - 14:35 06/07/2026 (Slot 5 - Multi-step Scheduling Test)
+# Kết quả Benchmark - 14:29 06/07/2026 (Slot 5 - Multi-step Scheduling Test - THẤT BẠI)
 
 - **Cấu hình**: Baseline mới (STT19: `--enable-chunked-prefill` + `--no-enable-log-requests`) + `--num-scheduler-steps=8` (sử dụng image gốc `vllm/vllm-openai:v0.22.1`).
 - **Mục đích**: Tối ưu hóa TPOT (TBT) bằng cách cho phép scheduler lập lịch trước 8 bước cùng lúc, giảm CPU overhead trong quá trình decode.
