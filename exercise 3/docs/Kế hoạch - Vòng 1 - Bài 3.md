@@ -14,7 +14,7 @@ updated: 2026-07-06
 **Mục tiêu:** Tối ưu hóa inference Qwen/Qwen3.5-2B (BF16) trên vLLM, tối đa hóa ERS.
 **Hạ tầng BTC:** MiG H200 (18GB VRAM / 3 CPU cores / 8GB RAM).
 **Deadline:** 30/07/2026 (Còn 24 ngày).
-**Chiến lược:** Submit-as-Test (max 5 submit/ngày, không có local GPU tương đương).
+**Chiến lược:** Submit-as-Test (max 15 submit/ngày, không có local GPU tương đương).
 
 ---
 
@@ -101,7 +101,7 @@ updated: 2026-07-06
 
 ### Không có Local GPU → Submit = Test
 
-Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**, cooldown 600s.
+Mỗi submission trên portal BTC = 1 lượt test. Tối đa **15 submit/ngày**, cooldown 600s.
 
 ### Quy định của BTC về độ biến động (Variance)
 
@@ -176,15 +176,16 @@ Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**
 
 ---
 
-## 3. 📝 Nguyên tắc sử dụng 5 Slot/Ngày
+## 3. 📝 Nguyên tắc sử dụng 15 Slot/Ngày
 
-| Slot       | Vai trò                                                      | Ví dụ                                  |
-| :--------- | :----------------------------------------------------------- | :------------------------------------- |
-| **Slot 1** | **Test Biến A**: Thử nghiệm 1 flag tối ưu tiềm năng          | Ví dụ: thêm `--enable-chunked-prefill` |
-| **Slot 2** | **Test Biến B**: Thử nghiệm 1 flag tối ưu khác               | Ví dụ: thêm `--kv-cache-dtype fp8`     |
-| **Slot 3** | **Test Biến C**: Thử nghiệm 1 flag tối ưu khác               | Ví dụ: thêm `--disable-log-requests`   |
-| **Slot 4** | **Test Biến D**: Thử nghiệm 1 flag tối ưu khác               | Ví dụ: thêm `--num-scheduler-steps 8`  |
-| **Slot 5** | **Verify / Combo**: Kết hợp các biến ĐÃ CHỨNG MINH hoạt động | Chỉ combo từ các flag đã pass riêng lẻ |
+Với việc BTC nâng hạn mức lên **15 submit/ngày**, chúng ta có thể đẩy nhanh tốc độ thử nghiệm gấp 3 lần bằng cách phân bổ tài nguyên theo cơ cấu:
+
+| Nhóm Slots          | Số lượng | Nội dung thử nghiệm                       | Cách áp dụng                                                  |
+| :------------------ | :------: | :---------------------------------------- | :------------------------------------------------------------ |
+| **Flag Discovery**  | 3 slots  | Thử nghiệm các flag tối ưu mới (đơn biến) | Add 1 flag lạ vào Baseline để xem hệ thống có chạy được không |
+| **Grid Search A**   | 3 slots  | Khảo sát tham số `max-model-len`          | Test các mốc (49152, 65536, 131072) để tìm điểm tối ưu        |
+| **Grid Search B**   | 3 slots  | Khảo sát tham số `gpu-memory-utilization` | Test các mốc (0.90, 0.92, 0.98) để tìm điểm tối ưu            |
+| **Combo / Exploit** | 6 slots  | Kết hợp các biến thắng từ 3 nhóm trên     | Ghép các flag và tham số tối ưu đã được xác minh hoạt động    |
 
 ---
 
@@ -208,71 +209,74 @@ _Đã hoàn thành: Setup pipeline, baseline 15.26 điểm, 15 submissions (6 su
 
 _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập trung vào chunked prefill + FP8._
 
-#### Ngày 06/07 — Flag Discovery Day 1 (QUAN TRỌNG NHẤT)
+#### Ngày 06/07 — Flag Discovery & Parameter Grid Search (15 Slots)
 
-> Kết quả thực tế của 5 slots thử nghiệm (Image `vllm/vllm-openai:v0.22.1`):
+> Kết quả thực tế của 5 slots thử nghiệm đầu tiên (Image `vllm/vllm-openai:v0.22.1`):
 
 | Slot | Config = Baseline + ...      | Kết quả thực tế & Chỉ số                                                                               | Đánh giá                           |
 | :--- | :--------------------------- | :----------------------------------------------------------------------------------------------------- | :--------------------------------- |
-| 1    | + `--enable-chunked-prefill` | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định** (baseline mới) |
+| 1    | + `--enable-chunked-prefill` | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                |
 | 2    | + `--kv-cache-dtype fp8`     | **Thành công nhưng sụt điểm sâu (10.24 điểm)**. TTFT P50=958ms (+43%), TPOT=71ms (+20%), GPQA drop 9%. | ❌ **CẤM DÙNG** (overhead lớn)     |
 | 3    | + `--disable-log-requests`   | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Sai tên flag**                |
-| 4    | + `--no-enable-log-requests` | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định** (baseline mới) |
+| 4    | + `--no-enable-log-requests` | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                |
 | 5    | + `--num-scheduler-steps=8`  | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**           |
+| 6    | + `--quantization=fp8`       | **Thành công vọt điểm (18.99 điểm)**. TTFT P50=569ms (-16%), P95=8520ms, TPOT=51ms, GPQA drop 1%.      | ✅ **Bật mặc định** (baseline mới) |
 
-#### Ngày 07/07 — Flag Discovery Day 2 + Đầu tiên Exploit
+> Lịch trình thử nghiệm cho 8 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
 
-> Mỗi slot thay đổi **DUY NHẤT 1 biến** so với cấu hình tốt nhất hiện tại (STT19: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` = 15.97 điểm).
+| Slot | Cấu hình = Best Config + ...      | Mục đích                                                          |
+| :--- | :-------------------------------- | :---------------------------------------------------------------- |
+| 7    | + `--enforce-eager`               | Xác minh tắt CUDA graphs (giải phóng VRAM, giảm startup overhead) |
+| 8    | + `OMP_NUM_THREADS=1` (env)       | Xác minh CPU thread limit (giảm CPU contention trên 3 cores)      |
+| 9    | + `--max-model-len=131072`        | Test giảm context length xuống 131k (an toàn, > 42k input max)    |
+| 10   | + `--max-model-len=65536`         | Test giảm context length xuống 65k (tiết kiệm thêm VRAM)          |
+| 11   | + `--max-model-len=49152`         | Test giảm context length xuống 49k (tiết kiệm thêm VRAM tối đa)   |
+| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn                                   |
+| 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu                                     |
+| 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa                                     |
 
-| Slot | Cấu hình = Best Config + ... | Mục đích                                                          |
-| :--- | :--------------------------- | :---------------------------------------------------------------- |
-| 1    | + `--quantization fp8`       | Xác minh FP8 weights (xem có tương thích và sụt GPQA không)       |
-| 2    | + `--enforce-eager`          | Xác minh tắt CUDA graphs (giải phóng VRAM, giảm startup overhead) |
-| 3    | + `OMP_NUM_THREADS=1` (env)  | Xác minh CPU thread limit (giảm CPU contention trên 3 cores)      |
-| 4    | + `--max-model-len=65536`    | Test giảm context length xuống 65k (an toàn, > 42k input max)     |
-| 5    | + `--max-model-len=49152`    | Test giảm context length xuống 49k (tiết kiệm thêm VRAM)          |
+| 14 | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa |
 
-#### Ngày 08-09/07 — Exploit Phase
+#### Ngày 07/07 — Deep Parameters Tuning & Combo Exploit (15 Slots)
 
-- Xây dựng combo từ các flags ĐÃ CHỨNG MINH hoạt động
-- Mỗi ngày: 5 combo tests
-- Tìm combo cho điểm cao nhất
+> Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với các tham số tối ưu tìm được vào ngày 06/07.
 
-#### Ngày 10-11/07 — max-model-len + gpu-memory-utilization Grid Search
+- Grid search `--max-num-seqs` (64, 96, 128, 192) kết hợp với cấu hình tốt nhất.
+- Grid search `--max-num-batched-tokens` (4096, 8192, 16384) kết hợp với chunked prefill.
+- Test `--swap-space 0` vs default.
+- Thử nghiệm các combo kết hợp các biến thắng của ngày 06/07.
+- Tìm kiếm combo tối ưu nhất và chốt "Reference Config v2" của vLLM.
 
-- `--max-model-len`: 49152, 65536, 131072 (so với baseline 262144)
-- `--gpu-memory-utilization`: 0.90, 0.92, 0.95, 0.98
-- Kết hợp với các flags thắng từ ngày 08-09
+#### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
-#### Ngày 12/07 — Tổng kết & Đóng băng Tuần 2
+- **Ngày 08/07 (15 slots):** Thiết lập custom Docker image chạy **SGLang** và test khả năng tương thích. SGLang có RadixAttention giúp tối ưu hóa prefix caching tốt hơn vLLM.
+- **Ngày 09/07 (15 slots):** Chạy so sánh head-to-head trực tiếp giữa SGLang và vLLM (Reference Config v2) trên trace benchmark của BTC. Chốt framework tối ưu hơn.
 
-- Chạy config tốt nhất để đo đạc độ ổn định
-- Đóng băng "Reference Config v2"
+#### Ngày 10-12/07 — Advanced Techniques & Early Freezing (45 Slots)
+
+- Thử nghiệm speculative decoding (nếu framework/model hỗ trợ ổn định).
+- Thử nghiệm custom entrypoint warmup script trước khi benchmark chạy chính thức.
+- Đóng băng cấu hình tối ưu nhất cho giai đoạn này ("Reference Config v3").
 
 ---
 
-### Tuần 3 (13/07 – 20/07): Fine-tuning & Alternatives
+### Tuần 3 (13/07 – 20/07): Fine-tuning nâng cao & Ổn định hóa (15 slots/ngày)
 
-_Mục tiêu: Squeeze thêm 2-5 điểm. Thử SGLang nếu vLLM bão hòa._
+_Mục tiêu: Đưa điểm số tiệm cận mốc mục tiêu 25-30 điểm, kiểm thử diện rộng._
 
-#### Ngày 13-15/07 — Fine-tuning tham số
+#### Ngày 13-16/07 — Tối ưu hóa cực hạn
 
-- Grid search `--max-num-seqs` (64, 96, 128) kết hợp config tốt nhất
-- Grid search `--max-num-batched-tokens` (4096, 8192, 16384) kết hợp chunked prefill (nếu khả dụng)
-- Test `--max-model-len` fine-tuning: 49152 vs 65536 vs 131072 (nếu chưa test ở Tuần 2)
-- Test `--swap-space 0` vs default
+- Tiếp tục tinh chỉnh các tham số sâu của framework đã chọn (vLLM/SGLang).
+- Khảo sát độ ổn định của điểm số khi lượng VRAM thay đổi nhẹ.
 
-#### Ngày 16-18/07 — Alternative Framework (nếu cần)
+#### Ngày 17-19/07 — Đánh giá phân phối độ trễ
 
-- Nếu vLLM đã bão hoà (~20 điểm), thử **SGLang** với custom Docker image
-- SGLang có RadixAttention (prefix caching tiên tiến hơn)
-- So sánh head-to-head với config vLLM tốt nhất
+- Chạy benchmark liên tục để vẽ biểu đồ phân bổ TTFT và TPOT.
+- Phân tích nhóm request nào vẫn bị timeout (>1500ms TTFT) để tìm cách khắc phục cá biệt.
 
-#### Ngày 19-20/07 — Tổng kết Tuần 3
+#### Ngày 20/07 — Đóng băng Reference Config v4
 
-- Chốt framework (vLLM vs SGLang)
-- Đóng băng "Reference Config v3"
-- Variance check: chạy config tốt nhất 2-3 lần để xác nhận ổn định
+- Chốt cấu hình ứng cử viên sáng giá nhất cho vòng chung cuộc.
 
 ---
 

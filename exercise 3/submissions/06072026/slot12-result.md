@@ -1,0 +1,10 @@
+# Kết quả Benchmark - Slot 12 06/07/2026 (gpu-memory-utilization 0.90 Test)
+
+- **Cấu hình**: Baseline mới + `--gpu-memory-utilization=0.90` (sử dụng image gốc `vllm/vllm-openai:v0.22.1`).
+- **Mục đích**: Xác minh xem việc hạ thấp giới hạn sử dụng GPU memory xuống 0.90 có cải thiện độ ổn định hoặc trễ do tránh phân mảnh bộ nhớ hay không.
+
+## Chỉ số đo được
+
+TBD
+
+---
