@@ -22,4 +22,6 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 14  | `submissions/05072026/2244` | Image gốc BTC, `--max-model-len=32768`, `--gpu-memory-utilization=0.98`, `--max-num-batched-tokens=1024` |   **5.21**    | Ép đọc tối đa 1024 token/bước để ép xài chung cache                       | Điểm giảm sâu (hạn chế song song thái quá)       |
 | 15  | `submissions/05072026/2318` | Sử dụng `vllm/vllm-openai:v0.4.2` + `--kv-cache-dtype=fp8`                                               |   **Fail**    | 80/120 transport errors                                                   | Lỗi truyền tải khi benchmark                     |
 
+> **Lưu ý:** Các submission STT1-3 sử dụng custom image (`viettel-qwen-local:v1`, `ptquanh/viettel-qwen35-2b:bf16-v1`) bị fail do image **chưa được push lên Docker Hub** tại thời điểm submit. Kể từ STT7 (`submissions/04072026/0643`), custom image `ptquanh/viettel-qwen35-2b:bf16-v1` đã được push thành công và hoạt động bình thường (đạt 15.03 điểm).
+
 ---

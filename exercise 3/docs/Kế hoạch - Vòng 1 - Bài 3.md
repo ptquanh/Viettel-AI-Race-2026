@@ -4,12 +4,12 @@ tags:
   -  #LLM
   -  #Inference_Optimization
   -  #ActionPlan
-status: 🚀 Active (Updated)
+status: 🚀 Active (Revised v3)
 date: 2026-07-03
 updated: 2026-07-06
 ---
 
-# 🗺️ Kế hoạch Hành động Bài 3 (Vòng 1) - Revised v2
+# 🗺️ Kế hoạch Hành động Bài 3 (Vòng 1) - Revised v3
 
 **Mục tiêu:** Tối ưu hóa inference Qwen/Qwen3.5-2B (BF16) trên vLLM, tối đa hóa ERS.
 **Hạ tầng BTC:** MiG H200 (18GB VRAM / 3 CPU cores / 8GB RAM).
@@ -18,7 +18,7 @@ updated: 2026-07-06
 
 ---
 
-## 0. 🔍 Phân tích Trace & Kết quả đã chạy (Tình báo hiện tại)
+## 0. 🔍 Tình báo tích luỹ (Trace + 15 Submissions)
 
 ### Trace Profile (trace-round1.jsonl)
 
@@ -34,94 +34,126 @@ updated: 2026-07-06
 | Input length (chars)   | **78k → 167k chars** (~20k → 42k tokens)                   |
 | System prompt          | **1 prompt chung** (shared prefix → prefix caching CÓ LỢI) |
 
-### Kết luận chiến lược từ Trace
+### Phân tích nguyên nhân gốc của 15 Submissions
 
-1. **Input CỰC DÀI** (20k-42k tokens) → Prefill phase chiếm phần lớn TTFT. Đây là nút thắt chính.
-2. **Output NGẮN** (max 200 tokens) → Decode phase rất nhẹ, TPOT không phải vấn đề lớn.
-3. **System prompt chung** → `--enable-prefix-caching` là BẮT BUỘC và rất hiệu quả.
-4. **Bursty arrival** → Nhiều request đến gần nhau (25ms interval), cần xử lý batch tốt.
-5. **max-model-len phải ≥ input max** → 42k tokens input + 200 tokens output ≈ cần tối thiểu ~45k tokens. Giá trị 32768 có thể quá nhỏ (truncate input dài nhất).
+#### ✅ 4 Submissions THÀNH CÔNG
 
-### Kết quả 6 Submissions đã chạy
+| STT | Config chính                                              |   Điểm    | Bài học                                 |
+| :-- | :-------------------------------------------------------- | :-------: | :-------------------------------------- |
+| 4   | Baseline gốc BTC (`max-model-len=262144`, `gpu-mem=0.95`) | **15.26** | Mốc chuẩn. 84/120 passed SLO            |
+| 7   | Custom image `bf16-v1`, tham số tương đương baseline      | **15.03** | Custom image khả thi                    |
+| 12  | `max-model-len=32768` + `gpu-mem=0.98`                    | **15.00** | Gần baseline, có thể truncate input dài |
+| 10  | Baseline + `max-num-seqs=32`                              | **2.64**  | ❌ Concurrency quá thấp                 |
+| 11  | Baseline + `max-num-seqs=256`                             | **14.14** | ❌ Overhead scheduler tăng              |
+| 14  | STT12 + `max-num-batched-tokens=1024`                     | **5.21**  | ❌ Batch quá nhỏ, nghẽn pipeline        |
 
-| STT | Config chính                                              |   Điểm    | Bài học rút ra                                            |
-| :-- | :-------------------------------------------------------- | :-------: | :-------------------------------------------------------- |
-| 1   | Baseline gốc BTC (`max-model-len=262144`, `gpu-mem=0.95`) | **15.26** | Mốc chuẩn. 84/120 passed SLO. TTFT P50=670ms, P95=10058ms |
-| 2   | Custom image, tham số tương đương baseline                | **15.03** | Custom image khả thi, giảm nhẹ (có thể do pull time)      |
-| 3   | Baseline + `max-num-seqs=32`                              | **2.64**  | ❌ Giới hạn concurrency quá thấp → chỉ 10/120 passed SLO  |
-| 4   | Baseline + `max-num-seqs=256`                             | **14.14** | ❌ Tăng concurrency quá cao → overhead scheduler tăng     |
-| 5   | `max-model-len=32768` + `gpu-mem=0.98`                    | **15.00** | Gần baseline nhưng có thể truncate input dài nhất         |
-| 6   | STT5 + `max-num-batched-tokens=1024`                      | **5.21**  | ❌ Giới hạn batch quá thấp → chỉ 46/120 passed SLO        |
+#### ❌ 9 Submissions THẤT BẠI — Phân tích nguyên nhân gốc
 
-### Phát hiện quan trọng
+> ⚠️ **PHÁT HIỆN QUAN TRỌNG:** Hầu hết các flag tối ưu (chunked prefill, FP8, scheduler steps) **CHƯA BAO GIỜ** được test trên image gốc BTC `vllm/vllm-openai:v0.22.1`. Chúng chỉ được thử trên image bị lỗi hoặc phiên bản vLLM cũ.
 
-- **TTFT P95 ≈ 10 giây** cho mọi config đạt ~15 điểm → ~36 requests có TTFT > SLO ceiling (1500ms). Đây chính là input dài nhất (30k-42k tokens), prefill mất rất lâu.
-- **ERS hiện tại ≈ 0.1526** (15.26/100) → Rất thấp. Phần lớn điểm đến từ requests ngắn (TTFT < 1500ms) và TPOT tốt.
-- **84/120 passed SLO** → 36 request bị 0 điểm do TTFT vượt ceiling 1500ms.
-- **Nút thắt #1:** Prefill time cho input dài. Cần giảm TTFT cho 36 request khổng lồ kia.
+| STT       | Nguyên nhân thất bại THỰC SỰ                                     | Chi tiết                                                                                                                                                                                        |
+| :-------- | :--------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 (1943)  | **Image chưa push lên Docker Hub** + flags chưa xác minh         | Image `viettel-qwen-local:v1` chưa được push → container không kéo được. Flags (`--enable-chunked-prefill`, `--num-scheduler-steps=8`) chưa được xác minh trên image hoạt động                  |
+| 2 (1954)  | **Image chưa push lên Docker Hub**                               | Cùng image `viettel-qwen-local:v1` chưa push, transport errors do server không khởi động được                                                                                                   |
+| 3 (2038)  | **Image chưa push** + `--max-model-len=8192` quá nhỏ             | Image `ptquanh/viettel-qwen35-2b:bf16-v1` chưa push tại thời điểm này. Ngoài ra `max-model-len=8192` cũng quá nhỏ cho trace (input 20k-42k tokens)                                              |
+| 5 (2117)  | **Quá nhiều flag lạ cùng lúc** trên image gốc BTC                | `VLLM_USE_V1=1` + `--max-num-partial-prefills` + `--long-prefill-token-threshold` + `--kv-cache-dtype=fp8` + `--enforce-eager` + `--max-model-len=8192` → Không thể xác định flag nào gây crash |
+| 6 (0631)  | **`--max-model-len=8192` + combo lỗi**                           | Có thể do conflict giữa `--max-model-len=8192` với `--max-num-batched-tokens=8192`, hoặc do `--disable-log-requests`                                                                            |
+| 8 (0701)  | **Trùng lặp cấu hình STT6**                                      | Cùng lỗi                                                                                                                                                                                        |
+| 9 (0747)  | **`--max-model-len=8192` quá nhỏ**                               | Server khởi động OK nhưng từ chối request dài → 120/120 transport errors                                                                                                                        |
+| 13 (2217) | **`vllm/vllm-openai:v0.4.2` là phiên bản CŨ**, không tương thích | v0.4.2 là bản 2024, khác hoàn toàn v0.22.1 (bản 2026)                                                                                                                                           |
+| 15 (2318) | **`v0.4.2` CŨ + không ổn định**                                  | 80/120 transport errors, bản cũ không kham nổi workload                                                                                                                                         |
+
+> **Lưu ý:** STT1-3 fail vì image chưa được push lên Docker Hub. Kể từ STT7 (`04072026/0643`), custom image đã push thành công và hoạt động bình thường (15.03 điểm).
+
+### Kết luận chiến lược RÚT RA
+
+1. **`--max-model-len=8192` là CÁI BẪY** → Input trace dài 20k-42k tokens, giá trị <32768 chắc chắn gây lỗi.
+2. **Không bao giờ đổi vLLM version** → `v0.22.1` là bản duy nhất hoạt động. `v0.4.2` (bản cũ) đã fail.
+3. **Kỷ luật đơn biến BỊ VI PHẠM NẶNG** → Hầu hết các lần fail là do thay đổi quá nhiều biến cùng lúc, không thể xác định biến nào gây lỗi.
+4. **Chunked prefill, FP8 KV cache, scheduler steps VẪN LÀ ẨN SỐ** → Chưa có bằng chứng chúng không hoạt động trên v0.22.1. Cần test lại đúng cách.
 
 ---
 
-## 1. ⚙️ Triết lý Vận hành (The Pipeline) — Revised
+## 1. ⚙️ Triết lý Vận hành — Revised
 
 ### Không có Local GPU → Submit = Test
 
-Vì không có phần cứng tương đương (MiG H200), mỗi submission trên portal BTC chính là 1 lượt test. Tối đa **5 submit/ngày**, cooldown 600s.
+Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**, cooldown 600s.
 
-### Nguyên tắc vận hành
+### Nguyên tắc TUYỆT ĐỐI (Rút kinh nghiệm từ 9 lần fail)
 
-- **Kỷ luật đơn biến:** Mỗi submit chỉ thay đổi **DUY NHẤT 1 tham số** so với config tốt nhất hiện tại.
-- **Config gốc (Reference):** Luôn giữ 1 slot/ngày để chạy lại config tốt nhất → xác nhận variance.
-- **Ghi chép cẩn thận:** Mỗi submit tạo file `HHMM-docker-compose.yml` + `HHMM-result.md` trong folder `submissions/DDMMYYYY/`.
+1. **Kỷ luật đơn biến NGHIÊM NGẶT:** Mỗi submit chỉ thay đổi **DUY NHẤT 1 tham số** so với config tốt nhất hiện tại. **KHÔNG BAO GIỜ** thay đổi 2+ biến cùng lúc.
+2. **Luôn dùng image gốc BTC** `vllm/vllm-openai:v0.22.1` cho đến khi có lý do cực kỳ thuyết phục để đổi.
+3. **`--max-model-len` ≥ 32768** (tuyệt đối không dùng 8192).
+4. **1 slot/ngày dành cho Reference** (chạy lại config tốt nhất để đo variance).
+5. **Ghi chép:** Mỗi submit → `HHMM-docker-compose.yml` + `HHMM-result.md` trong `submissions/DDMMYYYY/`.
 
 ---
 
-## 2. 🎯 Chiến lược Tối ưu (Ưu tiên theo ROI)
+## 2. 🎯 Chiến lược Tối ưu — Revised (ưu tiên theo ROI + khả thi)
 
-### Tier 1: Giảm TTFT cho input dài (Impact cao nhất)
+### 🔴 Phase 0: Flag Discovery (ƯU TIÊN CAO NHẤT)
 
-Đây là con đường duy nhất để tăng điểm đáng kể. 36/120 request đang bị 0 điểm vì TTFT > 1500ms.
+> **Mục tiêu:** Xác định chính xác flag nào được v0.22.1 hỗ trợ. Mỗi flag test RIÊNG LẺ trên baseline config.
 
-| Hướng tối ưu                                     | Cơ chế                                                                 | Kỳ vọng                                    | Ưu tiên |
-| :----------------------------------------------- | :--------------------------------------------------------------------- | :----------------------------------------- | :-----: |
-| **Chunked Prefill** (`--enable-chunked-prefill`) | Chia nhỏ prefill phase, xen kẽ với decode → giảm head-of-line blocking | Giảm TTFT P95 đáng kể                      |  🔴 P0  |
-| **FP8 KV Cache** (`--kv-cache-dtype fp8`)        | Giảm 50% bộ nhớ KV cache → fit nhiều request hơn trong VRAM            | Tăng throughput, giảm queuing time         |  🔴 P0  |
-| **FP8 Quantization** (`--quantization fp8`)      | Giảm 50% model weight → prefill nhanh hơn nhờ giảm memory bandwidth    | Giảm TTFT 20-30%                           |  🔴 P0  |
-| **Speculative Decoding**                         | Draft model sinh token nhanh hơn                                       | Chỉ giúp decode (ít impact vì output ngắn) |  🟡 P2  |
+| Flag cần xác minh             |      Đã test đúng cách?       | Kế hoạch                     |
+| :---------------------------- | :---------------------------: | :--------------------------- |
+| `--enable-chunked-prefill`    |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
+| `--kv-cache-dtype fp8`        |    ❌ Chỉ test trên v0.4.2    | **Test trên baseline image** |
+| `--quantization fp8`          |       ❌ Chưa từng test       | **Test trên baseline image** |
+| `--num-scheduler-steps N`     |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
+| `--disable-log-requests`      | ❌ Chỉ test kèm args lỗi khác | **Test trên baseline image** |
+| `--enforce-eager`             |   ❌ Chỉ test kèm V1 engine   | **Test trên baseline image** |
+| `OMP_NUM_THREADS=1` (env var) |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
 
-### Tier 2: Tối ưu Scheduling & CPU (Impact trung bình)
+### 🔴 Phase 1: Giảm TTFT (Impact cao nhất — nếu flag khả dụng)
 
-| Hướng tối ưu                                        | Cơ chế                                      | Kỳ vọng                               | Ưu tiên |
-| :-------------------------------------------------- | :------------------------------------------ | :------------------------------------ | :-----: |
-| **Multi-step Scheduling** (`--num-scheduler-steps`) | Batch nhiều decode step → giảm CPU overhead | Giảm TPOT, giải phóng CPU cho prefill |  🟠 P1  |
-| **CPU Thread Limits** (`OMP_NUM_THREADS=1`)         | Tránh thrashing 3 cores                     | Ổn định hóa, giảm variance            |  🟠 P1  |
-| **max-num-seqs tuning**                             | Tìm sweet spot (default vs. custom)         | Tối ưu batch scheduling               |  🟠 P1  |
+| Hướng tối ưu                                     | Cơ chế                                                       | Kỳ vọng               | Ưu tiên |
+| :----------------------------------------------- | :----------------------------------------------------------- | :-------------------- | :-----: |
+| **Chunked Prefill** (`--enable-chunked-prefill`) | Chia nhỏ prefill, xen kẽ decode → giảm head-of-line blocking | Giảm TTFT P95 đáng kể |  🔴 P0  |
+| **FP8 KV Cache** (`--kv-cache-dtype fp8`)        | Giảm 50% bộ nhớ KV → fit nhiều request                       | Tăng throughput       |  🔴 P0  |
+| **FP8 Quantization** (`--quantization fp8`)      | Giảm 50% model weight → prefill nhanh hơn                    | Giảm TTFT 20-30%      |  🔴 P0  |
 
-### Tier 3: Tối ưu Docker & Hệ thống (Impact thấp)
+### 🟠 Phase 2: Tối ưu Scheduling & Tham số (nếu Phase 1 không đủ)
 
-| Hướng tối ưu                      | Cơ chế                         | Kỳ vọng                | Ưu tiên |
-| :-------------------------------- | :----------------------------- | :--------------------- | :-----: |
-| **Custom Docker Image** (nhẹ hơn) | Giảm pull time, giảm RAM usage | Tăng nhẹ startup speed |  🟢 P2  |
-| **shm_size tuning**               | Tối ưu shared memory           | Minor                  |  🟢 P2  |
+| Hướng tối ưu                                | Cơ chế                                 | Kỳ vọng              | Ưu tiên |
+| :------------------------------------------ | :------------------------------------- | :------------------- | :-----: |
+| **`--num-scheduler-steps N`**               | Batch decode steps → giảm CPU overhead | Giảm TPOT            |  🟠 P1  |
+| **`--gpu-memory-utilization` tuning**       | Tìm sweet spot (0.95 vs 0.98)          | Minor                |  🟠 P1  |
+| **`--max-model-len` tuning** (65536, 49152) | Giảm metadata overhead                 | Có thể cải thiện nhẹ |  🟠 P1  |
+| **`--disable-log-requests`**                | Giảm CPU overhead                      | Minor                |  🟠 P1  |
+| **CPU Thread Limits** (`OMP_NUM_THREADS=1`) | Tránh thrashing 3 cores                | Ổn định hoá          |  🟠 P1  |
 
-### ❌ Hướng KHÔNG nên đi (đã chứng minh)
+### 🟢 Phase 3: Alternative Framework (nếu vLLM bão hòa)
 
-- `--max-num-seqs=32` hoặc quá thấp → Giết throughput (STT3: 2.64 điểm)
-- `--max-num-seqs=256` hoặc quá cao → Overhead scheduler (STT4: 14.14 điểm)
-- `--max-num-batched-tokens=1024` hoặc quá thấp → Nghẽn pipeline (STT6: 5.21 điểm)
-- `--max-model-len=32768` → Có thể truncate input dài nhất (42k tokens). Cần test kỹ.
+| Hướng                   | Mô tả                           | Khi nào                                          |
+| :---------------------- | :------------------------------ | :----------------------------------------------- |
+| **SGLang**              | RadixAttention, scheduling khác | Chỉ nếu vLLM đã squeeze hết                      |
+| **Custom Docker image** | vLLM mới hơn, nhẹ hơn           | Chỉ nếu có flag quan trọng không có trên v0.22.1 |
+
+### ❌ DANH SÁCH CẤM (đã chứng minh thất bại)
+
+| Cấu hình                          | Lý do cấm                                                 | Bằng chứng            |
+| :-------------------------------- | :-------------------------------------------------------- | :-------------------- |
+| `--max-model-len=8192`            | Input trace dài 20k-42k tokens, gây crash/transport error | STT2,3,6,8,9          |
+| `--max-num-seqs=32` hoặc quá thấp | Giết throughput                                           | STT10: 2.64 điểm      |
+| `--max-num-seqs=256` hoặc quá cao | Overhead scheduler                                        | STT11: 14.14 điểm     |
+| `--max-num-batched-tokens=1024`   | Nghẽn pipeline                                            | STT14: 5.21 điểm      |
+| `vllm/vllm-openai:v0.4.2`         | Phiên bản cũ, không tương thích                           | STT13,15: crash       |
+| `VLLM_USE_V1=1`                   | V1 engine không ổn định trên v0.22.1                      | STT5: crash           |
+| Thay đổi ≥2 biến cùng lúc         | Không xác định được nguyên nhân khi fail                  | 9/15 submissions fail |
 
 ---
 
 ## 3. 📝 Nguyên tắc sử dụng 5 Slot/Ngày
 
-| Slot       | Vai trò                                           | Ví dụ                                   |
-| :--------- | :------------------------------------------------ | :-------------------------------------- |
-| **Slot 1** | **Reference**: Chạy lại config tốt nhất hiện tại  | Xác nhận variance, đảm bảo điểm ổn định |
-| **Slot 2** | **Test Biến A**: Thay đổi 1 tham số duy nhất      | Ví dụ: thêm `--enable-chunked-prefill`  |
-| **Slot 3** | **Test Biến B**: Thay đổi 1 tham số khác          | Ví dụ: thêm `--kv-cache-dtype fp8`      |
-| **Slot 4** | **Test Biến C**: Thay đổi 1 tham số khác          | Ví dụ: thêm `--num-scheduler-steps 8`   |
-| **Slot 5** | **Verify / Combo**: Config kết hợp các biến thắng | Hoặc test edge case                     |
+| Slot       | Vai trò                                                      | Ví dụ                                  |
+| :--------- | :----------------------------------------------------------- | :------------------------------------- |
+| **Slot 1** | **Reference**: Chạy lại config tốt nhất hiện tại             | Xác nhận variance                      |
+| **Slot 2** | **Test Biến A**: Chỉ thêm/sửa 1 flag duy nhất                | Ví dụ: thêm `--enable-chunked-prefill` |
+| **Slot 3** | **Test Biến B**: Chỉ thêm/sửa 1 flag khác                    | Ví dụ: thêm `--kv-cache-dtype fp8`     |
+| **Slot 4** | **Test Biến C**: Chỉ thêm/sửa 1 flag khác                    | Ví dụ: thêm `--disable-log-requests`   |
+| **Slot 5** | **Verify / Combo**: Kết hợp các biến ĐÃ CHỨNG MINH hoạt động | Chỉ combo từ các flag đã pass riêng lẻ |
 
 ---
 
@@ -129,87 +161,78 @@ Vì không có phần cứng tương đương (MiG H200), mỗi submission trên
 
 ### ✅ Tuần 1 (03/07 – 06/07): HOÀN THÀNH
 
-_Đã hoàn thành: Setup pipeline, baseline 15.26 điểm, custom image 15.03 điểm, phân tích trace._
+_Đã hoàn thành: Setup pipeline, baseline 15.26 điểm, 15 submissions (6 success / 9 fail)._
 
-**Kết quả Tuần 1:**
+**Bài học rút ra từ Tuần 1:**
 
-- Baseline BTC = 15.26 điểm (84/120 passed SLO)
-- Custom image hoạt động tốt (15.03 điểm)
-- Đã xác định: TTFT input dài là nút thắt chính
-- Đã xác định: Prefix caching có lợi (shared system prompt)
-- Đã loại: max-num-seqs quá thấp/cao, max-num-batched-tokens quá thấp
+- Baseline BTC = 15.26 điểm (84/120 passed SLO, TTFT P50=670ms, P95=10058ms)
+- Custom image khả thi (15.03 điểm)
+- `--max-model-len=8192` → CẤM (trace input quá dài)
+- `--max-num-seqs` ngoài khoảng mặc định → điểm giảm
+- Nhiều flag tối ưu chưa được test đúng cách (bị nhầm lẫn do test trên image lỗi)
 
 ---
 
-### Tuần 2 (07/07 – 13/07): Chunked Prefill & FP8 — Hai Đòn Quyết Định
+### Tuần 2 (07/07 – 13/07): Flag Discovery + Đòn Quyết Định
 
-_Mục tiêu: Giảm TTFT cho 36 request input dài. Tăng từ 15→20+ điểm._
+_Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập trung vào chunked prefill + FP8._
 
-#### Ngày 07/07 (5 slots)
+#### Ngày 07/07 — Flag Discovery Day (QUAN TRỌNG NHẤT)
 
-| Slot | Config                                                                   | Mục đích                                |
-| :--- | :----------------------------------------------------------------------- | :-------------------------------------- |
-| 1    | Baseline gốc (reference)                                                 | Xác nhận điểm ổn định 15.26             |
-| 2    | Baseline + `--enable-chunked-prefill`                                    | **Đòn chính #1**: Xen kẽ prefill/decode |
-| 3    | Baseline + `--enable-chunked-prefill` + `--max-num-batched-tokens=4096`  | Giới hạn chunk size                     |
-| 4    | Baseline + `--enable-chunked-prefill` + `--max-num-batched-tokens=8192`  | Chunk size lớn hơn                      |
-| 5    | Baseline + `--enable-chunked-prefill` + `--max-num-batched-tokens=16384` | Chunk size lớn nhất                     |
+> Mỗi slot thêm DUY NHẤT 1 flag vào baseline config gốc (STT4).
 
-#### Ngày 08/07 (5 slots)
+| Slot | Config = Baseline + ...        | Mục đích                            |
+| :--- | :----------------------------- | :---------------------------------- |
+| 1    | (Baseline gốc, không thay đổi) | Reference: xác nhận 15.26 ổn định   |
+| 2    | + `--enable-chunked-prefill`   | Xác minh flag có chạy trên v0.22.1? |
+| 3    | + `--kv-cache-dtype fp8`       | Xác minh FP8 KV cache khả dụng?     |
+| 4    | + `--disable-log-requests`     | Xác minh giảm CPU overhead?         |
+| 5    | + `--num-scheduler-steps 8`    | Xác minh multi-step scheduling?     |
 
-| Slot | Config                                                       | Mục đích                       |
-| :--- | :----------------------------------------------------------- | :----------------------------- |
-| 1    | Config thắng ngày 07 (reference)                             | Xác nhận                       |
-| 2    | Config thắng + `--kv-cache-dtype fp8`                        | **Đòn chính #2**: FP8 KV cache |
-| 3    | Config thắng + `--quantization fp8`                          | **Đòn chính #3**: FP8 weights  |
-| 4    | Config thắng + `--quantization fp8` + `--kv-cache-dtype fp8` | Combo FP8 toàn diện            |
-| 5    | Config thắng + `--num-scheduler-steps 8`                     | Multi-step scheduling          |
+#### Ngày 08/07 — Discovery Day 2 + Đầu tiên Exploit
 
-#### Ngày 09/07 (5 slots) — Tối ưu max-model-len
+| Slot | Config                                | Mục đích                                         |
+| :--- | :------------------------------------ | :----------------------------------------------- |
+| 1    | + `--quantization fp8`                | Xác minh FP8 weights trên v0.22.1                |
+| 2    | + `OMP_NUM_THREADS=1` (env var)       | Xác minh CPU thread limit                        |
+| 3    | + `--max-model-len=65536`             | Test giảm context length (an toàn cho 42k input) |
+| 4    | Flag thắng từ ngày 07 (combo 2 flags) | Kết hợp 2 flags đã pass riêng lẻ                 |
+| 5    | Flag thắng từ ngày 07 (combo khác)    | Kết hợp khác                                     |
 
-| Slot | Config                                  | Mục đích                            |
-| :--- | :-------------------------------------- | :---------------------------------- |
-| 1    | Config thắng ngày 08 (reference)        | Xác nhận                            |
-| 2    | Config thắng + `--max-model-len=65536`  | Vừa đủ cho input dài nhất + output  |
-| 3    | Config thắng + `--max-model-len=49152`  | Thử giới hạn chặt hơn (sát 42k+200) |
-| 4    | Config thắng + `--max-model-len=131072` | Trung gian giữa 65k và 262k         |
-| 5    | Best combo so far                       | Xác nhận combo tối ưu               |
+#### Ngày 09-10/07 — Exploit Phase
 
-#### Ngày 10-11/07 — CPU & Scheduling tuning
+- Xây dựng combo từ các flags ĐÃ CHỨNG MINH hoạt động
+- Mỗi ngày: 1 reference + 4 combo tests
+- Tìm combo cho điểm cao nhất
 
-- Test `--num-scheduler-steps` (1, 4, 8, 12)
-- Test environment variables: `OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`
-- Test `--disable-log-requests` (giảm CPU overhead)
-- Test `--swap-space 0` vs default
+#### Ngày 11-12/07 — max-model-len + gpu-memory-utilization Grid Search
 
-#### Ngày 12-13/07 — Tổng kết & Đóng băng Tuần 2
+- `--max-model-len`: 49152, 65536, 131072 (so với baseline 262144)
+- `--gpu-memory-utilization`: 0.90, 0.92, 0.95, 0.98
+- Kết hợp với các flags thắng từ ngày 09-10
 
-- Chạy lại combo tốt nhất 3 lần ở các khung giờ khác nhau → đo variance
-- Viết "Decision Memo Tuần 2"
+#### Ngày 13/07 — Tổng kết & Đóng băng Tuần 2
+
+- Chạy config tốt nhất 3 lần → đo variance
 - Đóng băng "Reference Config v2"
 
 ---
 
 ### Tuần 3 (14/07 – 20/07): Fine-tuning & Alternatives
 
-_Mục tiêu: Squeeze thêm 2-5 điểm từ config hiện tại. Thử nghiệm SGLang nếu vLLM đã bão hòa._
+_Mục tiêu: Squeeze thêm 2-5 điểm. Thử SGLang nếu vLLM bão hòa._
 
-#### Ngày 14-15/07 — Fine-tuning tham số
+#### Ngày 14-16/07 — Fine-tuning tham số
 
-- Grid search: `--gpu-memory-utilization` (0.90, 0.92, 0.95, 0.98)
-- Grid search: `--max-num-seqs` (64, 96, 128) kết hợp chunked prefill
-- Test: `--enforce-eager` vs CUDA graphs (nếu chưa test)
+- Grid search `--max-num-seqs` (64, 96, 128) kết hợp config tốt nhất
+- Grid search `--max-num-batched-tokens` (4096, 8192, 16384) kết hợp chunked prefill (nếu khả dụng)
+- Test `--swap-space 0` vs default
+- Test `--enforce-eager` vs CUDA graphs
 
-#### Ngày 16-17/07 — Docker Image Optimization
+#### Ngày 17-19/07 — Alternative Framework (nếu cần)
 
-- Build custom image nhẹ hơn (loại bỏ package không cần thiết)
-- Test base image `nvidia/cuda:12.4.1-runtime-ubuntu22.04` + vLLM pip install
-- Đo impact của image size lên pull time → startup time
-
-#### Ngày 18-19/07 — Alternative Framework (nếu cần)
-
-- Nếu vLLM đã bão hòa (~20 điểm), thử **SGLang** làm serving engine
-- SGLang có RadixAttention (prefix caching tiên tiến hơn) và scheduling khác
+- Nếu vLLM đã bão hoà (~20 điểm), thử **SGLang** với custom Docker image
+- SGLang có RadixAttention (prefix caching tiên tiến hơn)
 - So sánh head-to-head với config vLLM tốt nhất
 
 #### Ngày 20/07 — Tổng kết Tuần 3
@@ -219,96 +242,87 @@ _Mục tiêu: Squeeze thêm 2-5 điểm từ config hiện tại. Thử nghiệm
 
 ---
 
-### Tuần 4 (21/07 – 27/07): Advanced Techniques
+### Tuần 4 (21/07 – 27/07): Advanced Techniques + Variance
 
-_Mục tiêu: Các kỹ thuật nâng cao nếu còn headroom._
+_Mục tiêu: Kỹ thuật nâng cao + kiểm chứng ổn định._
 
 #### Ngày 21-23/07 — Kỹ thuật nâng cao
 
-- **Speculative Decoding** (nếu TPOT vẫn cao): Draft model nhỏ hơn
+- **Custom entrypoint script** với warmup request trước benchmark
+- **Speculative Decoding** (nếu TPOT vẫn cao)
 - **Disaggregated Prefill/Decode** (nếu framework hỗ trợ)
-- **Custom entrypoint script** với warmup request trước khi benchmark bắt đầu
 
-#### Ngày 24-25/07 — Variance Testing
+#### Ngày 24-26/07 — Variance Testing
 
 - Submit config tốt nhất 5 lần/ngày ở các khung giờ khác nhau
-- Vẽ biểu đồ phân phối điểm → xác nhận độ ổn định
-- Nếu variance > 2 điểm → điều tra nguyên nhân
+- Vẽ phân phối điểm → xác nhận ổn định
+- Nếu variance > 2 điểm → điều tra
 
-#### Ngày 26-27/07 — Tổng kết Tuần 4
+#### Ngày 27/07 — Đóng băng Final
 
-- Đóng băng "Final Candidate Config"
-- Chuẩn bị backup config (BF16 thuần) đề phòng
+- "Final Candidate Config" + backup config BF16 thuần
 
 ---
 
 ### Tuần 5 (28/07 – 30/07): Final Submission
 
-_Mục tiêu: Nộp bài an toàn._
-
 #### Ngày 28/07
 
 - Submit Final Candidate 2-3 lần → xác nhận lần cuối
-- Chuẩn bị backup config
 
 #### Ngày 29/07
 
-- **Buffer day**: Fix bug cuối cùng nếu có
-- Clean up code, rà soát docker-compose, image tags
+- **Buffer day**: Fix bug, clean up
 
 #### Ngày 30/07
 
 - **🏁 SUBMIT FINAL** trước deadline
-- Nộp config có điểm cao nhất và ổn định nhất
 
 ---
 
 ## 5. 🧮 Ước tính Điểm số Mục tiêu
 
-### Phân tích cơ hội
+### Hiện tại: **15.26 điểm** (ERS = 0.1526)
 
-Hiện tại: **15.26 điểm** (ERS = 0.1526)
+- 84/120 request đóng góp điểm (trung bình S_request ≈ 0.218)
+- 36/120 request bị **0 điểm** (TTFT > 1500ms ceiling)
 
-```
-Điểm = 100 × ERS × f(Δ)
-     = 100 × (1/120 × Σ S_request) × 1.0  (vì accuracy_drop = 0)
-```
+### Kịch bản tăng điểm
 
-Với 84/120 passed SLO (TTFT < 1500ms):
+| Kịch bản                                   | Cách đạt                                       | Ước tính điểm |
+| :----------------------------------------- | :--------------------------------------------- | :-----------: |
+| **Chunked prefill hoạt động**              | Giảm TTFT cho ~20 request thêm xuống <1500ms   |   **20-22**   |
+| **FP8 + Chunked prefill**                  | Giảm TTFT cho ~30 request thêm                 |   **25-28**   |
+| **FP8 + Chunked + tuning**                 | Gần toàn bộ 120 request đạt SLO                |    **30+**    |
+| **Chỉ tuning tham số (không có flag mới)** | Tối ưu batch/scheduling trong giới hạn v0.22.1 |   **16-18**   |
 
-- 84 request đang đóng góp điểm (trung bình S_request ≈ 0.218)
-- 36 request bị 0 điểm (TTFT > 1500ms)
+### Mục tiêu
 
-**Nếu chunked prefill giảm TTFT cho 20 request thêm xuống < 1500ms:**
-
-- 104/120 passed → ERS ≈ 0.20+ → **Điểm ≈ 20+**
-
-**Nếu FP8 + chunked prefill giảm TTFT cho 30 request thêm:**
-
-- 114/120 passed → ERS ≈ 0.25+ → **Điểm ≈ 25+**
-
-**Mục tiêu thực tế:** **20-30 điểm** (tăng 50-100% so với baseline)
-**Stretch goal:** **30+ điểm** (nếu gần như tất cả request đạt TTFT < 1500ms)
+- **Thực tế:** **20-25 điểm** (nếu chunked prefill hoặc FP8 hoạt động)
+- **Stretch:** **30+ điểm**
+- **Worst case:** **16-18 điểm** (chỉ tuning tham số cơ bản)
 
 ---
 
-## 6. ⚠️ Rủi ro & Giải pháp
+## 6. ⚠️ Rủi ro & Giải pháp — Updated
 
-| Rủi ro                                       | Xác suất | Impact | Giải pháp                                                        |
-| :------------------------------------------- | :------: | :----: | :--------------------------------------------------------------- |
-| **FP8 quantization gây accuracy drop > 10%** | Thấp-TB  |  Cao   | Giữ BF16 fallback. Kiểm tra `accuracy_drop` trong kết quả submit |
-| **Chunked prefill không cải thiện TTFT**     |   Thấp   |  Cao   | Chuyển sang SGLang hoặc thử max-model-len nhỏ hơn                |
-| **max-model-len nhỏ gây truncate input**     |    TB    |  Cao   | Luôn test với giá trị > 45k tokens (an toàn: 49152 hoặc 65536)   |
-| **Variance cao giữa các lần submit**         |    TB    |   TB   | Submit nhiều lần cùng config, chọn median                        |
-| **vLLM v0.22.1 không hỗ trợ flag mới**       |    TB    |   TB   | Kiểm tra `--help` trước khi submit. Fallback về tham số an toàn  |
-| **CPU 3 cores quá tải**                      |   Cao    |   TB   | Giới hạn threads, bật CUDA graphs, tăng num-scheduler-steps      |
+| Rủi ro                                         |    Xác suất     | Impact  | Giải pháp                                                              |
+| :--------------------------------------------- | :-------------: | :-----: | :--------------------------------------------------------------------- |
+| **v0.22.1 không hỗ trợ chunked prefill / FP8** |       TB        | Rất Cao | Ngày 07/07 sẽ xác minh. Nếu fail → chuyển sang tuning tham số + SGLang |
+| **FP8 gây accuracy drop > 10%**                |     Thấp-TB     |   Cao   | Kiểm tra `accuracy_drop` kết quả. Giữ BF16 fallback                    |
+| **max-model-len nhỏ gây truncate input**       |    Đã xảy ra    |   Cao   | ≥ 32768, an toàn: 49152 hoặc 65536                                     |
+| **Variance cao giữa các lần submit**           |       TB        |   TB    | Submit nhiều lần cùng config, chọn median                              |
+| **CPU 3 cores quá tải**                        |       Cao       |   TB    | `OMP_NUM_THREADS=1`, `--disable-log-requests`, `--num-scheduler-steps` |
+| **Vi phạm kỷ luật đơn biến**                   | Đã xảy ra 9 lần |   Cao   | Checklist bắt buộc. KHÔNG submit khi chưa review                       |
 
 ---
 
-## 7. 📋 Checklist Trước Mỗi Submit
+## 7. 📋 Checklist NGHIÊM NGẶT Trước Mỗi Submit
 
-- [ ] Chỉ thay đổi **1 biến** so với Reference Config
-- [ ] Ghi lại docker-compose vào `submissions/DDMMYYYY/HHMM-docker-compose.yml`
-- [ ] Sau khi có kết quả → ghi vào `submissions/DDMMYYYY/HHMM-result.md`
-- [ ] Cập nhật `submissions/logs.md`
+- [ ] **Image:** Có phải `vllm/vllm-openai:v0.22.1` không? (Nếu không → CẦN LÝ DO CỰC KỲ THUYẾT PHỤC)
+- [ ] **Đơn biến:** Chỉ thay đổi **ĐÚNG 1 tham số** so với Reference Config?
+- [ ] **max-model-len:** Giá trị ≥ 32768?
+- [ ] **Không có flag cấm:** Không dùng `VLLM_USE_V1=1`, v0.4.2, max-model-len=8192?
+- [ ] **Đã ghi file:** `submissions/DDMMYYYY/HHMM-docker-compose.yml` đã tạo?
+- [ ] Sau khi có kết quả → ghi `HHMM-result.md` + cập nhật `submissions/logs.md`
 - [ ] Nếu điểm tăng → cập nhật Reference Config
