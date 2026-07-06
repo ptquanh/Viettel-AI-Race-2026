@@ -125,24 +125,22 @@ Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**
 
 > **Mục tiêu:** Xác định chính xác flag nào được v0.22.1 hỗ trợ. Mỗi flag test RIÊNG LẺ trên baseline config.
 
-| Flag cần xác minh             |      Đã test đúng cách?       | Kế hoạch                     |
-| :---------------------------- | :---------------------------: | :--------------------------- |
-| `--enable-chunked-prefill`    |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
-| `--kv-cache-dtype fp8`        |    ❌ Chỉ test trên v0.4.2    | **Test trên baseline image** |
-| `--quantization fp8`          |       ❌ Chưa từng test       | **Test trên baseline image** |
-| `--num-scheduler-steps N`     |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
-| `--disable-log-requests`      | ❌ Chỉ test kèm args lỗi khác | **Test trên baseline image** |
-| `--enforce-eager`             |   ❌ Chỉ test kèm V1 engine   | **Test trên baseline image** |
-| `OMP_NUM_THREADS=1` (env var) |  ❌ Chỉ test trên image lỗi   | **Test trên baseline image** |
+| Flag cần xác minh             |      Đã test đúng cách?      | Kế hoạch / Kết quả                                                               |
+| :---------------------------- | :--------------------------: | :------------------------------------------------------------------------------- |
+| `--enable-chunked-prefill`    | ✅ Đã test đúng cách (STT16) | **Hoạt động tốt, cải thiện TTFT (+0.52 điểm)**                                   |
+| `--kv-cache-dtype fp8`        | ✅ Đã test đúng cách (STT17) | **Hoạt động nhưng suy giảm nặng (-5.54 điểm), sụt GPQA 9%**                      |
+| `--quantization fp8`          |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
+| `--num-scheduler-steps N`     | ✅ Đã test đúng cách (STT20) | ❌ **Không được hỗ trợ (exited 2)**                                              |
+| `--disable-log-requests`      | ✅ Đã test đúng cách (STT18) | ❌ **Sai tên flag. Flag đúng là `--no-enable-log-requests` (STT19: +0.19 điểm)** |
+| `--enforce-eager`             |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
+| `OMP_NUM_THREADS=1` (env var) |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
 
 ### 🔴 Phase 1: Giảm TTFT (Impact cao nhất — nếu flag khả dụng)
 
 | Hướng tối ưu                                     | Cơ chế                                                       | Kỳ vọng               | Ưu tiên |
 | :----------------------------------------------- | :----------------------------------------------------------- | :-------------------- | :-----: |
 | **Chunked Prefill** (`--enable-chunked-prefill`) | Chia nhỏ prefill, xen kẽ decode → giảm head-of-line blocking | Giảm TTFT P95 đáng kể |  🔴 P0  |
-| **FP8 KV Cache** (`--kv-cache-dtype fp8`)        | Giảm 50% bộ nhớ KV → fit nhiều request                       | Tăng throughput       |  🔴 P0  |
 | **FP8 Quantization** (`--quantization fp8`)      | Giảm 50% model weight → prefill nhanh hơn                    | Giảm TTFT 20-30%      |  🔴 P0  |
-| **`--num-scheduler-steps N`**                    | Batch decode steps → giảm CPU overhead → **giảm TPOT**       | Giảm TPOT (50% ERS!)  |  🔴 P0  |
 
 ### 🟠 Phase 2: Tối ưu Scheduling & Tham số (nếu Phase 1 không đủ)
 
@@ -150,7 +148,7 @@ Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**
 | :------------------------------------------ | :------------------------------------------------------ | :------------------- | :-----: |
 | **`--gpu-memory-utilization` tuning**       | Tìm sweet spot (0.95 vs 0.98)                           | Minor                |  🟠 P1  |
 | **`--max-model-len` tuning** (65536, 49152) | Giảm metadata overhead, giải phóng VRAM cho KV cache    | Có thể cải thiện nhẹ |  🟠 P1  |
-| **`--disable-log-requests`**                | Giảm CPU overhead (3 cores rất hạn chế)                 | Minor                |  🟠 P1  |
+| **`--no-enable-log-requests`**              | Giảm CPU overhead (3 cores rất hạn chế)                 | Minor                |  🟠 P1  |
 | **`--enforce-eager`**                       | Tắt CUDA graphs → giảm VRAM overhead, trade-off latency | Cần xác minh         |  🟠 P1  |
 | **CPU Thread Limits** (`OMP_NUM_THREADS=1`) | Tránh thrashing 3 cores                                 | Ổn định hoá          |  🟠 P1  |
 
@@ -161,17 +159,20 @@ Mỗi submission trên portal BTC = 1 lượt test. Tối đa **5 submit/ngày**
 | **SGLang**              | RadixAttention, scheduling khác | Chỉ nếu vLLM đã squeeze hết                      |
 | **Custom Docker image** | vLLM mới hơn, nhẹ hơn           | Chỉ nếu có flag quan trọng không có trên v0.22.1 |
 
-### ❌ DANH SÁCH CẤM (đã chứng minh thất bại)
+### ❌ DANH SÁCH CẤM (đã chứng minh thất bại hoặc crash)
 
-| Cấu hình                          | Lý do cấm                                                 | Bằng chứng            |
-| :-------------------------------- | :-------------------------------------------------------- | :-------------------- |
-| `--max-model-len=8192`            | Input trace dài 20k-42k tokens, gây crash/transport error | STT2,3,6,8,9          |
-| `--max-num-seqs=32` hoặc quá thấp | Giết throughput                                           | STT10: 2.64 điểm      |
-| `--max-num-seqs=256` hoặc quá cao | Overhead scheduler                                        | STT11: 14.14 điểm     |
-| `--max-num-batched-tokens=1024`   | Nghẽn pipeline                                            | STT14: 5.21 điểm      |
-| `vllm/vllm-openai:v0.4.2`         | Phiên bản cũ, không tương thích                           | STT13,15: crash       |
-| `VLLM_USE_V1=1`                   | V1 engine không ổn định trên v0.22.1                      | STT5: crash           |
-| Thay đổi ≥2 biến cùng lúc         | Không xác định được nguyên nhân khi fail                  | 9/15 submissions fail |
+| Cấu hình                          | Lý do cấm                                                                       | Bằng chứng            |
+| :-------------------------------- | :------------------------------------------------------------------------------ | :-------------------- |
+| `--max-model-len=8192`            | Input trace dài 20k-42k tokens, gây crash/transport error                       | STT2,3,6,8,9          |
+| `--num-scheduler-steps=N`         | Gây lỗi khởi động `unrecognized arguments`                                      | STT20                 |
+| `--disable-log-requests`          | Gây lỗi khởi động (dùng sai tên flag, dùng `--no-enable-log-requests` thay thế) | STT18                 |
+| `--kv-cache-dtype=fp8`            | Gây sụt giảm nặng hiệu năng (-5.54 điểm) và giảm GPQA 9%                        | STT17                 |
+| `--max-num-seqs=32` hoặc quá thấp | Giết throughput                                                                 | STT10: 2.64 điểm      |
+| `--max-num-seqs=256` hoặc quá cao | Overhead scheduler                                                              | STT11: 14.14 điểm     |
+| `--max-num-batched-tokens=1024`   | Nghẽn pipeline                                                                  | STT14: 5.21 điểm      |
+| `vllm/vllm-openai:v0.4.2`         | Phiên bản cũ, không tương thích                                                 | STT13,15: crash       |
+| `VLLM_USE_V1=1`                   | V1 engine không ổn định trên v0.22.1                                            | STT5: crash           |
+| Thay đổi ≥2 biến cùng lúc         | Không xác định được nguyên nhân khi fail                                        | 9/15 submissions fail |
 
 ---
 
@@ -209,25 +210,27 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 #### Ngày 06/07 — Flag Discovery Day 1 (QUAN TRỌNG NHẤT)
 
-> Mỗi slot thêm DUY NHẤT 1 flag tối ưu vào baseline config gốc (STT4) trên image `vllm/vllm-openai:v0.22.1`.
+> Kết quả thực tế của 5 slots thử nghiệm (Image `vllm/vllm-openai:v0.22.1`):
 
-| Slot | Config = Baseline + ...      | Mục đích                            |
-| :--- | :--------------------------- | :---------------------------------- |
-| 1    | + `--enable-chunked-prefill` | Xác minh flag có chạy trên v0.22.1? |
-| 2    | + `--kv-cache-dtype fp8`     | Xác minh FP8 KV cache khả dụng?     |
-| 3    | + `--disable-log-requests`   | Xác minh giảm CPU overhead?         |
-| 4    | + `--num-scheduler-steps 8`  | Xác minh multi-step scheduling?     |
-| 5    | + `OMP_NUM_THREADS=1` (env)  | Xác minh CPU thread limit           |
+| Slot | Config = Baseline + ...      | Kết quả thực tế & Chỉ số                                                                               | Đánh giá                           |
+| :--- | :--------------------------- | :----------------------------------------------------------------------------------------------------- | :--------------------------------- |
+| 1    | + `--enable-chunked-prefill` | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định** (baseline mới) |
+| 2    | + `--kv-cache-dtype fp8`     | **Thành công nhưng sụt điểm sâu (10.24 điểm)**. TTFT P50=958ms (+43%), TPOT=71ms (+20%), GPQA drop 9%. | ❌ **CẤM DÙNG** (overhead lớn)     |
+| 3    | + `--disable-log-requests`   | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Sai tên flag**                |
+| 4    | + `--no-enable-log-requests` | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định** (baseline mới) |
+| 5    | + `--num-scheduler-steps=8`  | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**           |
 
 #### Ngày 07/07 — Flag Discovery Day 2 + Đầu tiên Exploit
 
-| Slot | Config                                | Mục đích                                                |
-| :--- | :------------------------------------ | :------------------------------------------------------ |
-| 1    | + `--quantization fp8`                | Xác minh FP8 weights trên v0.22.1                       |
-| 2    | + `--enforce-eager`                   | Xác minh tắt CUDA graphs (giải phóng VRAM)              |
-| 3    | + `--max-model-len=65536`             | Test giảm context length (an toàn, 65k > 42k input max) |
-| 4    | Flag thắng từ ngày 06 (combo 2 flags) | Kết hợp 2 flags đã pass riêng lẻ                        |
-| 5    | Flag thắng từ ngày 06 (combo khác)    | Kết hợp khác                                            |
+> Mỗi slot thay đổi **DUY NHẤT 1 biến** so với cấu hình tốt nhất hiện tại (STT19: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` = 15.97 điểm).
+
+| Slot | Cấu hình = Best Config + ... | Mục đích                                                          |
+| :--- | :--------------------------- | :---------------------------------------------------------------- |
+| 1    | + `--quantization fp8`       | Xác minh FP8 weights (xem có tương thích và sụt GPQA không)       |
+| 2    | + `--enforce-eager`          | Xác minh tắt CUDA graphs (giải phóng VRAM, giảm startup overhead) |
+| 3    | + `OMP_NUM_THREADS=1` (env)  | Xác minh CPU thread limit (giảm CPU contention trên 3 cores)      |
+| 4    | + `--max-model-len=65536`    | Test giảm context length xuống 65k (an toàn, > 42k input max)     |
+| 5    | + `--max-model-len=49152`    | Test giảm context length xuống 49k (tiết kiệm thêm VRAM)          |
 
 #### Ngày 08-09/07 — Exploit Phase
 

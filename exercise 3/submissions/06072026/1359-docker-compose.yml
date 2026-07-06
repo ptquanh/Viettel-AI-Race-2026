@@ -1,0 +1,38 @@
+services:
+  model:
+    # Sử dụng image gốc của BTC
+    image: vllm/vllm-openai:v0.22.1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      
+      # Tham số gốc của BTC
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      
+      # --- CẤU HÌNH THÀNH CÔNG GẦN NHẤT (Baseline mới) ---
+      - --enable-chunked-prefill
+      
+      # --- ĐƠN BIẾN THỬ NGHIỆM SLOT 4 (06/07) ---
+      # Sử dụng flag đúng --no-enable-log-requests để tắt log request nhằm giảm CPU overhead
+      - --no-enable-log-requests
+      
+      # Tham số bắt buộc giữ nguyên
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
