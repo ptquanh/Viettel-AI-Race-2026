@@ -11,10 +11,10 @@ services:
       - --host=0.0.0.0
       - --port=8000
       - --max-model-len=262144
-      
+
       # --- ĐƠN BIẾN THỬ NGHIỆM SLOT 12 (06/07) ---
       - --gpu-memory-utilization=0.90
-      
+
       - --enable-chunked-prefill
       - --no-enable-log-requests
       - --quantization=fp8

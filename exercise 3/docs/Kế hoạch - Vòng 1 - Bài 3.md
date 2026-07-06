@@ -213,25 +213,25 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 > Kết quả thực tế của 5 slots thử nghiệm đầu tiên (Image `vllm/vllm-openai:v0.22.1`):
 
-| Slot | Config = Baseline + ...      | Kết quả thực tế & Chỉ số                                                                               | Đánh giá                           |
-| :--- | :--------------------------- | :----------------------------------------------------------------------------------------------------- | :--------------------------------- |
-| 1    | + `--enable-chunked-prefill` | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                |
-| 2    | + `--kv-cache-dtype fp8`     | **Thành công nhưng sụt điểm sâu (10.24 điểm)**. TTFT P50=958ms (+43%), TPOT=71ms (+20%), GPQA drop 9%. | ❌ **CẤM DÙNG** (overhead lớn)     |
-| 3    | + `--disable-log-requests`   | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Sai tên flag**                |
-| 4    | + `--no-enable-log-requests` | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                |
-| 5    | + `--num-scheduler-steps=8`  | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**           |
-| 6    | + `--quantization=fp8`       | **Thành công vọt điểm (18.99 điểm)**. TTFT P50=569ms (-16%), P95=8520ms, TPOT=51ms, GPQA drop 1%.      | ✅ **Bật mặc định** (baseline mới) |
-| 7    | + `--enforce-eager`          | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s.                                             | ❌ **CẤM DÙNG** (nghẽn CPU nặng)   |
-| 8    | + `OMP_NUM_THREADS=1` (env)  | **Thành công nhưng giảm điểm (17.33 điểm)**. TTFT P50=624ms, P95=8995ms, TPOT=50ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
-| 9    | + `--max-model-len=131072`   | **Thành công nhưng giảm điểm sâu (12.74 điểm)**. TTFT P50=739ms, P95=12682ms, TPOT=68ms, GPQA drop 0%. | ❌ **CẤM HẠ CONTEXT** (tụt cache)  |
-| 10   | + `--max-num-seqs=256`       | **Thành công nhưng giảm điểm (17.82 điểm)**. TTFT P50=618ms, P95=8390ms, TPOT=51ms, GPQA drop 4%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
-| 11   | + `--max-num-seqs=128`       | **Thành công nhưng giảm điểm (17.71 điểm)**. TTFT P50=618ms, P95=8497ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)      |
+| Slot | Config = Baseline + ...           | Kết quả thực tế & Chỉ số                                                                               | Đánh giá                            |
+| :--- | :-------------------------------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------- |
+| 1    | + `--enable-chunked-prefill`      | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                 |
+| 2    | + `--kv-cache-dtype fp8`          | **Thành công nhưng sụt điểm sâu (10.24 điểm)**. TTFT P50=958ms (+43%), TPOT=71ms (+20%), GPQA drop 9%. | ❌ **CẤM DÙNG** (overhead lớn)      |
+| 3    | + `--disable-log-requests`        | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Sai tên flag**                 |
+| 4    | + `--no-enable-log-requests`      | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                 |
+| 5    | + `--num-scheduler-steps=8`       | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**            |
+| 6    | + `--quantization=fp8`            | **Thành công vọt điểm (18.99 điểm)**. TTFT P50=569ms (-16%), P95=8520ms, TPOT=51ms, GPQA drop 1%.      | ✅ **Bật mặc định** (baseline mới)  |
+| 7    | + `--enforce-eager`               | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s.                                             | ❌ **CẤM DÙNG** (nghẽn CPU nặng)    |
+| 8    | + `OMP_NUM_THREADS=1` (env)       | **Thành công nhưng giảm điểm (17.33 điểm)**. TTFT P50=624ms, P95=8995ms, TPOT=50ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
+| 9    | + `--max-model-len=131072`        | **Thành công nhưng giảm điểm sâu (12.74 điểm)**. TTFT P50=739ms, P95=12682ms, TPOT=68ms, GPQA drop 0%. | ❌ **CẤM HẠ CONTEXT** (tụt cache)   |
+| 10   | + `--max-num-seqs=256`            | **Thành công nhưng giảm điểm (17.82 điểm)**. TTFT P50=618ms, P95=8390ms, TPOT=51ms, GPQA drop 4%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
+| 11   | + `--max-num-seqs=128`            | **Thành công nhưng giảm điểm (17.71 điểm)**. TTFT P50=618ms, P95=8497ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
+| 12   | + `--gpu-memory-utilization=0.90` | **Thành công nhưng giảm điểm (17.58 điểm)**. TTFT P50=627ms, P95=8739ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (giảm cache pool) |
 
-> Lịch trình thử nghiệm cho 3 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
+> Lịch trình thử nghiệm cho 2 slots còn lại của ngày 06/07 (xây dựng trên nền Best Config mới = STT21: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` = 18.99 điểm):
 
 | Slot | Cấu hình = Best Config + ...      | Mục đích                                        |
 | :--- | :-------------------------------- | :---------------------------------------------- |
-| 12   | + `--gpu-memory-utilization=0.90` | Khảo sát giới hạn VRAM thấp hơn (0.90)          |
 | 13   | + `--gpu-memory-utilization=0.92` | Khảo sát giới hạn VRAM tối ưu trung gian (0.92) |
 | 14   | + `--gpu-memory-utilization=0.98` | Khảo sát giới hạn VRAM tối đa (0.98)            |
 
