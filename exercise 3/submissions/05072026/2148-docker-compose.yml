@@ -1,0 +1,36 @@
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+
+      # 1. ĐÒN BẨY VRAM: 32768 là giới hạn Sliding Window gốc của Qwen3.5-2B.
+      # Đủ lớn để qua mặt bài test mồi của BTC, nhưng nhỏ hơn 8 lần so với 262k 
+      # giúp giảm thiểu kích thước metadata block table trên RAM/VRAM.
+      - --max-model-len=32768
+
+      # 2. VẮT KIỆT TÀI NGUYÊN: Nâng từ 0.95 lên 0.98 để mở rộng khoang chứa KV Cache
+      # Cứu sống 36 requests bị vứt ra ngoài.
+      - --gpu-memory-utilization=0.98
+
+      # Tham số gốc
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

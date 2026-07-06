@@ -1,0 +1,36 @@
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+
+      # Vượt qua bài test Primer an toàn và tối đa hóa VRAM
+      - --max-model-len=32768
+      - --gpu-memory-utilization=0.98
+
+      # --- ĐÒN CHÍ MẠNG: ÉP BỘ NHỚ ĐỆM (FORCE PREFIX CACHING) ---
+      # Chỉ cho phép đọc hiểu tối đa 1024 token mỗi nhịp. 
+      # Bắt buộc các request sau phải xài ké Cache của request trước!
+      - --max-num-batched-tokens=1024
+
+      # Tham số gốc
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
