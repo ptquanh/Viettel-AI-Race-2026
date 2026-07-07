@@ -133,16 +133,21 @@ Dựa trên thực tế 32 lần chạy thử nghiệm, các flag/cấu hình sa
 - ❌ Docker image: `vllm/vllm-openai:v0.4.2` (gây lỗi không khởi động được container).
 - ❌ `--block-size=32` (STT33: tăng phân mảnh KV cache, TTFT P50 +11%, giảm điểm).
 - ❌ `--performance-mode` (STT34: chế độ interactivity gây hàng đợi prefill nặng khi có concurrency cao, TTFT P50 +125ms, giảm điểm).
-- ❌ `--max-num-batched-tokens` khác 512 (STT30: 1024 sụt còn 7.22đ; STT31: 256 gây crash; STT35: 32768 gây nghẽn prefill hàng đợi nghiêm trọng, TTFT P50 +4.1s).
+- ❌ `--max-num-batched-tokens` khác 512 (STT30: 1024 sụt còn 7.22đ; STT31: 256 gây crash; STT35: 32768 gây nghẽn prefill hàng đợi nghiêm trọng, TTFT P50 +4.1s; STT38: 24576 + seq 96 gây crash/OOM).
+- ❌ `--no-enable-prefix-caching` (STT39: tắt prefix caching gây timeout >2700s do phải prefill lại toàn bộ ~3.6 triệu tokens).
+- ❌ `--compilation-config` với các chế độ `FULL` hoặc `FULL_DECODE_ONLY` (STT36/37: không cải thiện TPOT 51ms, tăng nhẹ TTFT).
+- ❌ `--max-num-seqs` khác mặc định (STT10/25/26/38: đều làm giảm điểm hoặc crash hệ thống).
 
 #### ✅ Danh sách cờ AN TOÀN / KHẢ DỤNG đã xác minh
 
 - ✅ `--quantization=fp8` (Giảm dung lượng model weights, cải thiện lớn tốc độ).
 - ✅ `--enable-chunked-prefill` (Chunk prefill tối ưu hóa lập lịch với mặc định `--max-num-batched-tokens=512`).
 - ✅ `--no-enable-log-requests` (Giảm CPU logging overhead).
+- ✅ `--enable-prefix-caching` (**BẮT BUỘC - SỐNG CÒN**, tắt đi gây timeout >2700s).
 - ✅ `--block-size 16` (Kích thước KV Cache block mặc định và tối ưu nhất).
 - ✅ `--max-seq-len-to-capture` (Tăng kích thước bắt CUDA Graphs).
-- ✅ `--compilation-config` (Tinh chỉnh chiều sâu biên dịch graph).
+- ✅ `--max-model-len=262144` (Giới hạn tối ưu nhất để chứa các prompt siêu dài).
+- ✅ `--gpu-memory-utilization=0.95` (Tận dụng bộ nhớ VRAM tối đa an toàn).
 
 ---
 
@@ -274,12 +279,12 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 7    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'`             | **Giảm điểm (17.78đ)**. TTFT P50=605ms, P95=8929ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (compile overhead)         |
 | 8    | + `--compilation-config='{"cudagraph_mode":"FULL_DECODE_ONLY","max_cudagraph_capture_size":256}'` | **Giảm điểm (18.24đ)**. TTFT P50=601ms, P95=8426ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (không cải thiện TPOT)     |
 | 9    | + `--max-num-batched-tokens=24576` + `--max-num-seqs=96` (Slot 9b)                                | **Thất bại (Chấm điểm thất bại)**. Gặp lỗi 119/120 transport errors.         | ❌ **CẤM DÙNG** (lỗi crash/OOM)            |
-| 10   | Baseline + `--no-enable-prefix-caching` (Test ngược)                                              | Tắt prefix caching để loại bỏ overhead Radix tree trên 3 CPU                 | TBD                                        |
-| 11   | Khảo sát SGLang (`lmsysorg/sglang:latest` + FP8)                                                  | Khảo sát SGLang RadixAttention để phá vỡ giới hạn TPOT                       | TBD                                        |
-| 12   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
-| 13   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
-| 14   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
-| 15   | Dự phòng / Verifying                                                                              | Dự phòng bổ sung                                                             | TBD                                        |
+| 10   | Baseline + `--no-enable-prefix-caching` (Test ngược)                                              | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s của hệ thống.      | ❌ **CẤM TẮT** (công nghệ sống còn)        |
+| 11   | Khảo sát SGLang FP8 (`lmsysorg/sglang:v0.4.6.post1` + FP8)                                        | Radix Cache ON, max context 64k, max requests 64, disable cuda graph         | TBD                                        |
+| 12   | Khảo sát SGLang BF16 fallback (bỏ lượng hóa FP8)                                                  | Radix Cache ON, max context 64k, max requests 64, disable cuda graph (BF16)  | TBD                                        |
+| 13   | STT21 Verification Run #1 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
+| 14   | STT21 Verification Run #2 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
+| 15   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình (Chốt median an toàn)    | TBD                                        |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
