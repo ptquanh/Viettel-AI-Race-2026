@@ -283,8 +283,8 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 11   | Khảo sát SGLang FP8 (`lmsysorg/sglang:v0.4.6.post1` + FP8)                                        | **Thất bại (Startup Timeout)**. Image SGLang quá nặng gây lỗi pull timeout.  | ❌ **CẤM DÙNG** (lỗi pull image)           |
 | 12   | STT21 Verification Run #1 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.89đ)**. TTFT P50=621ms, P95=8416ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 85/120          |
 | 13   | STT21 Verification Run #2 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (18.09đ)**. TTFT P50=608ms, P95=8247ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 86/120          |
-| 14   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tốt nhất để tính trung bình và lấy median an toàn      | TBD                                        |
-| 15   | STT21 Verification Run #4 (Dự phòng)                                                              | Chạy dự phòng bảo vệ điểm số an toàn cuối ngày                               | TBD                                        |
+| 14   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.05đ)**. TTFT P50=642ms, P95=9260ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 80/120          |
+| 15   | STT21 Verification Run #4 (Dự phòng)                                                              | Chạy lặp lại cấu hình tốt nhất để tính trung bình và lấy median an toàn      | TBD                                        |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
