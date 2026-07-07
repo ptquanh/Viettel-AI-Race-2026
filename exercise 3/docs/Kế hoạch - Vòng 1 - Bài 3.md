@@ -280,11 +280,11 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 8    | + `--compilation-config='{"cudagraph_mode":"FULL_DECODE_ONLY","max_cudagraph_capture_size":256}'` | **Giảm điểm (18.24đ)**. TTFT P50=601ms, P95=8426ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (không cải thiện TPOT)     |
 | 9    | + `--max-num-batched-tokens=24576` + `--max-num-seqs=96` (Slot 9b)                                | **Thất bại (Chấm điểm thất bại)**. Gặp lỗi 119/120 transport errors.         | ❌ **CẤM DÙNG** (lỗi crash/OOM)            |
 | 10   | Baseline + `--no-enable-prefix-caching` (Test ngược)                                              | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s của hệ thống.      | ❌ **CẤM TẮT** (công nghệ sống còn)        |
-| 11   | Khảo sát SGLang FP8 (`lmsysorg/sglang:v0.4.6.post1` + FP8)                                        | Radix Cache ON, max context 64k, max requests 64, disable cuda graph         | TBD                                        |
-| 12   | Khảo sát SGLang BF16 fallback (bỏ lượng hóa FP8)                                                  | Radix Cache ON, max context 64k, max requests 64, disable cuda graph (BF16)  | TBD                                        |
-| 13   | STT21 Verification Run #1 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
-| 14   | STT21 Verification Run #2 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
-| 15   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình (Chốt median an toàn)    | TBD                                        |
+| 11   | Khảo sát SGLang FP8 (`lmsysorg/sglang:v0.4.6.post1` + FP8)                                        | **Thất bại (Startup Timeout)**. Image SGLang quá nặng gây lỗi pull timeout.  | ❌ **CẤM DÙNG** (lỗi pull image)           |
+| 12   | STT21 Verification Run #1 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.89đ)**. TTFT P50=621ms, P95=8416ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 85/120          |
+| 13   | STT21 Verification Run #2 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (18.09đ)**. TTFT P50=608ms, P95=8247ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 86/120          |
+| 14   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | Chạy lặp lại cấu hình tốt nhất để tính trung bình và lấy median an toàn      | TBD                                        |
+| 15   | STT21 Verification Run #4 (Dự phòng)                                                              | Chạy dự phòng bảo vệ điểm số an toàn cuối ngày                               | TBD                                        |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
