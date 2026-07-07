@@ -236,23 +236,23 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 > Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với cấu hình Best Config mới làm nền tảng (STT21 = Baseline 18.99).
 
-| Slot | Cấu hình = Best Config + ...                          | Mục đích                                                                |
-| :--- | :---------------------------------------------------- | :---------------------------------------------------------------------- |
-| 1    | + `--max-num-batched-tokens=1024`                     | Khảo sát tăng batched tokens chunked prefill lên 1024 (mặc định là 512) |
-| 2    | + `--max-num-batched-tokens=2048`                     | Khảo sát tăng batched tokens chunked prefill lên 2048                   |
-| 3    | + `--max-num-batched-tokens=4096`                     | Khảo sát tăng batched tokens chunked prefill lên 4096                   |
-| 4    | + `--swap-space=0`                                    | Tắt hẳn swap space CPU để tránh CPU-GPU overhead                        |
-| 5    | + `--swap-space=1`                                    | Giới hạn swap space CPU ở mức tối thiểu 1GB (mặc định là 4GB)           |
-| 6    | + `--block-size=32`                                   | Thử nghiệm tăng kích thước KV cache block từ 16 lên 32                  |
-| 7    | + `--max-seq-len-to-capture=16384`                    | Tăng giới hạn CUDA Graph capture lên 16k (mặc định là 8192)             |
-| 8    | + `--max-num-batched-tokens=2048` + `--swap-space=0`  | Combo tăng batched tokens kết hợp tắt swap space                        |
-| 9    | + `--max-num-batched-tokens=4096` + `--swap-space=0`  | Combo tăng tối đa batched tokens kết hợp tắt swap space                 |
-| 10   | + `--block-size=32` + `--swap-space=0`                | Combo thay đổi block size kết hợp tắt swap space                        |
-| 11   | + `--max-seq-len-to-capture=16384` + `--swap-space=0` | Combo CUDA Graph capture 16k kết hợp tắt swap space                     |
-| 12   | Combo tối ưu lựa chọn 1                               | Dựa trên kết quả thực tế của Slot 1 - 11                                |
-| 13   | Combo tối ưu lựa chọn 2                               | Dựa trên kết quả thực tế của Slot 1 - 11                                |
-| 14   | Combo tối ưu lựa chọn 3                               | Dựa trên kết quả thực tế của Slot 1 - 11                                |
-| 15   | Chốt cấu hình vLLM tốt nhất                           | Verify lại cấu hình tốt nhất làm "Reference Config v2" của vLLM         |
+| Slot | Cấu hình = Best Config + ...                          | Kết quả thực tế & Chỉ số                                                    | Đánh giá                              |
+| :--- | :---------------------------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------ |
+| 1    | + `--max-num-batched-tokens=1024`                     | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms. | ❌ **CẤM TĂNG** (prefill chặn decode) |
+| 2    | + `--max-num-batched-tokens=256` (Mới)                | Khảo sát giảm batched tokens xuống 256 để giảm prefill contention           | TBD                                   |
+| 3    | + `--max-num-batched-tokens=384` (Mới)                | Khảo sát giảm batched tokens xuống 384                                      | TBD                                   |
+| 4    | + `--swap-space=0`                                    | Tắt hẳn swap space CPU để tránh CPU-GPU overhead                            | TBD                                   |
+| 5    | + `--swap-space=1`                                    | Giới hạn swap space CPU ở mức tối thiểu 1GB (mặc định là 4GB)               | TBD                                   |
+| 6    | + `--block-size=32`                                   | Thử nghiệm tăng kích thước KV cache block từ 16 lên 32                      | TBD                                   |
+| 7    | + `--max-seq-len-to-capture=16384`                    | Tăng giới hạn CUDA Graph capture lên 16k (mặc định là 8192)                 | TBD                                   |
+| 8    | + `--max-num-batched-tokens=256` + `--swap-space=0`   | Combo giảm batched tokens kết hợp tắt swap space                            | TBD                                   |
+| 9    | + `--max-num-batched-tokens=384` + `--swap-space=0`   | Combo giảm batched tokens kết hợp tắt swap space                            | TBD                                   |
+| 10   | + `--block-size=32` + `--swap-space=0`                | Combo thay đổi block size kết hợp tắt swap space                            | TBD                                   |
+| 11   | + `--max-seq-len-to-capture=16384` + `--swap-space=0` | Combo CUDA Graph capture 16k kết hợp tắt swap space                         | TBD                                   |
+| 12   | Combo tối ưu lựa chọn 1                               | Dựa trên kết quả thực tế của Slot 1 - 11                                    | TBD                                   |
+| 13   | Combo tối ưu lựa chọn 2                               | Dựa trên kết quả thực tế của Slot 1 - 11                                    | TBD                                   |
+| 14   | Combo tối ưu lựa chọn 3                               | Dựa trên kết quả thực tế của Slot 1 - 11                                    | TBD                                   |
+| 15   | Chốt cấu hình vLLM tốt nhất                           | Verify lại cấu hình tốt nhất làm "Reference Config v2" của vLLM             | TBD                                   |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
