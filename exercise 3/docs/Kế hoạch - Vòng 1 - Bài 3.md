@@ -236,23 +236,23 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 > Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với cấu hình Best Config mới làm nền tảng (STT21 = Baseline 18.99).
 
-| Slot | Cấu hình = Best Config + ...                          | Kết quả thực tế & Chỉ số                                                    | Đánh giá                               |
-| :--- | :---------------------------------------------------- | :-------------------------------------------------------------------------- | :------------------------------------- |
-| 1    | + `--max-num-batched-tokens=1024`                     | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms. | ❌ **CẤM TĂNG** (prefill chặn decode)  |
-| 2    | + `--max-num-batched-tokens=256` (Mới)                | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.       | ❌ **CẤM DÙNG** (lỗi khởi động engine) |
-| 3    | + `--swap-space=0`                                    | Khảo sát tắt swap space CPU để tránh CPU-GPU overhead                       | TBD                                    |
-| 4    | + `--swap-space=1`                                    | Giới hạn swap space CPU ở mức tối thiểu 1GB (mặc định là 4GB)               | TBD                                    |
-| 5    | + `--block-size=32`                                   | Thử nghiệm tăng kích thước KV cache block từ 16 lên 32                      | TBD                                    |
-| 6    | + `--max-seq-len-to-capture=16384`                    | Tăng giới hạn CUDA Graph capture lên 16k (mặc định là 8192)                 | TBD                                    |
-| 7    | + `--block-size=32` + `--swap-space=0`                | Combo tăng block size kết hợp tắt swap space                                | TBD                                    |
-| 8    | + `--max-seq-len-to-capture=16384` + `--swap-space=0` | Combo CUDA Graph capture 16k kết hợp tắt swap space                         | TBD                                    |
-| 9    | + `--block-size=32` + `--swap-space=1`                | Combo tăng block size kết hợp swap space 1GB                                | TBD                                    |
-| 10   | + `--max-seq-len-to-capture=16384` + `--swap-space=1` | Combo CUDA Graph capture 16k kết hợp swap space 1GB                         | TBD                                    |
-| 11   | Combo tối ưu lựa chọn 1                               | Dựa trên kết quả thực tế của Slot 3 - 10                                    | TBD                                    |
-| 12   | Combo tối ưu lựa chọn 2                               | Dựa trên kết quả thực tế của Slot 3 - 10                                    | TBD                                    |
-| 13   | Combo tối ưu lựa chọn 3                               | Dựa trên kết quả thực tế của Slot 3 - 10                                    | TBD                                    |
-| 14   | Combo tối ưu lựa chọn 4                               | Dựa trên kết quả thực tế của Slot 3 - 10                                    | TBD                                    |
-| 15   | Chốt cấu hình vLLM tốt nhất                           | Verify lại cấu hình tốt nhất làm "Reference Config v2" của vLLM             | TBD                                    |
+| Slot | Cấu hình = Best Config + ...                                            | Kết quả thực tế & Chỉ số                                                     | Đánh giá                               |
+| :--- | :---------------------------------------------------------------------- | :--------------------------------------------------------------------------- | :------------------------------------- |
+| 1    | + `--max-num-batched-tokens=1024`                                       | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG** (prefill chặn decode)  |
+| 2    | + `--max-num-batched-tokens=256` (Mới)                                  | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine) |
+| 3    | + `--swap-space=0`                                                      | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)   |
+| 4    | + `--block-size=32`                                                     | Thử nghiệm tăng kích thước KV cache block từ 16 lên 32                       | TBD                                    |
+| 5    | + `--max-seq-len-to-capture=16384`                                      | Tăng giới hạn CUDA Graph capture lên 16k (mặc định là 8192)                  | TBD                                    |
+| 6    | + `--performance-mode=interactivity`                                    | Khảo sát chế độ tối ưu hóa độ trễ (latency-optimized) của vLLM v1            | TBD                                    |
+| 7    | + `--performance-mode=throughput`                                       | Khảo sát chế độ tối ưu hóa băng thông (throughput-optimized) của vLLM v1     | TBD                                    |
+| 8    | + `--block-size=32` + `--performance-mode=interactivity`                | Combo tăng block size kết hợp chế độ low latency                             | TBD                                    |
+| 9    | + `--max-seq-len-to-capture=16384` + `--performance-mode=interactivity` | Combo CUDA Graph capture 16k kết hợp chế độ low latency                      | TBD                                    |
+| 10   | Combo tối ưu lựa chọn 1                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
+| 11   | Combo tối ưu lựa chọn 2                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
+| 12   | Combo tối ưu lựa chọn 3                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
+| 13   | Combo tối ưu lựa chọn 4                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
+| 14   | Combo tối ưu lựa chọn 5                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
+| 15   | Chốt cấu hình vLLM tốt nhất                                             | Verify lại cấu hình tốt nhất làm "Reference Config v2" của vLLM              | TBD                                    |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
