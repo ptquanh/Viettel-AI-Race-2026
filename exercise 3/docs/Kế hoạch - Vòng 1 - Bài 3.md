@@ -133,13 +133,13 @@ Dựa trên thực tế 32 lần chạy thử nghiệm, các flag/cấu hình sa
 - ❌ Docker image: `vllm/vllm-openai:v0.4.2` (gây lỗi không khởi động được container).
 - ❌ `--block-size=32` (STT33: tăng phân mảnh KV cache, TTFT P50 +11%, giảm điểm).
 - ❌ `--performance-mode` (STT34: chế độ interactivity gây hàng đợi prefill nặng khi có concurrency cao, TTFT P50 +125ms, giảm điểm).
+- ❌ `--max-num-batched-tokens` khác 512 (STT30: 1024 sụt còn 7.22đ; STT31: 256 gây crash; STT35: 32768 gây nghẽn prefill hàng đợi nghiêm trọng, TTFT P50 +4.1s).
 
 #### ✅ Danh sách cờ AN TOÀN / KHẢ DỤNG đã xác minh
 
 - ✅ `--quantization=fp8` (Giảm dung lượng model weights, cải thiện lớn tốc độ).
-- ✅ `--enable-chunked-prefill` (Chunk prefill tối ưu hóa lập lịch).
+- ✅ `--enable-chunked-prefill` (Chunk prefill tối ưu hóa lập lịch với mặc định `--max-num-batched-tokens=512`).
 - ✅ `--no-enable-log-requests` (Giảm CPU logging overhead).
-- ✅ `--max-num-batched-tokens` (Chỉ tăng ≥ 8192 để xử lý prefill context dài nhanh hơn).
 - ✅ `--block-size 16` (Kích thước KV Cache block mặc định và tối ưu nhất).
 - ✅ `--max-seq-len-to-capture` (Tăng kích thước bắt CUDA Graphs).
 - ✅ `--compilation-config` (Tinh chỉnh chiều sâu biên dịch graph).
@@ -270,13 +270,13 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 3    | + `--swap-space=0`                                                                    | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)       |
 | 4    | + `--block-size=32`                                                                   | **Giảm điểm (17.23đ)**. TTFT P50=632ms, P95=8430ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (KV fragmentation)         |
 | 5    | + `--performance-mode=interactivity`                                                  | **Giảm điểm (16.33đ)**. TTFT P50=694ms, P95=8301ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (tăng scheduling overhead) |
-| 6    | + `--max-num-batched-tokens=32768`                                                    | **TĂNG CỰC ĐẠI**: prefill 20-42k tokens trong 1-2 chunks để giảm trễ prefill | TBD                                        |
-| 7    | + `--max-num-batched-tokens=65536`                                                    | Full prefill 1 shot cho requests. Nguy cơ OOM VRAM cao.                      | TBD                                        |
-| 8    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'` | Ép FULL graph decode-only, capture size 256 > output 200 tokens              | TBD                                        |
-| 9    | Combo #1: `--max-num-batched-tokens=32768` + `--compilation-config=...`               | Combo tăng batched tokens + ép FULL graph decode                             | TBD                                        |
-| 10   | Combo tối ưu lựa chọn 1                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
-| 11   | Combo tối ưu lựa chọn 2                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
-| 12   | Chốt cấu hình vLLM tốt nhất / Test nhanh SGLang                                       | Chốt Reference Config v2 vLLM hoặc test nhanh SGLang                         | TBD                                        |
+| 6    | + `--max-num-batched-tokens=32768`                                                    | **Giảm điểm (16.73đ)**. TTFT P50=4674ms, P95=9988ms, TPOT=32ms.              | ❌ **CẤM DÙNG** (nghẽn prefill hàng đợi)   |
+| 7    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'` | Ép FULL graph decode-only, capture size 256 > output 200 tokens              | TBD                                        |
+| 8    | Combo #1: `--max-num-batched-tokens=32768` + `--compilation-config=...`               | Combo tăng batched tokens + ép FULL graph decode                             | TBD                                        |
+| 9    | Combo tối ưu lựa chọn 1                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
+| 10   | Combo tối ưu lựa chọn 2                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
+| 11   | Chốt cấu hình vLLM tốt nhất / Test nhanh SGLang                                       | Chốt Reference Config v2 vLLM hoặc test nhanh SGLang                         | TBD                                        |
+| 12   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
 | 13   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
 | 14   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
 | 15   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |

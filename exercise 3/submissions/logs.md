@@ -40,7 +40,9 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 32  | `submissions/07072026/0817` | Baseline mới + `--swap-space=0`                                                                          |   **Fail**    | Tắt swap space CPU                                                        | Lỗi exited 2 (unrecognized arguments: flag --swap-space đã bị loại bỏ)       |
 | 33  | `submissions/07072026/0830` | Baseline mới + `--block-size=32`                                                                         |   **17.23**   | Tăng block size KV cache lên 32                                           | Điểm số giảm (-1.76), TTFT P50 tăng nhẹ do phân mảnh bộ nhớ KV cache         |
 | 34  | `submissions/07072026/0846` | Baseline mới + `--performance-mode=interactivity`                                                        |   **16.33**   | Bật chế độ latency-oriented của vLLM v1                                   | Điểm số giảm (-2.66), TTFT P50 tăng mạnh do scheduling overhead khi có tải   |
+| 35  | `submissions/07072026/0914` | Baseline mới + `--max-num-batched-tokens=32768`                                                          |   **16.73**   | Tăng cực đại batched tokens lên 32k                                       | Điểm số giảm (-2.26), TTFT P50 tăng vọt (~4.6s) do nghẽn prefill hàng đợi, nhưng TPOT giảm kỷ lục còn 32ms |
 
 > **Lưu ý:** Các submission STT1-3 sử dụng custom image (`viettel-qwen-local:v1`, `ptquanh/viettel-qwen35-2b:bf16-v1`) bị fail do image **chưa được push lên Docker Hub** tại thời điểm submit. Kể từ STT7 (`submissions/04072026/0643`), custom image `ptquanh/viettel-qwen35-2b:bf16-v1` đã được push thành công và hoạt động bình thường (đạt 15.03 điểm).
+
 
 ---
