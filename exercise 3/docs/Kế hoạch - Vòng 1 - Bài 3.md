@@ -263,23 +263,23 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 > Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với cấu hình Best Config mới làm nền tảng (STT21 = Baseline 18.99).
 
-| Slot | Cấu hình = Best Config + ...                                                          | Kết quả thực tế & Chỉ số                                                     | Đánh giá                                   |
-| :--- | :------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- | :----------------------------------------- |
-| 1    | + `--max-num-batched-tokens=1024`                                                     | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG NHẸ** (prefill chặn decode)  |
-| 2    | + `--max-num-batched-tokens=256` (Mới)                                                | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine)     |
-| 3    | + `--swap-space=0`                                                                    | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)       |
-| 4    | + `--block-size=32`                                                                   | **Giảm điểm (17.23đ)**. TTFT P50=632ms, P95=8430ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (KV fragmentation)         |
-| 5    | + `--performance-mode=interactivity`                                                  | **Giảm điểm (16.33đ)**. TTFT P50=694ms, P95=8301ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (tăng scheduling overhead) |
-| 6    | + `--max-num-batched-tokens=32768`                                                    | **Giảm điểm (16.73đ)**. TTFT P50=4674ms, P95=9988ms, TPOT=32ms.              | ❌ **CẤM DÙNG** (nghẽn prefill hàng đợi)   |
-| 7    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'` | Ép FULL graph decode-only, capture size 256 > output 200 tokens              | TBD                                        |
-| 8    | Combo #1: `--max-num-batched-tokens=32768` + `--compilation-config=...`               | Combo tăng batched tokens + ép FULL graph decode                             | TBD                                        |
-| 9    | Combo tối ưu lựa chọn 1                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
-| 10   | Combo tối ưu lựa chọn 2                                                               | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                        |
-| 11   | Chốt cấu hình vLLM tốt nhất / Test nhanh SGLang                                       | Chốt Reference Config v2 vLLM hoặc test nhanh SGLang                         | TBD                                        |
-| 12   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
-| 13   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
-| 14   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
-| 15   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                        |
+| Slot | Cấu hình = Best Config + ...                                                                      | Kết quả thực tế & Chỉ số                                                     | Đánh giá                                   |
+| :--- | :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- | :----------------------------------------- |
+| 1    | + `--max-num-batched-tokens=1024`                                                                 | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG NHẸ** (prefill chặn decode)  |
+| 2    | + `--max-num-batched-tokens=256` (Mới)                                                            | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine)     |
+| 3    | + `--swap-space=0`                                                                                | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)       |
+| 4    | + `--block-size=32`                                                                               | **Giảm điểm (17.23đ)**. TTFT P50=632ms, P95=8430ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (KV fragmentation)         |
+| 5    | + `--performance-mode=interactivity`                                                              | **Giảm điểm (16.33đ)**. TTFT P50=694ms, P95=8301ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (tăng scheduling overhead) |
+| 6    | + `--max-num-batched-tokens=32768`                                                                | **Giảm điểm (16.73đ)**. TTFT P50=4674ms, P95=9988ms, TPOT=32ms.              | ❌ **CẤM DÙNG** (nghẽn prefill hàng đợi)   |
+| 7    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'`             | **Giảm điểm (17.78đ)**. TTFT P50=605ms, P95=8929ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (compile overhead)         |
+| 8    | + `--compilation-config='{"cudagraph_mode":"FULL_DECODE_ONLY","max_cudagraph_capture_size":256}'` | **Giảm điểm (18.24đ)**. TTFT P50=601ms, P95=8426ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (không cải thiện TPOT)     |
+| 9    | + `--max-num-batched-tokens=24576` + `--max-num-seqs=96` (Slot 9b)                                | Tối ưu TPOT bằng batched tokens lớn, kìm TTFT bằng giới hạn concurrency 96   | TBD                                        |
+| 10   | Winner Slot 8/9 + `--no-enable-prefix-caching`                                                    | Tắt prefix caching để loại bỏ overhead Radix tree trên 3 CPU                 | TBD                                        |
+| 11   | Khảo sát SGLang (`lmsysorg/sglang:latest` + FP8)                                                  | Khảo sát SGLang RadixAttention để phá vỡ giới hạn TPOT                       | TBD                                        |
+| 12   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
+| 13   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
+| 14   | Dự phòng / Verifying                                                                              | Chạy lặp lại cấu hình tối ưu nhất để lấy trung bình                          | TBD                                        |
+| 15   | Dự phòng / Verifying                                                                              | Dự phòng bổ sung                                                             | TBD                                        |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 

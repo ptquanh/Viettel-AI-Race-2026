@@ -10,17 +10,17 @@ services:
       - --served-model-name=Qwen3.5-2B
       - --host=0.0.0.0
       - --port=8000
-      
+
       # --- CẤU HÌNH THÀNH CÔNG GẦN NHẤT (Baseline mới 18.99) ---
       - --max-model-len=262144
       - --gpu-memory-utilization=0.95
       - --enable-chunked-prefill
       - --no-enable-log-requests
       - --quantization=fp8
-      
+
       # --- ĐƠN BIẾN THỬ NGHIỆM SLOT 7 (07/07) ---
       - --compilation-config={"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}
-      
+
       - --tensor-parallel-size=1
       - --enable-prefix-caching
     ports:
