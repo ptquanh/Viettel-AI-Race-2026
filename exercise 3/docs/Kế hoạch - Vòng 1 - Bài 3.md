@@ -110,12 +110,38 @@ Mỗi submission trên portal BTC = 1 lượt test. Tối đa **15 submit/ngày*
 > - **KHÔNG cần tốn slot chạy đối chứng (Reference)** hàng ngày để đo độ biến động.
 > - Tiết kiệm được tối đa số slot để thử nghiệm trực tiếp các tham số tối ưu mới.
 
-### Nguyên tắc TUYỆT ĐỐI (Rút kinh nghiệm từ 9 lần fail)
+### Nguyên tắc TUYỆT ĐỐI (Rút kinh nghiệm sau 32 lần submit)
 
-1. **Kỷ luật đơn biến NGHIÊM NGẶT:** Mỗi submit chỉ thay đổi **DUY NHẤT 1 tham số** so với cấu hình chạy thành công gần nhất. **KHÔNG BAO GIỜ** thay đổi 2+ biến cùng lúc.
+1. **Kỷ luật đơn biến NGHIÊM NGẶT:** Mỗi submit chỉ thay đổi **DUY NHẤT 1 tham số** so với cấu hình chạy thành công gần nhất. **KHÔNG BAO GIỜ** thay đổi 2+ biến cùng lúc (ngoại trừ các combo exploit đã lập kế hoạch).
 2. **Luôn dùng image gốc BTC** `vllm/vllm-openai:v0.22.1` làm mốc gốc cho đến khi chứng minh được flag hoạt động.
-3. **`--max-model-len` ≥ 32768** (tuyệt đối không dùng 8192).
+3. **`--max-model-len` ≥ 65536** (tuyệt đối không dùng 8192 hay 32768 để tránh crash hoặc giảm RadixAttention performance).
 4. **Ghi chép:** Mỗi submit → `HHMM-docker-compose.yml` + `HHMM-result.md` trong `submissions/DDMMYYYY/`.
+
+#### 🚫 Danh sách cờ / tham số BỊ CẤM TUYỆT ĐỐI
+
+Dựa trên thực tế 32 lần chạy thử nghiệm, các flag/cấu hình sau đây bị cấm tuyệt đối do gây crash, timeout hoặc giảm điểm nghiêm trọng:
+
+- ❌ `--max-model-len < 65536` (Gây crash do không đủ context chứa các prompts dài 20k-42k tokens).
+- ❌ `--kv-cache-dtype=fp8` / `fp8_e4m3` (STT17: sụt -5.54 điểm, TTFT +43%, GPQA -9%).
+- ❌ `--max-num-batched-tokens < 4096` (STT30/31: trị số thấp gây nghẽn prefill hoặc crash engine).
+- ❌ `--max-num-seqs <= 64` (STT10: giới hạn concurrency quá thấp làm sụt điểm còn 2.64).
+- ❌ `--enforce-eager` (STT22: Tắt CUDA graphs gây nghẽn CPU nặng dẫn tới timeout 2700s).
+- ❌ `--num-scheduler-steps` (STT20: flag chưa được hỗ trợ, gây lỗi exited 2).
+- ❌ `--swap-space` (STT32: flag đã bị loại bỏ hoàn toàn trong phiên bản vLLM mới của hệ thống chấm, gây lỗi exited 2).
+- ❌ `--disable-log-requests` (Sai tên flag, tên đúng là `--no-enable-log-requests`).
+- ❌ Các biến môi trường: `VLLM_USE_V1=1`, `VLLM_ENABLE_V1_MULTIPROCESSING=0`, `OMP_NUM_THREADS=1` (STT23: giới hạn luồng CPU làm giảm hiệu năng).
+- ❌ Docker image: `vllm/vllm-openai:v0.4.2` (gây lỗi không khởi động được container).
+
+#### ✅ Danh sách cờ AN TOÀN / KHẢ DỤNG đã xác minh
+
+- ✅ `--quantization=fp8` (Giảm dung lượng model weights, cải thiện lớn tốc độ).
+- ✅ `--enable-chunked-prefill` (Chunk prefill tối ưu hóa lập lịch).
+- ✅ `--no-enable-log-requests` (Giảm CPU logging overhead).
+- ✅ `--max-num-batched-tokens` (Chỉ tăng ≥ 8192 để xử lý prefill context dài nhanh hơn).
+- ✅ `--block-size {8, 16, 32, 64, 128}` (Khảo sát kích thước KV Cache block).
+- ✅ `--performance-mode {balanced, interactivity, throughput}` (Khảo sát chế độ tối ưu trễ/băng thông).
+- ✅ `--max-seq-len-to-capture` (Tăng kích thước bắt CUDA Graphs).
+- ✅ `--compilation-config` (Tinh chỉnh chiều sâu biên dịch graph).
 
 ---
 
@@ -236,23 +262,23 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 > Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với cấu hình Best Config mới làm nền tảng (STT21 = Baseline 18.99).
 
-| Slot | Cấu hình = Best Config + ...                                            | Kết quả thực tế & Chỉ số                                                     | Đánh giá                               |
-| :--- | :---------------------------------------------------------------------- | :--------------------------------------------------------------------------- | :------------------------------------- |
-| 1    | + `--max-num-batched-tokens=1024`                                       | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG** (prefill chặn decode)  |
-| 2    | + `--max-num-batched-tokens=256` (Mới)                                  | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine) |
-| 3    | + `--swap-space=0`                                                      | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)   |
-| 4    | + `--block-size=32`                                                     | Thử nghiệm tăng kích thước KV cache block từ 16 lên 32                       | TBD                                    |
-| 5    | + `--max-seq-len-to-capture=16384`                                      | Tăng giới hạn CUDA Graph capture lên 16k (mặc định là 8192)                  | TBD                                    |
-| 6    | + `--performance-mode=interactivity`                                    | Khảo sát chế độ tối ưu hóa độ trễ (latency-optimized) của vLLM v1            | TBD                                    |
-| 7    | + `--performance-mode=throughput`                                       | Khảo sát chế độ tối ưu hóa băng thông (throughput-optimized) của vLLM v1     | TBD                                    |
-| 8    | + `--block-size=32` + `--performance-mode=interactivity`                | Combo tăng block size kết hợp chế độ low latency                             | TBD                                    |
-| 9    | + `--max-seq-len-to-capture=16384` + `--performance-mode=interactivity` | Combo CUDA Graph capture 16k kết hợp chế độ low latency                      | TBD                                    |
-| 10   | Combo tối ưu lựa chọn 1                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
-| 11   | Combo tối ưu lựa chọn 2                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
-| 12   | Combo tối ưu lựa chọn 3                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
-| 13   | Combo tối ưu lựa chọn 4                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
-| 14   | Combo tối ưu lựa chọn 5                                                 | Dựa trên kết quả thực tế của Slot 4 - 9                                      | TBD                                    |
-| 15   | Chốt cấu hình vLLM tốt nhất                                             | Verify lại cấu hình tốt nhất làm "Reference Config v2" của vLLM              | TBD                                    |
+| Slot | Cấu hình = Best Config + ...                                                          | Kết quả thực tế & Chỉ số                                                     | Đánh giá                                  |
+| :--- | :------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- | :---------------------------------------- |
+| 1    | + `--max-num-batched-tokens=1024`                                                     | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG NHẸ** (prefill chặn decode) |
+| 2    | + `--max-num-batched-tokens=256` (Mới)                                                | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine)    |
+| 3    | + `--swap-space=0`                                                                    | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)      |
+| 4    | + `--block-size=32`                                                                   | **Giảm điểm (17.23đ)**. TTFT P50=632ms, P95=8430ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (KV fragmentation)        |
+| 5    | + `--performance-mode=interactivity`                                                  | Khảo sát chế độ latency-oriented của vLLM v1 (Mục tiêu TPOT <45ms)           | TBD                                       |
+| 6    | + `--performance-mode=throughput`                                                     | Khảo sát chế độ throughput-oriented (đối chứng)                              | TBD                                       |
+| 7    | + `--max-num-batched-tokens=32768`                                                    | **TĂNG CỰC ĐẠI**: prefill 20-42k tokens trong 1-2 chunks để giảm trễ prefill | TBD                                       |
+| 8    | + `--max-num-batched-tokens=65536`                                                    | Full prefill 1 shot cho requests. Nguy cơ OOM VRAM cao.                      | TBD                                       |
+| 9    | + `--max-num-batched-tokens=32768` + `--performance-mode=interactivity`               | Combo #1: Giảm trễ prefill + chế độ latency-oriented                         | TBD                                       |
+| 10   | + `--block-size=32` + `--performance-mode=interactivity`                              | Combo #2: Giảm overhead block metadata + low latency graph                   | TBD                                       |
+| 11   | + `--max-seq-len-to-capture=32768` + `--performance-mode=interactivity`               | Combo #3: CUDA Graph sâu + interactivity                                     | TBD                                       |
+| 12   | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'` | Ép FULL graph decode-only, capture size 256 > output 200 tokens              | TBD                                       |
+| 13   | Combo tối ưu lựa chọn 1 (Best single + best single)                                   | Dựa trên kết quả thực tế của các Slot trước                                  | TBD                                       |
+| 14   | Chốt cấu hình vLLM tốt nhất / Test nhanh SGLang                                       | Chốt Reference Config v2 vLLM hoặc test nhanh SGLang                         | TBD                                       |
+| 15   | Dự phòng / Verifying                                                                  | Dự phòng chạy bổ sung                                                        | TBD                                       |
 
 #### Ngày 08-09/07 — SGLang Exploration (30 Slots)
 
