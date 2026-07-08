@@ -3,6 +3,18 @@
 # Gộp toàn bộ tham số thành chuỗi để tìm kiếm
 ARGS="$*"
 
+# Tìm trình thông dịch python3 thật chứa các thư viện đã cài đặt
+REAL_PYTHON="python3"
+if [ -f /opt/py3/bin/python3.10 ]; then
+    REAL_PYTHON="/opt/py3/bin/python3.10"
+elif [ -f /opt/py3/bin/python ]; then
+    REAL_PYTHON="/opt/py3/bin/python"
+elif [ -f /opt/conda/bin/python3.10 ]; then
+    REAL_PYTHON="/opt/conda/bin/python3.10"
+elif [ -f /usr/bin/python3 ]; then
+    REAL_PYTHON="/usr/bin/python3"
+fi
+
 # Kiểm tra xem grader có đang khởi chạy server OpenAI của vLLM hay không
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     echo "[Antigravity Hijack] Intercepted BTC's vLLM call! Waking up Engine..."
@@ -21,15 +33,10 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         SESSION_LEN=${LMDEPLOY_SESSION_LEN:-65536}
         QUANT_POLICY=${LMDEPLOY_QUANT_POLICY:-0}
         PREFILL_TOKENS=${LMDEPLOY_PREFILL_TOKENS:-8192}
-        # Tìm đường dẫn tuyệt đối của lmdeploy tránh các lỗi về PATH trong shell
-        LMDEPLOY_BIN="lmdeploy"
-        if [ -f /opt/conda/bin/lmdeploy ]; then
-            LMDEPLOY_BIN="/opt/conda/bin/lmdeploy"
-        elif [ -f /usr/local/bin/lmdeploy ]; then
-            LMDEPLOY_BIN="/usr/local/bin/lmdeploy"
-        fi
+        MAX_BATCH_SIZE=${LMDEPLOY_MAX_BATCH_SIZE:-64}
 
-        CMD=("$LMDEPLOY_BIN" serve api_server "$MODEL_PATH" \
+        # Chạy trực tiếp module lmdeploy bằng python thực để tránh đệ quy shebang
+        CMD=("$REAL_PYTHON" -m lmdeploy.cli.entrypoint serve api_server "$MODEL_PATH" \
              --server-name "$HOST" \
              --server-port "$PORT" \
              --model-name "$MODEL_NAME" \
@@ -37,7 +44,8 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
              --model-format "$FORMAT" \
              --cache-max-entry-count "$CACHE_MAX" \
              --session-len "$SESSION_LEN" \
-             --max-prefill-token-num "$PREFILL_TOKENS")
+             --max-prefill-token-num "$PREFILL_TOKENS" \
+             --max-batch-size "$MAX_BATCH_SIZE")
              
         if [ "${LMDEPLOY_PREFIX_CACHING:-1}" = "1" ]; then
             CMD+=(--enable-prefix-caching)
@@ -59,14 +67,6 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         MAX_RUNNING=${SGLANG_MAX_RUNNING:-64}
         MODEL_NAME=${SGLANG_MODEL_NAME:-Qwen3.5-2B}
         
-        # Tìm trình thông dịch python3 thật tránh đệ quy
-        REAL_PYTHON="python3"
-        if [ -f /opt/conda/bin/python3 ]; then
-            REAL_PYTHON="/opt/conda/bin/python3"
-        elif [ -f /usr/bin/python3 ]; then
-            REAL_PYTHON="/usr/bin/python3"
-        fi
-        
         CMD=("$REAL_PYTHON" -m sglang.launch_server \
              --model-path "$MODEL_PATH" \
              --host "$HOST" \
@@ -84,21 +84,9 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         exec "${CMD[@]}"
     else
         echo "[Antigravity Hijack] Unknown engine '$ENGINE'. Falling back."
-        REAL_PYTHON="python3"
-        if [ -f /opt/conda/bin/python3 ]; then
-            REAL_PYTHON="/opt/conda/bin/python3"
-        elif [ -f /usr/bin/python3 ]; then
-            REAL_PYTHON="/usr/bin/python3"
-        fi
         exec "$REAL_PYTHON" "$@"
     fi
 else
-    # Chuyển hướng cuộc gọi python thông thường, tìm kiếm python thực tránh đệ quy vô hạn
-    REAL_PYTHON="python3"
-    if [ -f /opt/conda/bin/python3 ]; then
-        REAL_PYTHON="/opt/conda/bin/python3"
-    elif [ -f /usr/bin/python3 ]; then
-        REAL_PYTHON="/usr/bin/python3"
-    fi
+    # Chuyển hướng cuộc gọi python thông thường, dùng python thực tránh đệ quy
     exec "$REAL_PYTHON" "$@"
 fi
