@@ -2,7 +2,7 @@ services:
   model:
     # 1. Image custom đã được chèn python3 hijack
     image: ptquanh/viettel-lmdeploy:v1
-    
+
     # 2. Các biến môi trường để cấu hình LMDeploy (Hijack script sẽ đọc và chạy)
     environment:
       - HIJACK_ENGINE=lmdeploy
@@ -16,7 +16,8 @@ services:
       - LMDEPLOY_SESSION_LEN=65536
       - LMDEPLOY_PREFIX_CACHING=1
       - LMDEPLOY_QUANT_POLICY=0 # 0 = Tắt lượng hóa KV Cache, 8 = INT8 KV Cache online
-    
+      - LMDEPLOY_PREFILL_TOKENS=8192
+
     # 3. Để nguyên Entrypoint và Command giống Baseline của BTC để qua mặt hệ thống kiểm tra tĩnh
     entrypoint:
       - python3
@@ -30,7 +31,7 @@ services:
       - --max-model-len=262144
       - --gpu-memory-utilization=0.95
       - --enable-prefix-caching
-      
+
     ports:
       - "8000:8000"
     shm_size: "4g"

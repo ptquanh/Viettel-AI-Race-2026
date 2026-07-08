@@ -24,7 +24,8 @@ if "vllm.entrypoints.openai.api_server" in args_str:
         cache_max_entry_count = os.environ.get("LMDEPLOY_CACHE_MAX", "0.92")
         session_len = os.environ.get("LMDEPLOY_SESSION_LEN", "65536") # Giữ 65536 để chứa context 20k-42k
         quant_policy = os.environ.get("LMDEPLOY_QUANT_POLICY", "0") # 0 = tắt, 8 = INT8 KV cache
-        
+        prefill_tokens = os.environ.get("LMDEPLOY_PREFILL_TOKENS", "8192")
+
         cmd = [
             "lmdeploy", "serve", "api_server", model_path,
             "--server-name", server_name,
@@ -33,7 +34,8 @@ if "vllm.entrypoints.openai.api_server" in args_str:
             "--backend", backend,
             "--model-format", model_format,
             "--cache-max-entry-count", cache_max_entry_count,
-            "--session-len", session_len
+            "--session-len", session_len,
+            "--max-prefill-token-num", prefill_tokens
         ]
         
         # Thêm cờ prefix caching (mặc định bật)
