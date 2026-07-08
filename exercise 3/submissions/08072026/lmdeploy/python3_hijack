@@ -35,8 +35,8 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         PREFILL_TOKENS=${LMDEPLOY_PREFILL_TOKENS:-8192}
         MAX_BATCH_SIZE=${LMDEPLOY_MAX_BATCH_SIZE:-64}
 
-        # Chạy trực tiếp module lmdeploy bằng python thực để tránh đệ quy shebang
-        CMD=("$REAL_PYTHON" -m lmdeploy.cli.entrypoint serve api_server "$MODEL_PATH" \
+        # Chạy trực tiếp script lmdeploy bằng python thực để tránh đệ quy shebang
+        CMD=("$REAL_PYTHON" "/opt/py3/bin/lmdeploy" serve api_server "$MODEL_PATH" \
              --server-name "$HOST" \
              --server-port "$PORT" \
              --model-name "$MODEL_NAME" \
