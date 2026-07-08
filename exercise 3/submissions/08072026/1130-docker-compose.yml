@@ -1,7 +1,7 @@
 services:
   model:
-    # 1. Image custom v3 (khử CRLF + absolute path)
-    image: ptquanh/viettel-lmdeploy:v1
+    # 1. Image custom v3 (khử CRLF + absolute path + model AWQ)
+    image: ptquanh/sandbox-runtime:lmd-bf16-v3
     
     # 2. Các biến môi trường để cấu hình LMDeploy (Hijack script sẽ đọc và chạy)
     environment:

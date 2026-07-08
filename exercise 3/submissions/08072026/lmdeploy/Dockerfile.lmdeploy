@@ -1,6 +1,11 @@
 # Sử dụng image LMDeploy Turbomind chính thức làm base
 FROM openmmlab/lmdeploy:v0.7.0-cu12
 
+# Nâng cấp thư viện transformers, lmdeploy, sửa đổi huggingface-hub về 1.15.0 để tránh lỗi URI, và gỡ bỏ flash-linear-attention
+RUN pip install --no-cache-dir -U transformers lmdeploy && \
+    pip uninstall -y flash-linear-attention fla-core && \
+    pip install --no-cache-dir huggingface-hub==1.15.0
+
 # 1. ĐƯA CỤC MODEL AWQ VÀO IMAGE
 COPY ./qwen35-2b-awq /app/qwen_awq
 
