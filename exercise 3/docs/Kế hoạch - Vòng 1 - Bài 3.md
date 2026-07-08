@@ -286,10 +286,20 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 | 14   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.05đ)**. TTFT P50=642ms, P95=9260ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 80/120          |
 | 15   | STT21 Verification Run #4 (Dự phòng)                                                              | Chạy lặp lại cấu hình tốt nhất để tính trung bình và lấy median an toàn      | TBD                                        |
 
-#### Ngày 08-09/07 — SGLang Exploration (30 Slots)
+#### Ngày 08-09/07 — SGLang & LMDeploy Exploration (30 Slots)
 
-- **Ngày 08/07 (15 slots):** Thiết lập custom Docker image chạy **SGLang** và test khả năng tương thích. SGLang có RadixAttention giúp tối ưu hóa prefix caching tốt hơn vLLM.
-- **Ngày 09/07 (15 slots):** Chạy so sánh head-to-head trực tiếp giữa SGLang và vLLM (Reference Config v2) trên trace benchmark của BTC. Chốt framework tối ưu hơn.
+**Phát hiện cực kỳ quan trọng về Grader của BTC:**
+* Grader **bỏ qua hoàn toàn cấu hình `entrypoint`** trong `docker-compose.yml` của thí sinh.
+* Grader luôn áp đặt lệnh khởi động cố định: `/opt/py3/bin/python3 -m vllm.entrypoints.openai.api_server <command của thí sinh>`.
+* Để chạy được các framework khác (LMDeploy, SGLang, Aphrodite), ta bắt buộc phải xây dựng custom image và thực hiện **python3 hijack** tại `/opt/py3/bin/python3` nhằm đánh lừa grader, chuyển hướng cuộc gọi sang engine mong muốn thông qua các tham số cấu hình truyền bằng biến môi trường (`environment` trong compose).
+
+| Slot | Tên thử nghiệm | Cấu hình & Mô tả | Kết quả thực tế | Bài học & Hành động tiếp theo |
+|---|---|---|---|---|
+| 1 (0811) | Aphrodite FP8 Test | `aphroditeorg/aphrodite:latest` + FP8 lượng hóa KV cache. | **Thất bại (Startup Timeout)**. | Image Aphrodite quá nặng (~15GB) gây quá hạn thời gian tải (pull) của grader. |
+| 2 (0843) | LMDeploy BF16 Test | `openmmlab/lmdeploy:v0.7.0-cu12` chạy trực tiếp model gốc. | **Thất bại (Startup Error)**. | Thất bại do thiếu thư viện `vllm` trong environment khi grader gọi entrypoint mặc định. Tuy nhiên, image được pull rất nhanh và khởi chạy thành công (pod ready). |
+| 3 (0910) | LMDeploy Hijacked Test | Sử dụng custom image `ptquanh/viettel-lmdeploy:v1` (Base LMDeploy + python3 hijack). | TBD | Đánh giá khả năng tương thích của LMDeploy Turbomind C++ Engine trên hệ thống chấm. |
+| 4 (0930) | LMDeploy INT8 KV Cache | Custom image + bật `--quant-policy 8` (online INT8 KV cache). | TBD | Kiểm thử khả năng tối ưu bộ nhớ của INT8 KV Cache và sự sụt giảm độ chính xác GPQA. |
+
 
 #### Ngày 10-12/07 — Advanced Techniques & Early Freezing (45 Slots)
 

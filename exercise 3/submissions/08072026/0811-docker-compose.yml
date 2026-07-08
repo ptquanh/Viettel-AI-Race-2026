@@ -1,0 +1,63 @@
+services:
+  model:
+    image: aphroditeorg/aphrodite:latest
+    # 7.4GB – pull OK – tested < 90s on Viettel grader
+    # Qwen3.5-2B – FP8 weights – NO AWQ file needed
+    # Best Config STT21 ported: --quantization=fp8 + chunked_prefill + prefix_caching
+    entrypoint: ["python3", "-m", "aphrodite.endpoints.openai.api_server"]
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.93
+      - --tensor-parallel-size=1
+      - --dtype=auto
+      - --quantization=fp8
+      - --kv-cache-dtype=auto
+      - --enable-prefix-caching
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=8192
+      # DO NOT add on v0.22.1-compat mode:
+      # --max-num-partial-prefills --long-prefill-token-threshold --enforce-eager
+      # tested – exit 2 / timeout 2700s – STT5,6,20,22
+    environment:
+      - OMP_NUM_THREADS=2
+      - MKL_NUM_THREADS=1
+      - TOKENIZERS_PARALLELISM=false
+      - VLLM_USE_FASTOKENS=1
+      - VLLM_NO_USAGE_STATS=1
+      - HF_HUB_OFFLINE=1
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+# LOCAL SMOKE – RTX 3050 Ti 4GB:
+# docker compose -f 01_aphrodite_fp8.yml -f docker-compose.override.3050ti.yml up
+# expect: boot <45s, /v1/models 200 OK
+# TESTED FLAGS – SAFE LIST (43 submissions):
+# ✅ --quantization=fp8  → STT21 +3.02đ, GPQA drop 1%
+# ✅ --enable-chunked-prefill → STT16 +0.52đ
+# ✅ --no-enable-log-requests → use Aphrodite --disable-log-requests (mapped internally)
+# ✅ --enable-prefix-caching → MANDATORY – OFF = timeout 2700s STT39
+# ❌ BAN LIST – 24 items – see docs/Flag_Blacklist_43runs.md
+#   --kv-cache-dtype=fp8  → STT17 10.24đ -5.54đ GPQA -9%
+#   --max-model-len < 65536 → crash STT2,3,6,8,9
+#   --max-num-batched-tokens ≠8192 → STT30 7.22đ, STT31 crash, STT35 16.73đ TTFT 4674ms
+#   --max-num-seqs 32 → STT10 2.64đ
+#   --enforce-eager → STT22 timeout 2700s
+#   --compilation-config → STT36 17.78đ / STT37 18.24đ – TPOT 51ms 0 gain
+#   --performance-mode interactivity → STT34 16.33đ
+#   --no-enable-prefix-caching → STT39 timeout 2700s
+#   SGLang lmsysorg/* pull → STT40 startup timeout
+# Expected on H200 MiG – trace-round1.jsonl (120 req, 20-42k input, 200 out):
+#   TTFT P50 420-520ms / P95 4200-6200ms / TPOT 32-38ms / passed_slo 105-115/120
+#   ERS ~0.28-0.38 → Score 28-38đ – GPQA drop 1-2% → f=1.0

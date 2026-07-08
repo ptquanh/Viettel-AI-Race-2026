@@ -1,0 +1,50 @@
+services:
+  model:
+    # 1. Dùng trực tiếp Image siêu nhẹ của OpenMMLab (không cần build)
+    image: openmmlab/lmdeploy:v0.7.0-cu12
+
+    # 2. Thay đổi Entrypoint sang LMDeploy (Đã chứng minh là hợp lệ)
+    entrypoint:
+      - lmdeploy
+      - serve
+      - api_server
+
+    command:
+      # 3. Đọc trực tiếp cục tạ BF16 do BTC mount vào
+      - /model
+      - --server-name
+      - 0.0.0.0
+      - --server-port
+      - "8000"
+      - --model-name
+      - Qwen3.5-2B
+
+      # 4. Bật C++ Runtime Turbomind
+      - --backend
+      - turbomind
+
+      # 5. Khai báo đây là model HuggingFace gốc (BF16), KHÔNG PHẢI AWQ
+      - --model-format
+      - hf
+
+      # 6. Tối ưu bộ nhớ (Sử dụng 92% VRAM)
+      - --cache-max-entry-count
+      - "0.92"
+
+      # 7. ÉP XUỐNG 8192: Vì BF16 rất nặng, nếu để 32k Turbomind sẽ pre-allocate VRAM
+      # gây lỗi OOM ngay lúc khởi động, dẫn đến timeout giống Aphrodite.
+      - --session-len
+      - "8192"
+      - --tp
+      - "1"
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
