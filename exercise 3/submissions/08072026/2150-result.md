@@ -6,4 +6,12 @@
 
 ## Chỉ số đo được
 
-TBD
+**Chấm điểm thất bại**
+
+```
+spawn contestant container: wait for pod ready: timed out waiting for contestant pod to be ready: context deadline exceeded
+```
+
+---
+
+_Kết luận: Thất bại do script python3_hijack cũ bị rơi vào vòng lặp đệ quy vô hạn (khi import lmdeploy, PyTorch/Triton gọi subprocess python3/python3.10 trỏ ngược về hijack script). Bản sửa lỗi triệt để bằng cách dùng system python /usr/bin/python3 và PYTHONPATH vừa được push lên Docker Hub._

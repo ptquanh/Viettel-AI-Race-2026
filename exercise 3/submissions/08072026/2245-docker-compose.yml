@@ -1,0 +1,48 @@
+services:
+  model:
+    # 1. Image custom v3 mới nhất (đã được sửa lỗi đệ quy shebang bằng cách gọi trực tiếp system python và PYTHONPATH)
+    image: ptquanh/sandbox-runtime:lmd-bf16-v3
+
+    # 2. Cấu hình chạy LMDeploy AWQ 4-bit (sử dụng C++ Turbomind Engine)
+    environment:
+      - HIJACK_ENGINE=lmdeploy
+      - LMDEPLOY_MODEL=/app/qwen_awq
+      - LMDEPLOY_HOST=0.0.0.0
+      - LMDEPLOY_PORT=8000
+      - LMDEPLOY_MODEL_NAME=Qwen3.5-2B
+      - LMDEPLOY_BACKEND=turbomind
+      - LMDEPLOY_FORMAT=awq
+      - LMDEPLOY_CACHE_MAX=0.92
+
+      # Tối ưu hóa bộ nhớ đệm và giới hạn batch để container khởi động siêu tốc và an toàn
+      - LMDEPLOY_SESSION_LEN=43008
+      - LMDEPLOY_MAX_BATCH_SIZE=64
+
+      - LMDEPLOY_PREFIX_CACHING=1
+      - LMDEPLOY_QUANT_POLICY=4 # Kích hoạt online INT4 KV Cache
+      - LMDEPLOY_PREFILL_TOKENS=8192
+
+    # 3. Giữ nguyên entrypoint/command của BTC để vượt qua khâu kiểm tra tĩnh
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

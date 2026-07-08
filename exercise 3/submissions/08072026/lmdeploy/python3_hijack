@@ -3,17 +3,15 @@
 # Gộp toàn bộ tham số thành chuỗi để tìm kiếm
 ARGS="$*"
 
-# Tìm trình thông dịch python3 thật chứa các thư viện đã cài đặt
-REAL_PYTHON="python3"
-if [ -f /opt/py3/bin/python3.10 ]; then
-    REAL_PYTHON="/opt/py3/bin/python3.10"
-elif [ -f /opt/py3/bin/python ]; then
-    REAL_PYTHON="/opt/py3/bin/python"
-elif [ -f /opt/conda/bin/python3.10 ]; then
-    REAL_PYTHON="/opt/conda/bin/python3.10"
-elif [ -f /usr/bin/python3 ]; then
+# Định nghĩa Python thực của hệ thống và đặt PYTHONPATH trỏ tới thư viện của venv gốc
+if [ -f /usr/bin/python3 ]; then
     REAL_PYTHON="/usr/bin/python3"
+else
+    REAL_PYTHON="python3"
 fi
+
+export PYTHONPATH="/opt/py3/lib/python3.10/site-packages:/opt/conda/lib/python3.10/site-packages:$PYTHONPATH"
+
 
 # Kiểm tra xem grader có đang khởi chạy server OpenAI của vLLM hay không
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
