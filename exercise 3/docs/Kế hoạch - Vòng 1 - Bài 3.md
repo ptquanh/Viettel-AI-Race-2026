@@ -297,8 +297,9 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 |---|---|---|---|---|
 | 1 (0811) | Aphrodite FP8 Test | `aphroditeorg/aphrodite:latest` + FP8 lượng hóa KV cache. | **Thất bại (Startup Timeout)**. | Image Aphrodite quá nặng (~15GB) gây quá hạn thời gian tải (pull) của grader. |
 | 2 (0843) | LMDeploy BF16 Test | `openmmlab/lmdeploy:v0.7.0-cu12` chạy trực tiếp model gốc. | **Thất bại (Startup Error)**. | Thất bại do thiếu thư viện `vllm` trong environment khi grader gọi entrypoint mặc định. Tuy nhiên, image được pull rất nhanh và khởi chạy thành công (pod ready). |
-| 3 (0910) | LMDeploy Hijacked Test | Sử dụng custom image `ptquanh/viettel-lmdeploy:v1` (Base LMDeploy + python3 hijack). | TBD | Đánh giá khả năng tương thích của LMDeploy Turbomind C++ Engine trên hệ thống chấm. |
-| 4 (0930) | LMDeploy INT8 KV Cache | Custom image + bật `--quant-policy 8` (online INT8 KV cache). | TBD | Kiểm thử khả năng tối ưu bộ nhớ của INT8 KV Cache và sự sụt giảm độ chính xác GPQA. |
+| 3 (0940) | LMDeploy Hijacked Test | Sử dụng custom image `ptquanh/viettel-lmdeploy:v1` (Base LMDeploy + python3 hijack). | **Thất bại (Startup Error - 126)**. | Do shebang `#!/usr/bin/env python3` bị đệ quy vô hạn qua PATH. Đã sửa sang Bash script để chặn đứng đệ quy. |
+| 4 (1030) | LMDeploy Hijacked v2 | Chạy lại custom image với hijack bằng Bash script (`python3_hijack`). | TBD | Đánh giá khả năng tương thích của LMDeploy Turbomind C++ Engine trên hệ thống chấm. |
+| 5 (1050) | LMDeploy INT8 KV Cache | Custom image + bật `--quant-policy 8` (online INT8 KV cache). | TBD | Kiểm thử khả năng tối ưu bộ nhớ của INT8 KV Cache và sự sụt giảm độ chính xác GPQA. |
 
 
 #### Ngày 10-12/07 — Advanced Techniques & Early Freezing (45 Slots)

@@ -5,7 +5,7 @@ FROM openmmlab/lmdeploy:v0.7.0-cu12
 RUN mkdir -p /opt/py3/bin/
 
 # 2. Đưa script hijack vào đúng vị trí "tử huyệt"
-COPY python3_hijack.py /opt/py3/bin/python3
+COPY python3_hijack /opt/py3/bin/python3
 
 # 3. Cấp quyền thực thi tuyệt đối
 RUN chmod +x /opt/py3/bin/python3

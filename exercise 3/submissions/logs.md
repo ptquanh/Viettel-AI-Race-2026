@@ -51,7 +51,9 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 43  | `submissions/07072026/2217` | Baseline mới (STT21) Verification Run #3                                                                 |   **17.05**   | Kiểm thử lặp lại cấu hình tốt nhất STT21 để lấy median an toàn            | Điểm số giảm nhẹ (-1.94) do nghẽn CPU host portal vào giờ cao điểm, passed SLO 80/120                      |
 | 44  | `submissions/08072026/0811` | Aphrodite FP8 (`aphroditeorg/aphrodite:latest` + FP8)                                                    |   **Fail**    | Khảo sát Aphrodite FP8                                                    | Thất bại (Startup Timeout) do image Aphrodite quá nặng (~15GB) gây lỗi pull timeout                        |
 | 45  | `submissions/08072026/0843` | LMDeploy BF16 (`openmmlab/lmdeploy:v0.7.0-cu12` trực tiếp)                                               |   **Fail**    | Khảo sát LMDeploy BF16                                                    | Thất bại (Startup Error) do grader ép khởi chạy bằng vLLM entrypoint và thiếu thư viện vllm trong image    |
+| 46  | `submissions/08072026/0940` | Custom LMDeploy Hijacked Test (`ptquanh/viettel-lmdeploy:v1`)                                             |   **Fail**    | Kiểm thử LMDeploy qua Python shebang hijack                               | Thất bại (Startup Error - exit code 126) do shebang /usr/bin/env python3 bị đệ quy vô hạn qua PATH        |
 
 > **Lưu ý:** Các submission STT1-3 sử dụng custom image (`viettel-qwen-local:v1`, `ptquanh/viettel-qwen35-2b:bf16-v1`) bị fail do image **chưa được push lên Docker Hub** tại thời điểm submit. Kể từ STT7 (`submissions/04072026/0643`), custom image `ptquanh/viettel-qwen35-2b:bf16-v1` đã được push thành công và hoạt động bình thường (đạt 15.03 điểm).
+
 
 ---
