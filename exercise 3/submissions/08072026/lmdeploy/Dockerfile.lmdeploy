@@ -1,12 +1,18 @@
 # Sử dụng image LMDeploy Turbomind chính thức làm base
 FROM openmmlab/lmdeploy:v0.7.0-cu12
 
-# 1. Dựng sẵn đường dẫn mà Grader của BTC sẽ truy vấn
+# 1. ĐƯA CỤC MODEL AWQ VÀO IMAGE
+COPY ./qwen35-2b-awq /app/qwen_awq
+
+# 2. Dựng sẵn đường dẫn mà Grader của BTC sẽ truy vấn
 RUN mkdir -p /opt/py3/bin/
 
-# 2. Đưa script hijack vào đúng vị trí "tử huyệt"
+# 3. Đưa script hijack vào đúng vị trí "tử huyệt"
 COPY python3_hijack /opt/py3/bin/python3
 
-# 3. Cấp quyền thực thi tuyệt đối
+# Khử ký tự xuống dòng CRLF (Windows) sang LF (Linux) để tránh lỗi biên dịch Bash
+RUN sed -i 's/\r$//' /opt/py3/bin/python3
+
+# 4. Cấp quyền thực thi tuyệt đối
 RUN chmod +x /opt/py3/bin/python3
 

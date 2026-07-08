@@ -21,8 +21,15 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         SESSION_LEN=${LMDEPLOY_SESSION_LEN:-65536}
         QUANT_POLICY=${LMDEPLOY_QUANT_POLICY:-0}
         PREFILL_TOKENS=${LMDEPLOY_PREFILL_TOKENS:-8192}
-        
-        CMD=(lmdeploy serve api_server "$MODEL_PATH" \
+        # Tìm đường dẫn tuyệt đối của lmdeploy tránh các lỗi về PATH trong shell
+        LMDEPLOY_BIN="lmdeploy"
+        if [ -f /opt/conda/bin/lmdeploy ]; then
+            LMDEPLOY_BIN="/opt/conda/bin/lmdeploy"
+        elif [ -f /usr/local/bin/lmdeploy ]; then
+            LMDEPLOY_BIN="/usr/local/bin/lmdeploy"
+        fi
+
+        CMD=("$LMDEPLOY_BIN" serve api_server "$MODEL_PATH" \
              --server-name "$HOST" \
              --server-port "$PORT" \
              --model-name "$MODEL_NAME" \

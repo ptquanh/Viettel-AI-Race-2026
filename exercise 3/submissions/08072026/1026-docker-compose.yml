@@ -1,6 +1,6 @@
 services:
   model:
-    # 1. Image custom v2 sửa lỗi đệ quy shebang
+    # 1. Image custom v2 sửa lỗi shebang
     image: ptquanh/viettel-lmdeploy:v1
     
     # 2. Các biến môi trường để cấu hình LMDeploy (Hijack script sẽ đọc và chạy)
