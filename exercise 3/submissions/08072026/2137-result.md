@@ -5,4 +5,12 @@
 
 ## Chỉ số đo được
 
-TBD
+**Chấm điểm thất bại**
+
+```
+job exceeded max duration of 2700s with no terminal callback
+```
+
+---
+
+*Kết luận: vLLM v0.22.1 khi kích hoạt MTP bị treo hoặc chạy cực kỳ chậm (deadlock/infinite loop ở decoding loop), dẫn tới vượt giới hạn 2700s (45 phút) của Grader. vLLM MTP chính thức bị loại khỏi danh sách tối ưu.*
