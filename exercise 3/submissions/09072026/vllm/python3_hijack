@@ -1,0 +1,35 @@
+#!/bin/bash
+ARGS="$*"
+
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity] Intercepted! Waking up Modern vLLM 0.22.1..."
+    
+    # Kích hoạt chế độ debug logs để chẩn đoán chính xác nguyên nhân nếu crash
+    export VLLM_LOGGING_LEVEL=DEBUG
+    
+    # Ép Python dọn dẹp RAM cực đoan khi tạo worker để cứu 8GB RAM hệ thống
+    export VLLM_WORKER_MULTIPROC_METHOD=spawn
+    export OMP_NUM_THREADS=2
+    export RAY_DEDUP_LOGS=0
+
+    # Khởi chạy vLLM với cấu hình sinh tồn tối ưu cực hạn
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server" \
+         "--model" "/model" \
+         "--served-model-name" "Qwen3.5-2B" \
+         "--host" "0.0.0.0" \
+         "--port" "8000" \
+         "--max-model-len" "43008" \
+         "--gpu-memory-utilization" "0.92" \
+         "--quantization" "fp8" \
+         "--enable-chunked-prefill" \
+         "--max-num-batched-tokens" "8192" \
+         "--enable-prefix-caching" \
+         "--max-num-seqs" "64" \
+         "--no-enable-log-requests")
+         
+    echo "[Antigravity] Executing: ${CMD[*]}"
+    exec "${CMD[@]}"
+else
+    # Fallback an toàn
+    exec "/usr/bin/python3_real" "$@"
+fi
