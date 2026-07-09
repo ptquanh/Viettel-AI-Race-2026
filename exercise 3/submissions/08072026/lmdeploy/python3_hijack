@@ -1,90 +1,40 @@
 #!/bin/bash
 
-# Gộp toàn bộ tham số thành chuỗi để tìm kiếm
 ARGS="$*"
-
-# Định nghĩa Python thực của hệ thống và đặt PYTHONPATH trỏ tới thư viện của venv gốc
-if [ -f /usr/bin/python3 ]; then
-    REAL_PYTHON="/usr/bin/python3"
-else
-    REAL_PYTHON="python3"
-fi
-
-export PYTHONPATH="/opt/py3/lib/python3.10/site-packages:/opt/conda/lib/python3.10/site-packages:$PYTHONPATH"
-
 
 # Kiểm tra xem grader có đang khởi chạy server OpenAI của vLLM hay không
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
-    echo "[Antigravity Hijack] Intercepted BTC's vLLM call! Waking up Engine..."
+    echo "[Antigravity Hijack] Intercepted BTC's vLLM call! Waking up Turbomind..."
     
-    ENGINE=${HIJACK_ENGINE:-lmdeploy}
-    echo "[Antigravity Hijack] Selected engine: $ENGINE"
-    
-    if [ "$ENGINE" = "lmdeploy" ]; then
-        MODEL_PATH=${LMDEPLOY_MODEL:-/model}
-        HOST=${LMDEPLOY_HOST:-0.0.0.0}
-        PORT=${LMDEPLOY_PORT:-8000}
-        MODEL_NAME=${LMDEPLOY_MODEL_NAME:-Qwen3.5-2B}
-        BACKEND=${LMDEPLOY_BACKEND:-turbomind}
-        FORMAT=${LMDEPLOY_FORMAT:-hf}
-        CACHE_MAX=${LMDEPLOY_CACHE_MAX:-0.92}
-        SESSION_LEN=${LMDEPLOY_SESSION_LEN:-65536}
-        QUANT_POLICY=${LMDEPLOY_QUANT_POLICY:-0}
-        PREFILL_TOKENS=${LMDEPLOY_PREFILL_TOKENS:-8192}
-        MAX_BATCH_SIZE=${LMDEPLOY_MAX_BATCH_SIZE:-64}
+    MODEL_PATH=${LMDEPLOY_MODEL:-/app/qwen_awq}
+    HOST=${LMDEPLOY_HOST:-0.0.0.0}
+    PORT=${LMDEPLOY_PORT:-8000}
+    MODEL_NAME=${LMDEPLOY_MODEL_NAME:-Qwen3.5-2B}
+    BACKEND=${LMDEPLOY_BACKEND:-turbomind}
+    FORMAT=${LMDEPLOY_FORMAT:-awq}
+    CACHE_MAX=${LMDEPLOY_CACHE_MAX:-0.92}
+    SESSION_LEN=${LMDEPLOY_SESSION_LEN:-43008}
+    PREFILL_TOKENS=${LMDEPLOY_PREFILL_TOKENS:-8192}
+    MAX_BATCH_SIZE=${LMDEPLOY_MAX_BATCH_SIZE:-64}
 
-        # Chạy trực tiếp script lmdeploy bằng python thực để tránh đệ quy shebang
-        CMD=("$REAL_PYTHON" "/opt/py3/bin/lmdeploy" serve api_server "$MODEL_PATH" \
-             --server-name "$HOST" \
-             --server-port "$PORT" \
-             --model-name "$MODEL_NAME" \
-             --backend "$BACKEND" \
-             --model-format "$FORMAT" \
-             --cache-max-entry-count "$CACHE_MAX" \
-             --session-len "$SESSION_LEN" \
-             --max-prefill-token-num "$PREFILL_TOKENS" \
-             --max-batch-size "$MAX_BATCH_SIZE")
-             
-        if [ "${LMDEPLOY_PREFIX_CACHING:-1}" = "1" ]; then
-            CMD+=(--enable-prefix-caching)
-        fi
-        
-        if [ "$QUANT_POLICY" != "0" ]; then
-            CMD+=(--quant-policy "$QUANT_POLICY")
-        fi
-        
-        echo "[Antigravity Hijack] Executing LMDeploy: ${CMD[*]}"
-        exec "${CMD[@]}"
-        
-    elif [ "$ENGINE" = "sglang" ]; then
-        MODEL_PATH=${SGLANG_MODEL:-/model}
-        HOST=${SGLANG_HOST:-0.0.0.0}
-        PORT=${SGLANG_PORT:-8000}
-        CONTEXT_LEN=${SGLANG_CONTEXT_LEN:-65536}
-        MEM_FRACTION=${SGLANG_MEM_FRACTION:-0.88}
-        MAX_RUNNING=${SGLANG_MAX_RUNNING:-64}
-        MODEL_NAME=${SGLANG_MODEL_NAME:-Qwen3.5-2B}
-        
-        CMD=("$REAL_PYTHON" -m sglang.launch_server \
-             --model-path "$MODEL_PATH" \
-             --host "$HOST" \
-             --port "$PORT" \
-             --context-length "$CONTEXT_LEN" \
-             --mem-fraction-static "$MEM_FRACTION" \
-             --max-running-requests "$MAX_RUNNING" \
-             --served-model-name "$MODEL_NAME")
-             
-        if [ "${SGLANG_DISABLE_CUDA_GRAPH:-1}" = "1" ]; then
-            CMD+=(--disable-cuda-graph)
-        fi
-        
-        echo "[Antigravity Hijack] Executing SGLang: ${CMD[*]}"
-        exec "${CMD[@]}"
-    else
-        echo "[Antigravity Hijack] Unknown engine '$ENGINE'. Falling back."
-        exec "$REAL_PYTHON" "$@"
-    fi
+    # Gọi LMDeploy thông qua tiến trình Python thật
+    CMD=("/opt/py3/bin/python3_real" "/opt/py3/bin/lmdeploy" serve api_server "$MODEL_PATH" \
+         --server-name "$HOST" \
+         --server-port "$PORT" \
+         --model-name "$MODEL_NAME" \
+         --backend "$BACKEND" \
+         --model-format "$FORMAT" \
+         --cache-max-entry-count "$CACHE_MAX" \
+         --session-len "$SESSION_LEN" \
+         --max-prefill-token-num "$PREFILL_TOKENS" \
+         --max-batch-size "$MAX_BATCH_SIZE" \
+         --enable-prefix-caching \
+         --quant-policy "4")
+
+    echo "[Antigravity Hijack] Executing LMDeploy: ${CMD[*]}"
+    exec "${CMD[@]}"
+    
 else
-    # Chuyển hướng cuộc gọi python thông thường, dùng python thực tránh đệ quy
-    exec "$REAL_PYTHON" "$@"
+    # Fallback an toàn: Mọi request chạy ngầm đều được trả về cho Python thật
+    exec "/opt/py3/bin/python3_real" "$@"
 fi

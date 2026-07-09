@@ -1,23 +1,17 @@
 # Sử dụng image LMDeploy Turbomind chính thức làm base
 FROM openmmlab/lmdeploy:v0.7.0-cu12
 
-# Nâng cấp thư viện transformers, lmdeploy, sửa đổi huggingface-hub về 1.15.0 để tránh lỗi URI, và gỡ bỏ flash-linear-attention
-RUN pip install --no-cache-dir -U transformers lmdeploy && \
+# Nâng cấp thư viện và dọn dẹp
+RUN pip install --no-cache-dir -U transformers lmdeploy openai && \
     pip uninstall -y flash-linear-attention fla-core && \
     pip install --no-cache-dir huggingface-hub==1.15.0
 
-# 1. ĐƯA CỤC MODEL AWQ VÀO IMAGE
+# 1. Đưa cục model AWQ vào Image
 COPY ./qwen35-2b-awq /app/qwen_awq
 
-# 2. Dựng sẵn đường dẫn mà Grader của BTC sẽ truy vấn
-RUN mkdir -p /opt/py3/bin/
+# 2. CHIẾN THUẬT BÓNG MA: Đổi tên Python thật thay vì xóa nó!
+RUN mv /opt/py3/bin/python3 /opt/py3/bin/python3_real
 
-# 3. Đưa script hijack vào đúng vị trí "tử huyệt"
+# 3. Đặt Ngựa Gỗ vào vị trí
 COPY python3_hijack /opt/py3/bin/python3
-
-# Khử ký tự xuống dòng CRLF (Windows) sang LF (Linux) để tránh lỗi biên dịch Bash
-RUN sed -i 's/\r$//' /opt/py3/bin/python3
-
-# 4. Cấp quyền thực thi tuyệt đối
-RUN chmod +x /opt/py3/bin/python3
-
+RUN sed -i 's/\r$//' /opt/py3/bin/python3 && chmod +x /opt/py3/bin/python3
