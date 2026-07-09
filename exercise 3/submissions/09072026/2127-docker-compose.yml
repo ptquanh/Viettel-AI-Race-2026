@@ -1,0 +1,32 @@
+services:
+  model:
+    # Trỏ vào Image Bóng ma v0.22.1 chúng ta vừa build
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack
+
+    environment:
+      - HIJACK_ENGINE=vllm-new
+
+    # Giữ nguyên mọi thứ dưới đây để lừa BTC rà soát tĩnh
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

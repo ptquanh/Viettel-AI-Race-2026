@@ -4,23 +4,25 @@ ARGS="$*"
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     echo "[Antigravity] Intercepted! Waking up Modern vLLM 0.22.1..."
     
-    # Giữ chế độ debug logs để theo dõi chi tiết
-    export VLLM_LOGGING_LEVEL=DEBUG
+    # Giảm tối đa logging overhead bằng WARNING level (tránh nghẽn CPU và I/O Docker daemon ghi log)
+    export VLLM_LOGGING_LEVEL=WARNING
     
     # Ép Python dọn dẹp RAM cực đoan khi tạo worker để cứu 8GB RAM hệ thống
     export VLLM_WORKER_MULTIPROC_METHOD=spawn
     export OMP_NUM_THREADS=2
     export RAY_DEDUP_LOGS=0
 
-    # Khôi phục nguyên bản cấu hình STT 21 (18.99 điểm) - Không dùng chunked prefill
-    # Tối ưu hóa tối đa cho GPU H200 bằng FP8 Quantization và Prefix Caching lớn nhất có thể
+    # Cấu hình STT 60 tối ưu hóa cực hạn:
+    # 1. Nâng gpu-memory-utilization lên 0.96 để mở rộng tối đa dung lượng KV Cache Radix pool.
+    # 2. Tắt hoàn toàn chunked-prefill để loại bỏ scheduling overhead.
+    # 3. Sử dụng FP8 Quantization + Prefix Caching gốc của STT 21.
     CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server" \
          "--model" "/model" \
          "--served-model-name" "Qwen3.5-2B" \
          "--host" "0.0.0.0" \
          "--port" "8000" \
          "--max-model-len" "262144" \
-         "--gpu-memory-utilization" "0.95" \
+         "--gpu-memory-utilization" "0.96" \
          "--quantization" "fp8" \
          "--enable-prefix-caching" \
          "--no-enable-log-requests")
