@@ -4,7 +4,7 @@ ARGS="$*"
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     echo "[Antigravity] Intercepted! Waking up Modern vLLM 0.22.1..."
     
-    # Kích hoạt chế độ debug logs để chẩn đoán chính xác nguyên nhân nếu crash
+    # Giữ chế độ debug logs để theo dõi chi tiết
     export VLLM_LOGGING_LEVEL=DEBUG
     
     # Ép Python dọn dẹp RAM cực đoan khi tạo worker để cứu 8GB RAM hệ thống
@@ -12,19 +12,17 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     export OMP_NUM_THREADS=2
     export RAY_DEDUP_LOGS=0
 
-    # Khởi chạy vLLM với cấu hình sinh tồn tối ưu cực hạn
+    # Khôi phục nguyên bản cấu hình STT 21 (18.99 điểm) - Không dùng chunked prefill
+    # Tối ưu hóa tối đa cho GPU H200 bằng FP8 Quantization và Prefix Caching lớn nhất có thể
     CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server" \
          "--model" "/model" \
          "--served-model-name" "Qwen3.5-2B" \
          "--host" "0.0.0.0" \
          "--port" "8000" \
-         "--max-model-len" "43008" \
-         "--gpu-memory-utilization" "0.92" \
+         "--max-model-len" "262144" \
+         "--gpu-memory-utilization" "0.95" \
          "--quantization" "fp8" \
-         "--enable-chunked-prefill" \
-         "--max-num-batched-tokens" "8192" \
          "--enable-prefix-caching" \
-         "--max-num-seqs" "64" \
          "--no-enable-log-requests")
          
     echo "[Antigravity] Executing: ${CMD[*]}"

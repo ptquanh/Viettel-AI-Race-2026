@@ -58,3 +58,10 @@ Ngay sau khi có kết quả từ portal (hoặc khi phát hiện lỗi khởi �
      `| {STT} | {Đường dẫn thư mục nộp} | {Mô tả cấu hình/Image} | **{Điểm số/Fail/Skip}** | {Chi tiết thay đổi/Ý tưởng} | {Kết luận rút ra/Lý do lỗi} |`
    - Cập nhật phần lưu ý nếu có phát hiện quan trọng.
 3. **Cập nhật Implementation Plan (`implementation_plan.md`):** Đánh giá xem hướng đi hiện tại có cần điều chỉnh (ví dụ: chuyển từ tối ưu LMDeploy sang quay lại tối ưu vLLM).
+
+---
+
+## 4. QUY ĐỊNH VỀ QUANTIZATION
+
+- **Quy tắc bắt buộc:** Hiện tại, bài thi này chỉ hỗ trợ **Online Quantization** (lượng tử hóa động khi load model), **KHÔNG** hỗ trợ offline quantization dưới dạng các pre-quantize model weight (như các checkpoint model AWQ, GPTQ được tải sẵn từ ngoài vào). Agent không được thử nghiệm nạp weights pre-quantized từ bên ngoài.
+
