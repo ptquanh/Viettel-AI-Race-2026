@@ -5,4 +5,17 @@
 
 ## Chỉ số đo được
 
-**Đang chờ kết quả benchmark (TBD)**
+- **Score (Điểm số)**: **15.91** (Passed SLO: 84/120)
+- **erc**: 0.7
+- **ers**: 15.91
+- **penalty**: 1
+- **ttft_p50_ms**: 637 ms
+- **ttft_p95_ms**: 10223 ms
+- **tbt_median_ms (TPOT)**: 59 ms
+- **failed_count**: 0
+
+### Nhận xét & Phân tích
+
+- Kết quả cho thấy giảm `--max-num-seqs` xuống 48 kết hợp với `--enable-chunked-prefill` và `--max-num-batched-tokens 2048` không giúp giảm TPOT như dự kiến (vẫn là 59ms so với 51ms của baseline).
+- Điều này củng cố giả thuyết rằng **chunked prefill** tạo thêm overhead quản lý cache (scheduling) làm chậm tiến trình giải mã (decode) trong vLLM v0.22.1 khi chạy trên 3 CPU cores.
+- Sắp tới cần so sánh trực tiếp với STT 68 (Seqs 48, No Chunked) để cô lập ảnh hưởng của chunked prefill.
