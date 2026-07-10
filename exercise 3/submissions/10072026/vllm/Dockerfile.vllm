@@ -1,9 +1,17 @@
-# Sử dụng base image vLLM v0.22.1 chính thức có hỗ trợ Qwen3.5
-FROM vllm/vllm-openai:v0.22.1
+# Sử dụng base image vLLM đời mới để khai thác C++ Scheduler
+FROM vllm/vllm-openai:v0.5.2
 
-# 1. Đổi tên Python gốc để tránh đệ quy và nhường chỗ cho kịch bản
-RUN mv /usr/bin/python3 /usr/bin/python3_real
+# 1. Tự động tìm đường dẫn python3 đang hoạt động và đổi tên để tránh đệ quy
+RUN PYTHON_BIN=$(which python3) && \
+    echo "Active python path: $PYTHON_BIN" && \
+    mv "$PYTHON_BIN" "${PYTHON_BIN}_real"
 
-# 2. Đặt kịch bản đánh chặn vào đúng vị trí Python cũ
-COPY python3_hijack /usr/bin/python3
-RUN sed -i 's/\r$//' /usr/bin/python3 && chmod +x /usr/bin/python3
+# 2. Sao chép kịch bản đánh chặn vào thư mục tạm thời trước
+COPY python3_hijack /tmp/python3_hijack
+
+# 3. Đặt kịch bản đánh chặn vào vị trí python3 cũ và cấp quyền thực thi
+RUN PYTHON_BIN_REAL=$(which python3_real) && \
+    PYTHON_DIR=$(dirname "$PYTHON_BIN_REAL") && \
+    cp /tmp/python3_hijack "$PYTHON_DIR/python3" && \
+    sed -i 's/\r$//' "$PYTHON_DIR/python3" && \
+    chmod +x "$PYTHON_DIR/python3"

@@ -301,8 +301,9 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 ##### Kế hoạch 15 Slots ngày 10/07/2026:
 
-- **Slot 1 (0818-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). **Thất bại (10.88 điểm, tbt_median=63ms)** do overhead lượng tử KV Cache quá lớn trên vLLM v0.22.1.
-- **Slot 2 (0925-docker-compose.yml):** MTP Speculative Decoding (image gốc). **Thất bại (10.53 điểm, TTFT P50 vọt lên 2.8s)** do overhead verify draft model nghẽn CPU nghiêm trọng trên 3 cores.
+- **Slot 1 (0818-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). **Thất bại nặng nề (10.88 điểm, 73/120 passed SLO)**. tbt_median tăng lên 63ms, TTFT P50 vọt lên 986ms do overhead quy đổi FP8 KV cache quá cao trên v0.22.1.
+- **Slot 2 (0925-docker-compose.yml):** MTP Speculative Decoding (image gốc). **Thất bại (10.53 điểm, 56/120 passed SLO)**. tbt_median giảm nhẹ về 47ms, nhưng TTFT P50 vọt lên 2.8s do overhead chạy draft model nghẽn CPU nặng trên 3 cores.
+
 - **Slot 3 (0845-docker-compose.yml):** FlashInfer backend via hijack (custom image `vllm-v0.22.1-flashinfer`). Thử nghiệm attention backend tối ưu cho long context.
 - **Slot 4 (0900-docker-compose.yml):** CUDA Graph capture size 65k (`--max-seq-len-to-capture=65536` + FP8 weights) để giữ CUDA Graph decode không fallback về eager mode khi context > 8192 (chuỗi thực tế 20k-42k), triệt tiêu CPU overhead.
 - **Slot 5:** CUDA Graph capture size 131k (`--max-seq-len-to-capture=131072`).

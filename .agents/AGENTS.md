@@ -70,3 +70,11 @@ Ngay sau khi có kết quả từ portal (hoặc khi phát hiện lỗi khởi �
 ## 5. QUY ĐỊNH VỀ SERVING FRAMEWORK
 
 - **Quy tắc bắt buộc:** Bài thi này chỉ hỗ trợ và chạy ổn định trên **vLLM framework**. Hệ thống grader chấm bài tự động ép buộc cấu hình chạy của vLLM. Không thử nghiệm các serving framework khác (như SGLang, LMDeploy, Aphrodite, v.v.) vì chúng không tương thích hoặc gây timeout/lỗi hệ thống khi chấm bài.
+
+---
+
+## 6. QUY ĐỊNH GHI NHẬT KÝ THAY ĐỔI IMAGE & HIJACK
+
+- **Quy tắc bắt buộc:** Từ giờ về sau, mỗi lần sửa đổi bất kỳ thứ gì liên quan đến docker image (đổi tên, đổi phiên bản/tag) hoặc đổi cấu hình (config) trong script hijack:
+  1. **Bắt buộc** phải ghi chi tiết nội dung thay đổi vào nhật ký tổng hợp [logs.md](../exercise%203/submissions/logs.md).
+  2. **Bắt buộc** phải tạo/cập nhật file kế hoạch (plan) riêng trong thư mục submit của ngày hôm đó (ví dụ: `exercise 3/submissions/{DDMMYYYY}/plan-{DDMM}.md`) để ghi nhận ý tưởng, các tham số và cấu trúc sửa đổi.
