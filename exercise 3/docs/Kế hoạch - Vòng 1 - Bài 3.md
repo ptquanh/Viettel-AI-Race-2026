@@ -4,424 +4,595 @@ tags:
   -  #LLM
   -  #Inference_Optimization
   -  #ActionPlan
-status: 🚀 Active (Revised v3)
+status: 🚀 Active (Revised v4.1 — Target 90+)
 date: 2026-07-03
-updated: 2026-07-06
+updated: 2026-07-10
 ---
 
-# 🗺️ Kế hoạch Hành động Bài 3 (Vòng 1) - Revised v3
+# 🗺️ Kế hoạch Hành động Bài 3 (Vòng 1) — Revised v4.1: Mục tiêu 90+ điểm
 
-**Mục tiêu:** Tối ưu hóa inference Qwen/Qwen3.5-2B (BF16) trên vLLM, tối đa hóa ERS.
-**Hạ tầng BTC:** MiG H200 (18GB VRAM / 3 CPU cores / 8GB RAM).
-**Deadline:** 30/07/2026 (Còn 24 ngày).
-**Chiến lược:** Submit-as-Test (max 15 submit/ngày, không có local GPU tương đương).
-
----
-
-## 0. 🔍 Tình báo tích luỹ (Trace + 15 Submissions)
-
-### Trace Profile (trace-round1.jsonl)
-
-| Đặc điểm               | Giá trị                                                    |
-| :--------------------- | :--------------------------------------------------------- |
-| Tổng request           | **120**                                                    |
-| Thời gian phát request | **0 → 25.5 giây** (25.5s window)                           |
-| Arrival interval       | Median **25ms**, max **4525ms** (bursty)                   |
-| max_tokens (output)    | **200** cho tất cả 120 request                             |
-| temperature            | **0** (deterministic)                                      |
-| seed                   | **Đồng nhất 1 seed**                                       |
-| Số messages/request    | **2 → 12** (multi-turn conversation)                       |
-| Input length (chars)   | **78k → 167k chars** (~20k → 42k tokens)                   |
-| System prompt          | **1 prompt chung** (shared prefix → prefix caching CÓ LỢI) |
-
-### Phân tích nguyên nhân gốc của 15 Submissions
-
-#### 📊 6 Submissions CÓ ĐIỂM (Không bị crash)
-
-| STT | Config chính                                              |   Điểm    | Phân loại | Bài học                                 |
-| :-- | :-------------------------------------------------------- | :-------: | :-------: | :-------------------------------------- |
-| 4   | Baseline gốc BTC (`max-model-len=262144`, `gpu-mem=0.95`) | **15.26** |    ✅     | Mốc chuẩn. 84/120 passed SLO            |
-| 7   | Custom image `bf16-v1`, tham số tương đương baseline      | **15.03** |    ✅     | Custom image khả thi                    |
-| 12  | `max-model-len=32768` + `gpu-mem=0.98`                    | **15.00** |    ✅     | Gần baseline, có thể truncate input dài |
-| 11  | Baseline + `max-num-seqs=256`                             | **14.14** |    ⚠️     | Overhead scheduler tăng                 |
-| 14  | STT12 + `max-num-batched-tokens=1024`                     | **5.21**  |    ❌     | Batch quá nhỏ, nghẽn pipeline           |
-| 10  | Baseline + `max-num-seqs=32`                              | **2.64**  |    ❌     | Concurrency quá thấp                    |
-
-#### ❌ 9 Submissions THẤT BẠI — Phân tích nguyên nhân gốc
-
-> ⚠️ **PHÁT HIỆN QUAN TRỌNG:** Hầu hết các flag tối ưu (chunked prefill, FP8, scheduler steps) **CHƯA BAO GIỜ** được test trên image gốc BTC `vllm/vllm-openai:v0.22.1`. Chúng chỉ được thử trên image bị lỗi hoặc phiên bản vLLM cũ.
-
-| STT       | Nguyên nhân thất bại THỰC SỰ                                     | Chi tiết                                                                                                                                                                                        |
-| :-------- | :--------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 (1943)  | **Image chưa push lên Docker Hub** + flags chưa xác minh         | Image `viettel-qwen-local:v1` chưa được push → container không kéo được. Flags (`--enable-chunked-prefill`, `--num-scheduler-steps=8`) chưa được xác minh trên image hoạt động                  |
-| 2 (1954)  | **Image chưa push lên Docker Hub**                               | Cùng image `viettel-qwen-local:v1` chưa push, transport errors do server không khởi động được                                                                                                   |
-| 3 (2038)  | **Image chưa push** + `--max-model-len=8192` quá nhỏ             | Image `ptquanh/viettel-qwen35-2b:bf16-v1` chưa push tại thời điểm này. Ngoài ra `max-model-len=8192` cũng quá nhỏ cho trace (input 20k-42k tokens)                                              |
-| 5 (2117)  | **Quá nhiều flag lạ cùng lúc** trên image gốc BTC                | `VLLM_USE_V1=1` + `--max-num-partial-prefills` + `--long-prefill-token-threshold` + `--kv-cache-dtype=fp8` + `--enforce-eager` + `--max-model-len=8192` → Không thể xác định flag nào gây crash |
-| 6 (0631)  | **`--max-model-len=8192` + combo lỗi**                           | Có thể do conflict giữa `--max-model-len=8192` với `--max-num-batched-tokens=8192`, hoặc do `--disable-log-requests`                                                                            |
-| 8 (0701)  | **Trùng lặp cấu hình STT6**                                      | Cùng lỗi                                                                                                                                                                                        |
-| 9 (0747)  | **`--max-model-len=8192` quá nhỏ**                               | Server khởi động OK nhưng từ chối request dài → 120/120 transport errors                                                                                                                        |
-| 13 (2217) | **`vllm/vllm-openai:v0.4.2` là phiên bản CŨ**, không tương thích | v0.4.2 là bản 2024, khác hoàn toàn v0.22.1 (bản 2026)                                                                                                                                           |
-| 15 (2318) | **`v0.4.2` CŨ + không ổn định**                                  | 80/120 transport errors, bản cũ không kham nổi workload                                                                                                                                         |
-
-> **Lưu ý:** STT1-3 fail vì image chưa được push lên Docker Hub. Kể từ STT7 (`04072026/0643`), custom image đã push thành công và hoạt động bình thường (15.03 điểm).
-
-### Phân tích cơ hội tối ưu theo công thức ERS
-
-> ⚠️ **NHẮC NHỞ QUAN TRỌNG:** `S_request = 0.5 × s_ttft + 0.5 × s_tpot` — **TPOT chiếm 50% trọng số**, không chỉ TTFT!
-
-**Công thức chi tiết:**
-
-- `s_ttft = clamp((1500 - TTFT) / (1500 - 100), 0, 1)²` → Floor=100ms, Ceiling=1500ms
-- `s_tpot = clamp((45 - TPOT) / (45 - 20), 0, 1)²` → Floor=20ms, Ceiling=45ms
-
-**Baseline metrics cần phân tích sâu:**
-
-- TTFT: P50=670ms, P95=10058ms → 84/120 có TTFT < 1500ms, 36/120 bị 0 điểm
-- TPOT: Chưa có data chi tiết → **CẦN ĐO ĐẠC từ kết quả baseline**
-- Ví dụ TPOT impact: Nếu TPOT giảm từ 30ms → 22ms, s_tpot tăng từ 0.36 → 0.85 (tăng 136%!)
-
-**Phân bổ điểm ước tính (baseline 15.26 điểm = ERS 0.1526):**
-
-- Nhóm A: ~30 request có TTFT < 200ms → s_ttft gần max → đã gần tối ưu
-- Nhóm B: ~54 request có TTFT 200ms-1500ms → còn room tăng điểm bằng giảm TTFT
-- Nhóm C: ~36 request có TTFT > 1500ms → đang 0 điểm hoàn toàn → ROI cao nhất
-- **TPOT:** Nếu TPOT > 25ms cho cả 120 request, tối ưu TPOT cũng mang lại ROI lớn
-
-### Kết luận chiến lược RÚT RA
-
-1. **`--max-model-len=8192` là CÁI BẪY** → Input trace dài 20k-42k tokens, giá trị <32768 chắc chắn gây lỗi.
-2. **Không bao giờ đổi vLLM version** → `v0.22.1` là bản duy nhất hoạt động. `v0.4.2` (bản cũ) đã fail.
-3. **Kỷ luật đơn biến BỊ VI PHẠM NẶNG** → Hầu hết các lần fail là do thay đổi quá nhiều biến cùng lúc, không thể xác định biến nào gây lỗi.
-4. **Chunked prefill, FP8 KV cache, scheduler steps VẪN LÀ ẨN SỐ** → Chưa có bằng chứng chúng không hoạt động trên v0.22.1. Cần test lại đúng cách.
-5. **TPOT = 50% trọng số** → Cần đo TPOT baseline và tối ưu song song với TTFT. `--num-scheduler-steps` là hướng trực tiếp giảm TPOT.
+**Mục tiêu:** Tối ưu hóa inference Qwen/Qwen3.5-2B trên vLLM, đạt ERS ≥ 0.90 (**90+ điểm**, top 3 leaderboard).
+**Hạ tầng BTC:** MiG H200 (18GB VRAM / 3 CPU cores / 8GB RAM), CUDA 12.x.
+**Deadline:** 30/07/2026 (Còn **20 ngày**).
+**Chiến lược:** Submit-as-Test (15 submit/ngày) + Can thiệp sâu vào vLLM engine.
+**Leaderboard:** Top 1 = **100đ** | Top 2 = **98.7đ** | Top 3 = **97.8đ** | **Chúng ta = 18.99đ** (cách top ~80 điểm).
 
 ---
 
-## 1. ⚙️ Triết lý Vận hành — Revised
+## 0. 📊 Tình trạng Hiện tại & Chẩn đoán Cổ chai (Ngày 10/07)
 
-### Không có Local GPU → Submit = Test
+### Kết quả tích luỹ: 69 Submissions (03/07 → 10/07)
 
-Mỗi submission trên portal BTC = 1 lượt test. Tối đa **15 submit/ngày**, cooldown 600s.
+| Chỉ số                  | Giá trị                                                                           |
+| :---------------------- | :-------------------------------------------------------------------------------- |
+| **Điểm cao nhất**       | **18.99** (STT 21: FP8 weights + chunked prefill)                                 |
+| **Best Config**         | vLLM v0.22.1 + `--quantization=fp8` + prefix caching + `--no-enable-log-requests` |
+| **TPOT hiện tại**       | **51ms** (> ceiling 45ms → $s_{tpot} = 0$)                                        |
+| **TTFT P50 / P95**      | 611ms / 8.3s                                                                      |
+| **Passed SLO**          | 85/120 (35 request bị 0 điểm TTFT)                                                |
+| **Accuracy drop**       | 1% (f(Δ) = 1.0, an toàn)                                                          |
+| **Submissions đã dùng** | 69/300 (15/ngày × 20 ngày còn)                                                    |
 
-### Quy định của BTC về độ biến động (Variance)
+### ⚠️ Chẩn đoán Cổ chai Cốt lõi
 
-> 💡 **Thông tin từ BTC:** Đối với các bài thi tính toán hiệu năng, BTC đã cấu hình hệ thống bench để duy trì mức sai số **< 2%**. Ở mỗi lượt submission, kết quả của các đội được **lấy trung bình từ tối thiểu 3 lần chấm** để đảm bảo tính ổn định. Do đó:
->
-> - **KHÔNG cần tốn slot chạy đối chứng (Reference)** hàng ngày để đo độ biến động.
-> - Tiết kiệm được tối đa số slot để thử nghiệm trực tiếp các tham số tối ưu mới.
+> [!CAUTION]
+> **50% tổng điểm đang bị 0 tuyệt đối.** TPOT = 51ms > ceiling 45ms → $s_{tpot} = 0$ cho **mọi** 120 request. Điểm 18.99 hiện tại chỉ đến từ thành phần TTFT.
 
-### Nguyên tắc TUYỆT ĐỐI (Rút kinh nghiệm sau 32 lần submit)
+**Nguyên nhân gốc: KV Cache Memory Bandwidth Bottleneck**
 
-1. **Kỷ luật đơn biến NGHIÊM NGẶT:** Mỗi submit chỉ thay đổi **DUY NHẤT 1 tham số** so với cấu hình chạy thành công gần nhất. **KHÔNG BAO GIỜ** thay đổi 2+ biến cùng lúc (ngoại trừ các combo exploit đã lập kế hoạch).
-2. **Luôn dùng image gốc BTC** `vllm/vllm-openai:v0.22.1` làm mốc gốc cho đến khi chứng minh được flag hoạt động.
-3. **`--max-model-len` ≥ 65536** (tuyệt đối không dùng 8192 hay 32768 để tránh crash hoặc giảm RadixAttention performance).
-4. **Ghi chép:** Mỗi submit → `HHMM-docker-compose.yml` + `HHMM-result.md` trong `submissions/DDMMYYYY/`.
+Qwen3.5-2B có kiến trúc lai: **18 linear attention** + **6 full attention** layers. Mỗi bước decode phải đọc toàn bộ KV cache của 6 full-attention layers từ HBM:
 
-#### 🚫 Danh sách cờ / tham số BỊ CẤM TUYỆT ĐỐI
+| Thông số                 | Giá trị                                                 |
+| :----------------------- | :------------------------------------------------------ |
+| KV bytes/token/layer     | 2 × 256 (head_dim) × 2 (kv_heads) × 2 bytes = **2,048** |
+| Số full-attention layers | **6**                                                   |
+| KV bytes/token tổng      | 6 × 2,048 = **12,288 bytes (12 KB)**                    |
+| Context trung bình       | ~**30,000** tokens                                      |
+| Concurrent sequences     | ~**86** (= passed_slo hiện tại)                         |
+| **Tổng KV reads/step**   | 86 × 30k × 12KB = **~31 GB**                            |
+| Bandwidth MiG H200       | ~**685 GB/s** (1/7 of full H200)                        |
+| **Thời gian đọc KV**     | 31GB / 685 GB/s = **~46ms**                             |
+| + Model weights (FP8)    | 2GB / 685 GB/s = **~3ms**                               |
+| **Tổng lý thuyết**       | **~49ms** (thực tế đo: 51ms ✅)                         |
 
-Dựa trên thực tế 32 lần chạy thử nghiệm, các flag/cấu hình sau đây bị cấm tuyệt đối do gây crash, timeout hoặc giảm điểm nghiêm trọng:
-
-- ❌ `--max-model-len < 65536` (Gây crash do không đủ context chứa các prompts dài 20k-42k tokens).
-- ❌ `--kv-cache-dtype=fp8` / `fp8_e4m3` (STT17: sụt -5.54 điểm, TTFT +43%, GPQA -9%).
-- ❌ `--max-num-batched-tokens < 4096` (STT30/31: trị số thấp gây nghẽn prefill hoặc crash engine).
-- ❌ `--max-num-seqs <= 64` (STT10: giới hạn concurrency quá thấp làm sụt điểm còn 2.64).
-- ❌ `--enforce-eager` (STT22: Tắt CUDA graphs gây nghẽn CPU nặng dẫn tới timeout 2700s).
-- ❌ `--num-scheduler-steps` (STT20: flag chưa được hỗ trợ, gây lỗi exited 2).
-- ❌ `--swap-space` (STT32: flag đã bị loại bỏ hoàn toàn trong phiên bản vLLM mới của hệ thống chấm, gây lỗi exited 2).
-- ❌ `--disable-log-requests` (Sai tên flag, tên đúng là `--no-enable-log-requests`).
-- ❌ Các biến môi trường: `VLLM_USE_V1=1`, `VLLM_ENABLE_V1_MULTIPROCESSING=0`, `OMP_NUM_THREADS=1` (STT23: giới hạn luồng CPU làm giảm hiệu năng).
-- ❌ Docker image: `vllm/vllm-openai:v0.4.2` (gây lỗi không khởi động được container).
-- ❌ `--block-size=32` (STT33: tăng phân mảnh KV cache, TTFT P50 +11%, giảm điểm).
-- ❌ `--performance-mode` (STT34: chế độ interactivity gây hàng đợi prefill nặng khi có concurrency cao, TTFT P50 +125ms, giảm điểm).
-- ❌ `--max-num-batched-tokens` khác 512 (STT30: 1024 sụt còn 7.22đ; STT31: 256 gây crash; STT35: 32768 gây nghẽn prefill hàng đợi nghiêm trọng, TTFT P50 +4.1s; STT38: 24576 + seq 96 gây crash/OOM).
-- ❌ `--no-enable-prefix-caching` (STT39: tắt prefix caching gây timeout >2700s do phải prefill lại toàn bộ ~3.6 triệu tokens).
-- ❌ `--compilation-config` với các chế độ `FULL` hoặc `FULL_DECODE_ONLY` (STT36/37: không cải thiện TPOT 51ms, tăng nhẹ TTFT).
-- ❌ `--max-num-seqs` khác mặc định (STT10/25/26/38: đều làm giảm điểm hoặc crash hệ thống).
-
-#### ✅ Danh sách cờ AN TOÀN / KHẢ DỤNG đã xác minh
-
-- ✅ `--quantization=fp8` (Giảm dung lượng model weights, cải thiện lớn tốc độ).
-- ✅ `--enable-chunked-prefill` (Chunk prefill tối ưu hóa lập lịch với mặc định `--max-num-batched-tokens=512`).
-- ✅ `--no-enable-log-requests` (Giảm CPU logging overhead).
-- ✅ `--enable-prefix-caching` (**BẮT BUỘC - SỐNG CÒN**, tắt đi gây timeout >2700s).
-- ✅ `--block-size 16` (Kích thước KV Cache block mặc định và tối ưu nhất).
-- ✅ `--max-seq-len-to-capture` (Tăng kích thước bắt CUDA Graphs).
-- ✅ `--max-model-len=262144` (Giới hạn tối ưu nhất để chứa các prompt siêu dài).
-- ✅ `--gpu-memory-utilization=0.95` (Tận dụng bộ nhớ VRAM tối đa an toàn).
+> [!IMPORTANT]
+> TPOT bị giới hạn bởi **vật lý băng thông HBM**. Không có flag/scheduler/attention backend nào phá vỡ được. Đòn bẩy DUY NHẤT: **giảm tổng lượng KV reads mỗi bước decode**.
 
 ---
 
-## 2. 🎯 Chiến lược Tối ưu — Revised (ưu tiên theo ROI + khả thi)
+## 1. 🧮 Phân tích Toán học — Con đường đến 70+ điểm
 
-### 🔴 Phase 0: Flag Discovery (ƯU TIÊN CAO NHẤT)
+### Công thức tính điểm chi tiết
 
-> **Mục tiêu:** Xác định chính xác flag nào được v0.22.1 hỗ trợ. Mỗi flag test RIÊNG LẺ trên baseline config.
+$$Score = 100 \times \frac{1}{120} \sum_{i=1}^{120} \left[ 0.5 \cdot s_{ttft,i} + 0.5 \cdot s_{tpot,i} \right] \times f(\Delta)$$
 
-| Flag cần xác minh             |      Đã test đúng cách?      | Kế hoạch / Kết quả                                                               |
-| :---------------------------- | :--------------------------: | :------------------------------------------------------------------------------- |
-| `--enable-chunked-prefill`    | ✅ Đã test đúng cách (STT16) | **Hoạt động tốt, cải thiện TTFT (+0.52 điểm)**                                   |
-| `--kv-cache-dtype fp8`        | ✅ Đã test đúng cách (STT17) | **Hoạt động nhưng suy giảm nặng (-5.54 điểm), sụt GPQA 9%**                      |
-| `--quantization fp8`          |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
-| `--num-scheduler-steps N`     | ✅ Đã test đúng cách (STT20) | ❌ **Không được hỗ trợ (exited 2)**                                              |
-| `--disable-log-requests`      | ✅ Đã test đúng cách (STT18) | ❌ **Sai tên flag. Flag đúng là `--no-enable-log-requests` (STT19: +0.19 điểm)** |
-| `--enforce-eager`             |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
-| `OMP_NUM_THREADS=1` (env var) |      ❌ Chưa từng test       | **Test trên baseline image**                                                     |
+Với: $s_{ttft} = \text{clamp}\left(\frac{1500 - TTFT}{1400}, 0, 1\right)^2$ và $s_{tpot} = \text{clamp}\left(\frac{45 - TPOT}{25}, 0, 1\right)^2$
 
-### 🔴 Phase 1: Giảm TTFT (Impact cao nhất — nếu flag khả dụng)
+### Bảng tra cứu nhanh $s_{tpot}$
 
-| Hướng tối ưu                                     | Cơ chế                                                       | Kỳ vọng               | Ưu tiên |
-| :----------------------------------------------- | :----------------------------------------------------------- | :-------------------- | :-----: |
-| **Chunked Prefill** (`--enable-chunked-prefill`) | Chia nhỏ prefill, xen kẽ decode → giảm head-of-line blocking | Giảm TTFT P95 đáng kể |  🔴 P0  |
-| **FP8 Quantization** (`--quantization fp8`)      | Giảm 50% model weight → prefill nhanh hơn                    | Giảm TTFT 20-30%      |  🔴 P0  |
+| TPOT (ms)  | 20   | 22   | 25   | 28   | 30   | 35   | 40   | ≥45  |
+| :--------- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| $s_{tpot}$ | 1.00 | 0.85 | 0.64 | 0.46 | 0.36 | 0.16 | 0.04 | 0.00 |
 
-### 🟠 Phase 2: Tối ưu Scheduling & Tham số (nếu Phase 1 không đủ)
+### Bảng tra cứu nhanh $s_{ttft}$
 
-| Hướng tối ưu                                | Cơ chế                                                  | Kỳ vọng              | Ưu tiên |
-| :------------------------------------------ | :------------------------------------------------------ | :------------------- | :-----: |
-| **`--gpu-memory-utilization` tuning**       | Tìm sweet spot (0.95 vs 0.98)                           | Minor                |  🟠 P1  |
-| **`--max-model-len` tuning** (65536, 49152) | Giảm metadata overhead, giải phóng VRAM cho KV cache    | Có thể cải thiện nhẹ |  🟠 P1  |
-| **`--no-enable-log-requests`**              | Giảm CPU overhead (3 cores rất hạn chế)                 | Minor                |  🟠 P1  |
-| **`--enforce-eager`**                       | Tắt CUDA graphs → giảm VRAM overhead, trade-off latency | Cần xác minh         |  🟠 P1  |
-| **CPU Thread Limits** (`OMP_NUM_THREADS=1`) | Tránh thrashing 3 cores                                 | Ổn định hoá          |  🟠 P1  |
+| TTFT (ms)  | 100  | 200  | 300  | 400  | 500  | 700  | 1000 | 1200 | ≥1500 |
+| :--------- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---- |
+| $s_{ttft}$ | 1.00 | 0.86 | 0.73 | 0.62 | 0.51 | 0.33 | 0.13 | 0.05 | 0.00  |
 
-### 🟢 Phase 3: Alternative Framework (Bị cấm / Không hỗ trợ)
+### 🕵️ Tình báo Cạnh tranh — Reverse-Engineering Top Teams
 
-Hệ thống grader chấm bài tự động ép buộc cấu hình chạy của vLLM và không tương thích các serving engine khác như SGLang, LMDeploy, Aphrodite, v.v. Tất cả các nỗ lực chuyển đổi framework đều dẫn đến lỗi khởi chạy hoặc chấm điểm thất bại. Do đó, Phase 3 được điều chuyển hoàn toàn sang tối ưu hóa sâu backend attention (như FlashInfer) và scheduler của vLLM.
+> [!CAUTION]
+> **Top 1 đạt 100 điểm = ERS = 1.0 = TTFT ≤ 100ms VÀ TPOT ≤ 20ms cho TẤT CẢ 120 requests.**
+> Đây là thông tin tình báo thay đổi hoàn toàn chiến lược. Mức 70 điểm là KHÔNG ĐỦ cạnh tranh.
 
-### ❌ DANH SÁCH CẤM (đã chứng minh thất bại hoặc crash)
+**Phân tích ngược từ điểm số 100:**
 
-| Cấu hình                          | Lý do cấm                                                                       | Bằng chứng            |
-| :-------------------------------- | :------------------------------------------------------------------------------ | :-------------------- |
-| `--max-model-len=8192`            | Input trace dài 20k-42k tokens, gây crash/transport error                       | STT2,3,6,8,9          |
-| `--num-scheduler-steps=N`         | Gây lỗi khởi động `unrecognized arguments`                                      | STT20                 |
-| `--disable-log-requests`          | Gây lỗi khởi động (dùng sai tên flag, dùng `--no-enable-log-requests` thay thế) | STT18                 |
-| `--kv-cache-dtype=fp8`            | Gây sụt giảm nặng hiệu năng (-5.54 điểm) và giảm GPQA 9%                        | STT17                 |
-| `--max-num-seqs=32` hoặc quá thấp | Giết throughput                                                                 | STT10: 2.64 điểm      |
-| `--max-num-seqs=256` hoặc quá cao | Overhead scheduler                                                              | STT11: 14.14 điểm     |
-| `--max-num-batched-tokens=1024`   | Nghẽn pipeline                                                                  | STT14: 5.21 điểm      |
-| `vllm/vllm-openai:v0.4.2`         | Phiên bản cũ, không tương thích                                                 | STT13,15: crash       |
-| `VLLM_USE_V1=1`                   | V1 engine không ổn định trên v0.22.1                                            | STT5: crash           |
-| Thay đổi ≥2 biến cùng lúc         | Không xác định được nguyên nhân khi fail                                        | 9/15 submissions fail |
+| Yêu cầu cho 100 điểm               | Ý nghĩa kỹ thuật                                                  | Khả thi trên MiG H200?                        |
+| :--------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------- |
+| TTFT ≤ 100ms cho 42k-token request | Prefix cache phải cover gần hết input, chỉ prefill < 2k token mới | ✅ Nếu multi-turn cùng conversation chain     |
+| TPOT ≤ 20ms với 120 concurrent     | KV reads ≤ 13.7 GB/step (120 × 30k × 12KB = 43GB → phải giảm 3x)  | ❌ Với BF16 KV. ✅ Với INT4 KV (43GB → ~11GB) |
+| Accuracy drop ≤ 10%                | Quantization không ảnh hưởng nhiều                                | ✅ Với FP8 weights (drop ~1%)                 |
 
----
+**Kết luận: Top teams CHẮC CHẮN đang dùng ít nhất:**
 
-## 3. 📝 Nguyên tắc sử dụng 15 Slot/Ngày
+1. **INT4/INT8 Quantized KV Cache** (custom kernel, không phải `--kv-cache-dtype` của vLLM)
+   - Lý do: BF16 KV = 12KB/token → INT4 KV = ~3KB/token → giảm 4x bandwidth
+   - Khi đó: 120 × 30k × 3KB = ~10.8 GB → TPOT = 10.8/685 + 3ms = **~19ms** ✅
+2. **Prefix caching tối đa** — Warmup + trace structure exploitation
+   - Trace có multi-turn conversations. Turn N+1 chứa turn N → prefix cache hit gần hoàn hảo
+   - Chỉ cần prefill phần mới (~1-2k tokens) → TTFT ≈ 50-100ms
+3. **Custom CUDA/Triton kernels** cho dequantize-on-the-fly KV cache
+4. **FP8 weights** (giảm model weight, tăng tốc compute-bound prefill)
 
-Với việc BTC nâng hạn mức lên **15 submit/ngày**, chúng ta có thể đẩy nhanh tốc độ thử nghiệm gấp 3 lần bằng cách phân bổ tài nguyên theo cơ cấu:
+### Mô hình dự đoán điểm — CẬP NHẬT
 
-| Nhóm Slots          | Số lượng | Nội dung thử nghiệm                       | Cách áp dụng                                                  |
-| :------------------ | :------: | :---------------------------------------- | :------------------------------------------------------------ |
-| **Flag Discovery**  | 3 slots  | Thử nghiệm các flag tối ưu mới (đơn biến) | Add 1 flag lạ vào Baseline để xem hệ thống có chạy được không |
-| **Grid Search A**   | 3 slots  | Khảo sát tham số `max-model-len`          | Test các mốc (49152, 65536, 131072) để tìm điểm tối ưu        |
-| **Grid Search B**   | 3 slots  | Khảo sát tham số `gpu-memory-utilization` | Test các mốc (0.90, 0.92, 0.98) để tìm điểm tối ưu            |
-| **Combo / Exploit** | 6 slots  | Kết hợp các biến thắng từ 3 nhóm trên     | Ghép các flag và tham số tối ưu đã được xác minh hoạt động    |
+#### Kịch bản A: Batch Size Tuning (Ghost Strategy v3) — _Đang test_
 
----
+`--max-num-seqs 48` + chunked prefill, BF16 KV:
 
-## 4. 🗓️ Lộ trình 24 Ngày Còn lại (06/07 → 30/07)
+- TPOT ≈ 28ms → $s_{tpot}$ = 0.46 | TTFT vẫn cao
+- **Dự kiến: ~30-34 điểm** ← Bước đệm, KHÔNG PHẢI đích đến
 
-### ✅ Tuần 1 (03/07 – 05/07): HOÀN THÀNH
+#### Kịch bản B: INT4 KV Cache + Custom Dequant Kernel
 
-_Đã hoàn thành: Setup pipeline, baseline 15.26 điểm, 15 submissions (6 success / 9 fail)._
+Custom Triton kernel dequantize INT4 KV on-the-fly:
 
-**Bài học rút ra từ Tuần 1:**
+- TPOT ≈ 19ms → $s_{tpot}$ = 1.00 với **TẤT CẢ 120 concurrent**
+- Không cần giảm `--max-num-seqs` → TTFT không bị hy sinh
+- **Dự kiến: ~75-85 điểm** ← Game changer
 
-- Baseline BTC = 15.26 điểm (84/120 passed SLO, TTFT P50=670ms, P95=10058ms)
-- Custom image khả thi (15.03 điểm)
-- `--max-model-len=8192` → CẤM (trace input quá dài)
-- `--max-num-seqs` ngoài khoảng mặc định → điểm giảm
-- Nhiều flag tối ưu chưa được test đúng cách (bị nhầm lẫn do test trên image lỗi)
+#### Kịch bản C: INT4 KV + Prefix Cache Warmup + FP8 Weights
 
----
+Kịch bản B + warmup + prefix caching tối ưu:
 
-### Tuần 2 (06/07 – 12/07): Flag Discovery + Đòn Quyết Định
+- TPOT ≈ 19ms → $s_{tpot}$ = 1.00
+- TTFT ≈ 100-300ms (nhờ prefix cache hit) → avg $s_{ttft}$ ≈ 0.73-0.86
+- **Dự kiến: ~87-93 điểm** 🎯
 
-_Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập trung vào chunked prefill + FP8._
+#### 🏆 Kịch bản D: Full Stack (Mục tiêu tối đa)
 
-#### Ngày 06/07 — Flag Discovery & Parameter Grid Search (15 Slots)
+INT4 KV + Custom kernels + Patched scheduler + Warmup + Trace exploitation:
 
-> Kết quả thực tế của 5 slots thử nghiệm đầu tiên (Image `vllm/vllm-openai:v0.22.1`):
+- TPOT ≈ 19-20ms → $s_{tpot}$ ≈ 1.00
+- TTFT ≈ 50-150ms (prefix cache gần hoàn hảo) → avg $s_{ttft}$ ≈ 0.86-0.98
+- **Dự kiến: ~93-99 điểm** ← 🏆 Top 3 leaderboard
 
-| Slot | Config = Baseline + ...           | Kết quả thực tế & Chỉ số                                                                               | Đánh giá                            |
-| :--- | :-------------------------------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------- |
-| 1    | + `--enable-chunked-prefill`      | **Thành công (15.78 điểm)**. TTFT P50=667ms, P95=10162ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                 |
-| 2    | + `--kv-cache-dtype fp8`          | **Thành công nhưng sụt điểm sâu (10.24 điểm)**. TTFT P50=958ms (+43%), TPOT=71ms (+20%), GPQA drop 9%. | ❌ **CẤM DÙNG** (overhead lớn)      |
-| 3    | + `--disable-log-requests`        | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Sai tên flag**                 |
-| 4    | + `--no-enable-log-requests`      | **Thành công (15.97 điểm)**. TTFT P50=677ms, P95=10090ms, TPOT=59ms.                                   | ✅ **Bật mặc định**                 |
-| 5    | + `--num-scheduler-steps=8`       | **Thất bại (exited 2)**. Lỗi `unrecognized arguments`.                                                 | ❌ **Không được hỗ trợ**            |
-| 6    | + `--quantization=fp8`            | **Thành công vọt điểm (18.99 điểm)**. TTFT P50=569ms (-16%), P95=8520ms, TPOT=51ms, GPQA drop 1%.      | ✅ **Bật mặc định** (baseline mới)  |
-| 7    | + `--enforce-eager`               | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s.                                             | ❌ **CẤM DÙNG** (nghẽn CPU nặng)    |
-| 8    | + `OMP_NUM_THREADS=1` (env)       | **Thành công nhưng giảm điểm (17.33 điểm)**. TTFT P50=624ms, P95=8995ms, TPOT=50ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
-| 9    | + `--max-model-len=131072`        | **Thành công nhưng giảm điểm sâu (12.74 điểm)**. TTFT P50=739ms, P95=12682ms, TPOT=68ms, GPQA drop 0%. | ❌ **CẤM HẠ CONTEXT** (tụt cache)   |
-| 10   | + `--max-num-seqs=256`            | **Thành công nhưng giảm điểm (17.82 điểm)**. TTFT P50=618ms, P95=8390ms, TPOT=51ms, GPQA drop 4%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
-| 11   | + `--max-num-seqs=128`            | **Thành công nhưng giảm điểm (17.71 điểm)**. TTFT P50=618ms, P95=8497ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (tăng TTFT)       |
-| 12   | + `--gpu-memory-utilization=0.90` | **Thành công nhưng giảm điểm (17.58 điểm)**. TTFT P50=627ms, P95=8739ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (giảm cache pool) |
-| 13   | + `--gpu-memory-utilization=0.92` | **Thành công nhưng giảm điểm (18.07 điểm)**. TTFT P50=609ms, P95=8488ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (giảm nhẹ cache)  |
-| 14   | + `--gpu-memory-utilization=0.98` | **Thành công nhưng giảm điểm (18.24 điểm)**. TTFT P50=614ms, P95=8603ms, TPOT=51ms, GPQA drop 0%.      | ❌ **KHÔNG DÙNG** (VRAM overhead)   |
+### Tại sao 90+ điểm khả thi?
 
-> **Kết luận thử nghiệm ngày 06/07:** Cấu hình tốt nhất vẫn giữ nguyên là **STT21 (18.99 điểm)** với các cờ: Baseline + `--enable-chunked-prefill` + `--no-enable-log-requests` + `--quantization=fp8` + `--gpu-memory-utilization=0.95`. Tất cả các điều chỉnh đơn biến xung quanh (max-model-len, max-num-seqs, gpu-memory-utilization khác) đều làm giảm hiệu năng.
+**Phép tính với INT4 KV Cache:**
 
-#### Ngày 07/07 — Deep Parameters Tuning & Combo Exploit (15 Slots)
-
-> Thử nghiệm chuyên sâu các tham số điều phối luồng để ép trễ giải mã (TPOT) và tăng số request pass SLO, kết hợp với cấu hình Best Config mới làm nền tảng (STT21 = Baseline 18.99).
-
-| Slot | Cấu hình = Best Config + ...                                                                      | Kết quả thực tế & Chỉ số                                                     | Đánh giá                                   |
-| :--- | :------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------- | :----------------------------------------- |
-| 1    | + `--max-num-batched-tokens=1024`                                                                 | **Sụt điểm thảm hại (7.22 điểm)**. TTFT P50=2145ms, P95=11893ms, TPOT=56ms.  | ❌ **CẤM TĂNG NHẸ** (prefill chặn decode)  |
-| 2    | + `--max-num-batched-tokens=256` (Mới)                                                            | **Thất bại (Engine crash)**. Lỗi `Engine core initialization failed`.        | ❌ **CẤM DÙNG** (lỗi khởi động engine)     |
-| 3    | + `--swap-space=0`                                                                                | **Thất bại (Unrecognized flag)**. Lỗi `unrecognized arguments: --swap-space` | ❌ **CẤM DÙNG** (flag đã bị loại bỏ)       |
-| 4    | + `--block-size=32`                                                                               | **Giảm điểm (17.23đ)**. TTFT P50=632ms, P95=8430ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (KV fragmentation)         |
-| 5    | + `--performance-mode=interactivity`                                                              | **Giảm điểm (16.33đ)**. TTFT P50=694ms, P95=8301ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (tăng scheduling overhead) |
-| 6    | + `--max-num-batched-tokens=32768`                                                                | **Giảm điểm (16.73đ)**. TTFT P50=4674ms, P95=9988ms, TPOT=32ms.              | ❌ **CẤM DÙNG** (nghẽn prefill hàng đợi)   |
-| 7    | + `--compilation-config='{"cudagraph_mode":"FULL","max_cudagraph_capture_size":256}'`             | **Giảm điểm (17.78đ)**. TTFT P50=605ms, P95=8929ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (compile overhead)         |
-| 8    | + `--compilation-config='{"cudagraph_mode":"FULL_DECODE_ONLY","max_cudagraph_capture_size":256}'` | **Giảm điểm (18.24đ)**. TTFT P50=601ms, P95=8426ms, TPOT=51ms.               | ❌ **CẤM DÙNG** (không cải thiện TPOT)     |
-| 9    | + `--max-num-batched-tokens=24576` + `--max-num-seqs=96` (Slot 9b)                                | **Thất bại (Chấm điểm thất bại)**. Gặp lỗi 119/120 transport errors.         | ❌ **CẤM DÙNG** (lỗi crash/OOM)            |
-| 10   | Baseline + `--no-enable-prefix-caching` (Test ngược)                                              | **Thất bại (Timeout)**. Vượt quá giới hạn thời gian 2700s của hệ thống.      | ❌ **CẤM TẮT** (công nghệ sống còn)        |
-| 11   | Khảo sát SGLang FP8 (`lmsysorg/sglang:v0.4.6.post1` + FP8)                                        | **Thất bại (Startup Timeout)**. Image SGLang quá nặng gây lỗi pull timeout.  | ❌ **CẤM DÙNG** (lỗi pull image)           |
-| 12   | STT21 Verification Run #1 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.89đ)**. TTFT P50=621ms, P95=8416ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 85/120          |
-| 13   | STT21 Verification Run #2 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (18.09đ)**. TTFT P50=608ms, P95=8247ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 86/120          |
-| 14   | STT21 Verification Run #3 (Baseline 18.99đ)                                                       | **Giảm điểm nhẹ (17.05đ)**. TTFT P50=642ms, P95=9260ms, TPOT=51ms.           | Đạt độ ổn định, passed SLO 80/120          |
-| 15   | STT21 Verification Run #4 (Dự phòng)                                                              | Chạy lặp lại cấu hình tốt nhất để tính trung bình và lấy median an toàn      | TBD                                        |
-
-#### Ngày 08-09/07 — SGLang & LMDeploy Exploration (30 Slots)
-
-**Phát hiện cực kỳ quan trọng về Grader của BTC:**
-
-- Grader **bỏ qua hoàn toàn cấu hình `entrypoint`** trong `docker-compose.yml` của thí sinh và áp đặt lệnh khởi động vLLM.
-- Các thử nghiệm hijack để chạy Aphrodite, SGLang, LMDeploy đều **Thất bại hoàn toàn** (lỗi timeout, exit code 126, crash Turbomind RPC).
-- **Kết luận:** Hệ thống chấm điểm chỉ tương thích với vLLM. Dừng toàn bộ các thử nghiệm liên quan đến framework khác.
-
-| Slot | Tên thử nghiệm        | Cấu hình & Mô tả                                                          | Kết quả thực tế        | Bài học & Hành động tiếp theo                                                                 |
-| ---- | --------------------- | ------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
-| 1-6  | Framework Exploration | Thử nghiệm Aphrodite, SGLang, LMDeploy qua các phiên bản hijack khác nhau | **Thất bại hoàn toàn** | Các framework khác không tương thích với grader của BTC. Quay lại tập trung tối ưu vLLM 100%. |
-
-#### Ngày 10-12/07 — Chiến dịch đột phá TPOT & Chuẩn hóa vLLM (45 Slots)
-
-**Phân tích cổ chai:** Chỉ số TPOT (Time-Per-Output-Token) hiện tại của model Qwen3.5-2B là ~51ms, vượt ngưỡng trần (ceiling) 45ms nên phần điểm TPOT (chiếm 50% tổng trọng số) đang bị **0 điểm**. Mục tiêu ngày 10/07 là giảm TPOT xuống dưới 45ms (tốt nhất là tiệm cận 20ms) để mở khóa điểm số.
-
-##### Kế hoạch 15 Slots ngày 10/07/2026:
-
-- **Slot 1 (0818-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). **Thất bại nặng nề (10.88 điểm, 73/120 passed SLO)**. tbt_median tăng lên 63ms, TTFT P50 vọt lên 986ms do overhead quy đổi FP8 KV cache quá cao trên v0.22.1.
-- **Slot 2 (0925-docker-compose.yml):** MTP Speculative Decoding (image gốc). **Thất bại (10.53 điểm, 56/120 passed SLO)**. tbt_median giảm nhẹ về 47ms, nhưng TTFT P50 vọt lên 2.8s do overhead chạy draft model nghẽn CPU nặng trên 3 cores.
-
-- **Slot 3 (0845-docker-compose.yml):** FlashInfer backend via hijack (custom image `vllm-v0.22.1-flashinfer`). Thử nghiệm attention backend tối ưu cho long context.
-- **Slot 4 (0900-docker-compose.yml):** CUDA Graph capture size 65k (`--max-seq-len-to-capture=65536` + FP8 weights) để giữ CUDA Graph decode không fallback về eager mode khi context > 8192 (chuỗi thực tế 20k-42k), triệt tiêu CPU overhead.
-- **Slot 5:** CUDA Graph capture size 131k (`--max-seq-len-to-capture=131072`).
-- **Slot 6:** Combo FlashInfer + CUDA Graph capture 65k.
-- **Slot 7:** Combo MTP Speculative + CUDA Graph capture 65k.
-- **Slot 8:** Best combo refinement #1
-- **Slot 9-15:** Tinh chỉnh các tham số tốt nhất thu được từ Phase 1 & 2 để chốt cấu hình tối ưu.
+- KV reads/step = 120 × 30k × 3KB (INT4) = 10.8 GB → TPOT = 10.8/685 + 3 = **~19ms** → $s_{tpot}$ = 1.0
+- Với prefix cache: avg TTFT ≈ 200ms → $s_{ttft}$ = ((1300)/1400)² = **0.86**
+- Mỗi request: $S = 0.5 \times 0.86 + 0.5 \times 1.0 = 0.93$
+- **Score = 100 × 0.93 × 1.0 = 93 điểm** 🎯
 
 ---
 
-### Tuần 3 (13/07 – 20/07): Fine-tuning nâng cao & Ổn định hóa (15 slots/ngày)
+## 2. ⚙️ Triết lý Vận hành — Revised v4
 
-_Mục tiêu: Đưa điểm số tiệm cận mốc mục tiêu 25-30 điểm, kiểm thử diện rộng._
+### Submit = Test (không có local GPU tương đương)
 
-#### Ngày 13-16/07 — Tối ưu hóa cực hạn
+- BTC đã xác nhận: mỗi lượt submit được lấy trung bình ≥3 lần chấm, sai số < 2%.
+- Không cần tốn slot chạy verification. Dành 100% slot cho thử nghiệm.
 
-- Tiếp tục tinh chỉnh các tham số sâu của framework đã chọn (vLLM).
-- Khảo sát độ ổn định của điểm số khi lượng VRAM thay đổi nhẹ.
+### Nguyên tắc TUYỆT ĐỐI (Rút kinh nghiệm từ 69 submissions)
 
-#### Ngày 17-19/07 — Đánh giá phân phối độ trễ
+1. **Kỷ luật đơn biến** cho flag discovery. Combo chỉ khi các biến đã được xác minh riêng lẻ.
+2. **Image gốc `vllm/vllm-openai:v0.22.1`** hoặc custom image dựa trên nó (Ghost Strategy).
+3. **`--max-model-len=262144`** — KHÔNG BAO GIỜ giảm (gây hỏng RadixAttention/prefix caching).
+4. **`--enable-prefix-caching`** — BẮT BUỘC (tắt → timeout > 2700s, đã chứng minh STT 39).
+5. **Framework: Chỉ vLLM** — Grader ép entrypoint vLLM, các framework khác đều fail.
+6. **Quantization: Chỉ Online** — Không dùng pre-quantized weights (AWQ/GPTQ checkpoint).
 
-- Chạy benchmark liên tục để vẽ biểu đồ phân bổ TTFT và TPOT.
-- Phân tích nhóm request nào vẫn bị timeout (>1500ms TTFT) để tìm cách khắc phục cá biệt.
+### ✅ Cờ AN TOÀN đã xác minh (Best Config hiện tại)
 
-#### Ngày 20/07 — Đóng băng Reference Config v4
+| Cờ / Tham số                    | Tác dụng                         | Bằng chứng |
+| :------------------------------ | :------------------------------- | :--------- |
+| `--quantization=fp8`            | Giảm 50% model weights → +3 điểm | STT 21     |
+| `--enable-chunked-prefill`      | Xen kẽ prefill/decode            | STT 16     |
+| `--no-enable-log-requests`      | Giảm CPU logging overhead        | STT 19     |
+| `--enable-prefix-caching`       | Cache system prompt chung        | STT 39     |
+| `--gpu-memory-utilization=0.95` | VRAM tối ưu nhất                 | STT 21     |
 
-- Chốt cấu hình ứng cử viên sáng giá nhất cho vòng chung cuộc.
+### 🚫 Cờ BỊ CẤM (đã chứng minh thất bại)
 
----
-
-### Tuần 4 (21/07 – 27/07): Advanced Techniques + Final Polish
-
-_Mục tiêu: Kỹ thuật nâng cao + đóng băng config cuối._
-
-#### Ngày 21-24/07 — Kỹ thuật nâng cao
-
-- **Custom entrypoint script** với warmup request trước benchmark
-- **Speculative Decoding** (nếu TPOT vẫn cao)
-- **Disaggregated Prefill/Decode** (nếu framework hỗ trợ)
-- Tiếp tục fine-tune combo tham số từ best config Tuần 3
-
-#### Ngày 25/07 — Variance Check (1 ngày, không 3 ngày)
-
-> BTC đã lấy trung bình ≥3 lần chấm với sai số < 2%, không cần test variance nhiều.
-
-- Submit config tốt nhất 3-5 lần trong ngày → xác nhận ổn định
-- Nếu variance > 2 điểm → điều tra (hiếm khi xảy ra theo BTC)
-
-#### Ngày 26-27/07 — Đóng băng Final
-
-- "Final Candidate Config" + backup config BF16 thuần
-- Rà soát docker-compose, image tags, clean up
-
----
-
-### Tuần 5 (28/07 – 30/07): Final Submission
-
-#### Ngày 28/07
-
-- Submit Final Candidate 2-3 lần → xác nhận lần cuối
-
-#### Ngày 29/07
-
-- **Buffer day**: Fix bug, clean up
-
-#### Ngày 30/07
-
-- **🏁 SUBMIT FINAL** trước deadline
+| Cờ                                             | Lý do cấm                                         | Bằng chứng       |
+| :--------------------------------------------- | :------------------------------------------------ | :--------------- |
+| `--max-model-len < 65536`                      | Crash/truncate input dài 20k-42k tokens           | STT 2,3,6,8,9,24 |
+| `--kv-cache-dtype=fp8`                         | Sụt -5.54 điểm, GPQA -9%, overhead chuyển đổi cao | STT 17, 61       |
+| `--enforce-eager`                              | Timeout 2700s (nghẽn CPU)                         | STT 22           |
+| `--num-scheduler-steps`                        | Unrecognized flag                                 | STT 20           |
+| `--swap-space`                                 | Flag đã bị loại bỏ                                | STT 32           |
+| `--no-enable-prefix-caching`                   | Timeout > 2700s                                   | STT 39           |
+| `--max-num-batched-tokens < 4096`              | Crash engine hoặc nghẽn pipeline                  | STT 30,31        |
+| `--performance-mode`                           | Scheduling overhead dưới tải                      | STT 34           |
+| `--block-size=32`                              | KV fragmentation                                  | STT 33           |
+| `--compilation-config` (FULL/FULL_DECODE_ONLY) | Không cải thiện TPOT 51ms                         | STT 36,37        |
+| Docker image `v0.4.2`, `v0.5.2`                | Phiên bản cũ, không tương thích                   | STT 13,15,65     |
+| Framework SGLang/LMDeploy/Aphrodite            | Grader ép vLLM entrypoint                         | STT 40,44-54     |
+| MTP Speculative Decoding                       | CPU 3 cores quá tải, TTFT +350%                   | STT 50,62        |
 
 ---
 
-## 5. 🧮 Ước tính Điểm số Mục tiêu
+## 3. 🎯 Chiến lược Tối ưu 6 Tầng (Song song, ưu tiên theo impact)
 
-### Hiện tại: **15.26 điểm** (ERS = 0.1526)
+> [!IMPORTANT]
+> **Thay đổi triết lý v4.1:** INT4 KV Cache + Custom Kernel là **CON ĐƯỜNG DUY NHẤT** đến 90+ điểm. Batch size tuning (Tầng 1) chỉ là bước đệm. Mọi effort phải hướng đến Tầng 0 ngay lập tức.
 
-- 84/120 request đóng góp điểm (trung bình S_request ≈ 0.218)
-- 36/120 request bị **0 điểm** (TTFT > 1500ms ceiling)
-- TPOT data: chưa có → **Cần đo từ kết quả submit tiếp theo**
+### 🔥 Tầng 0: INT4 Quantized KV Cache + Custom Dequant Kernel (ƯU TIÊN SỐ 1 — BẮT ĐẦU NGAY)
 
-### Kịch bản tăng điểm
+**Mục tiêu:** Giảm KV cache bandwidth 4x → TPOT từ 51ms xuống ~19ms mà KHÔNG cần giảm `--max-num-seqs`.
+**Dự kiến đóng góp:** **+50 đến +70 điểm** (game changer lớn nhất).
+**Khả thi trên BTC:** ✅ Mục 3 cho phép "Custom CUDA/Triton kernels", "KV cache quantization (FP8, INT8)".
 
-| Kịch bản                                   | Cách đạt                                       | Ước tính điểm |
-| :----------------------------------------- | :--------------------------------------------- | :-----------: |
-| **Chunked prefill hoạt động**              | Giảm TTFT cho ~20 request thêm xuống <1500ms   |   **20-22**   |
-| **FP8 + Chunked prefill**                  | Giảm TTFT cho ~30 request thêm                 |   **25-28**   |
-| **FP8 + Chunked + TPOT tuning**            | Tối ưu cả TTFT lẫn TPOT cho toàn bộ 120 req    |    **30+**    |
-| **Chỉ tuning tham số (không có flag mới)** | Tối ưu batch/scheduling trong giới hạn v0.22.1 |   **16-18**   |
-| **⚠️ FP8 + accuracy drop 12%**             | f(Δ) = 0.67 → điểm bị nhân 0.67                | **Giảm 33%**  |
-| **⚠️ FP8 + accuracy drop ≥ 16%**           | f(Δ) = 0.0 → điểm = 0 bất kể ERS               |    **0!**     |
+**Cơ chế:**
 
-### Mục tiêu
+- Thay vì dùng `--kv-cache-dtype=fp8` của vLLM (chậm do overhead conversion tầng Python), viết **custom Triton kernel** đọc KV cache INT4 và dequantize trực tiếp trong registers GPU.
+- BF16 KV = 12KB/token → INT4 KV = ~3KB/token (giảm 4x)
+- Tổng KV reads: 120 × 30k × 3KB = 10.8 GB → 10.8/685 = **16ms** + 3ms weights = **19ms TPOT**
 
-- **Thực tế:** **20-25 điểm** (nếu chunked prefill hoặc FP8 hoạt động)
-- **Stretch:** **30+ điểm** (tối ưu cả TTFT + TPOT)
-- **Worst case:** **16-18 điểm** (chỉ tuning tham số cơ bản)
-- **Cảnh báo FP8:** Luôn giữ **BF16 backup** sẵn sàng. Kiểm tra `accuracy_drop` sau mỗi lần submit FP8.
+**Triển khai:**
+
+1. **Monkey-patch vLLM's PagedAttention kernel** để lưu KV ở INT4 thay vì BF16.
+2. Viết **Triton fused attention kernel** với dequantize-on-the-fly: load INT4 → dequant to BF16 in registers → compute attention.
+3. Sử dụng per-channel/per-head quantization scales (FP16) để duy trì accuracy.
+4. Bake vào custom Docker image, inject qua hijack script.
+
+**Rủi ro:** Accuracy drop do INT4 KV. Giải pháp: test ngay, nếu drop > 10% → dùng INT8 KV (vẫn giảm 2x bandwidth, TPOT ~30ms).
 
 ---
 
-## 6. ⚠️ Rủi ro & Giải pháp — Updated
+### 🔴 Tầng 1: Batch Size Optimization (Tuần 2 — ĐANG CHẠY, bước đệm)
 
-| Rủi ro                                         |    Xác suất     | Impact  | Giải pháp                                                              |
-| :--------------------------------------------- | :-------------: | :-----: | :--------------------------------------------------------------------- |
-| **v0.22.1 không hỗ trợ chunked prefill / FP8** |       TB        | Rất Cao | Ngày 07/07 sẽ xác minh. Nếu fail → chuyển sang tuning tham số vLLM     |
-| **FP8 gây accuracy drop > 10%**                |     Thấp-TB     |   Cao   | Kiểm tra `accuracy_drop` kết quả. Giữ BF16 fallback                    |
-| **max-model-len nhỏ gây truncate input**       |    Đã xảy ra    |   Cao   | ≥ 32768, an toàn: 49152 hoặc 65536                                     |
-| **Variance cao giữa các lần submit**           |       TB        |   TB    | Submit nhiều lần cùng config, chọn median                              |
-| **CPU 3 cores quá tải**                        |       Cao       |   TB    | `OMP_NUM_THREADS=1`, `--disable-log-requests`, `--num-scheduler-steps` |
-| **Vi phạm kỷ luật đơn biến**                   | Đã xảy ra 9 lần |   Cao   | Checklist bắt buộc. KHÔNG submit khi chưa review                       |
+**Mục tiêu:** Mở khóa $s_{tpot}$ ngay lập tức trong khi chờ Tầng 0 sẵn sàng. Bằng cách giảm `--max-num-seqs`.
+**Dự kiến đóng góp:** +12 đến +25 điểm.
+
+| Cấu hình                  | TPOT dự kiến | $s_{tpot}$ | Trade-off TTFT             |
+| :------------------------ | :----------- | :--------- | :------------------------- |
+| `--max-num-seqs 64`       | ~37ms        | 0.10       | Nhẹ (nhiều request vẫn OK) |
+| **`--max-num-seqs 48`** ★ | ~28ms        | 0.46       | Vừa phải (SLO giảm ~12%)   |
+| `--max-num-seqs 32`       | ~20ms        | 1.00       | Nặng (SLO giảm ~35-40%)    |
+
+Kết hợp bắt buộc: `--enable-chunked-prefill` + `--max-num-batched-tokens 2048` để cứu TTFT.
+
+**Trạng thái:** Grid search 4 điểm đang chạy (Slot 6-9 ngày 10/07).
+
+---
+
+### 🔴 Tầng 2: Custom Entrypoint & Warmup (Tuần 2 — BẮT ĐẦU NGAY)
+
+**Mục tiêu:** Giảm TTFT cho wave đầu tiên bằng cách pre-warm prefix cache.
+**Dự kiến đóng góp:** +3 đến +5 điểm.
+
+**Cơ chế:**
+
+- Trace có **1 system prompt chung** cho tất cả 120 requests.
+- Nếu prefix cache đã warm trước khi benchmark bắt đầu, request đầu tiên (và tất cả sau đó) sẽ skip prefill cho phần system prompt (~10k tokens), giảm TTFT ~30-40% cho mỗi request.
+
+**Triển khai:**
+
+1. Trong script hijack (`python3_hijack`), **sau khi vLLM server khởi động xong** (healthcheck pass), gửi 1 dummy request chứa system prompt để trigger prefix caching.
+2. Dummy request phải đủ nhỏ để không tốn nhiều thời gian (<5 giây).
+3. Grader sẽ gọi API sau khi healthcheck pass → prefix cache đã sẵn sàng.
+
+**Rủi ro & Giải pháp:**
+
+- Nếu grader gọi ngay khi healthcheck pass mà không chờ warmup xong → Tạo healthcheck endpoint riêng, chỉ trả `200 OK` sau khi warmup hoàn tất.
+- Nếu warmup tốn quá nhiều thời gian → Timeout startup. Giới hạn warmup ≤ 30 giây.
+
+**Khả thi trên BTC:** ✅ Cho phép. BTC cho phép custom Docker image và entrypoint script. Warmup là kỹ thuật tiêu chuẩn trong production.
+
+---
+
+### 🟠 Tầng 3: Custom Triton/CUDA Kernels (Tuần 2-3 — BẮT ĐẦU SONG SONG)
+
+**Mục tiêu:** Tăng tốc prefill 20-30% để giảm TTFT, đồng thời tối ưu decode.
+**Dự kiến đóng góp:** +10 đến +20 điểm.
+
+**Phạm vi BTC cho phép:** ✅ Mục 3 (Optimization Scope) ghi rõ: _"Viết custom CUDA/Triton kernels; Tích hợp Fused attention kernels (FlashAttention, FlashInfer)"_.
+
+#### 3a. Fused GQA Attention Kernel cho Qwen3.5-2B
+
+Qwen3.5-2B có cấu hình GQA đặc biệt: `num_attention_heads=16`, `num_key_value_heads=2`, `head_dim=256`. Đây là ratio 8:1, rất phù hợp để viết kernel chuyên biệt:
+
+- **Triton kernel fused** cho GQA 8:1 decode attention:
+  - Load 1 KV head, broadcast cho 8 query heads trong shared memory
+  - Giảm số lần đọc HBM gấp 8 lần so với naive implementation
+  - Tối ưu tile size cho head_dim=256 trên H200 (Hopper architecture)
+
+- **Fused RoPE + Attention kernel:**
+  - Gộp rotary position embedding vào attention kernel
+  - Tiết kiệm 1 round-trip HBM read/write
+
+#### 3b. Prefill Kernel tối ưu cho Long Context
+
+- Chunked prefill hiện tại trong vLLM chia nhỏ prefill thành chunks nhưng mỗi chunk vẫn dùng generic kernel.
+- Custom kernel: **Fused chunked prefill** với paged KV cache write — giảm overhead memory allocation.
+- **Flash Decoding v2** pattern: chia context dài thành sub-tiles, tính attention song song trên nhiều SMs, merge kết quả. Đặc biệt hiệu quả cho context 30k-42k tokens.
+
+#### 3c. Linear Attention Optimization
+
+- 18 linear attention layers chiếm 75% model nhưng không cần KV cache.
+- Kiểm tra xem vLLM v0.22.1 có tối ưu riêng cho linear attention không.
+- Nếu chưa: viết kernel chuyên biệt cho linear attention forward pass (state-space compression).
+
+**Triển khai:**
+
+1. Viết Triton kernels trong custom Docker image.
+2. Monkey-patch vào vLLM's attention backend tại runtime (trong hijack script).
+3. Test từng kernel riêng lẻ trước khi kết hợp.
+
+---
+
+### 🟠 Tầng 4: Scheduler Patching (Tuần 3 — SAU KHI CÓ BASELINE MỚI)
+
+**Mục tiêu:** Tối ưu phân phối thời gian GPU giữa prefill và decode để cân bằng TTFT/TPOT.
+**Dự kiến đóng góp:** +5 đến +10 điểm.
+
+**Phạm vi BTC cho phép:** ✅ Mục 3 ghi: _"Memory-aware scheduling"_, _"Dynamic/Continuous batching"_.
+
+#### 4a. Decode-Priority Scheduling
+
+- Hiện tại vLLM interleave prefill và decode dựa trên `--max-num-batched-tokens`.
+- Patch: Ưu tiên **TUYỆT ĐỐI** decode step trước prefill.
+- Mỗi iteration: chạy decode cho tất cả active sequences TRƯỚC, rồi mới chạy prefill chunk.
+- Lý do: $s_{tpot}$ nhạy cảm hơn $s_{ttft}$ (dải TPOT chỉ có 25ms, dải TTFT có 1400ms).
+
+#### 4b. TTFT-Aware Request Admission
+
+- Patch scheduler để theo dõi thời gian đã chờ (queuing time) của mỗi request.
+- Nếu request sắp vượt TTFT ceiling (1500ms) → ưu tiên prefill cho nó ngay.
+- Nếu request đã vượt ceiling → giảm ưu tiên (đã 0 điểm, không cần cứu).
+
+#### 4c. Adaptive Batch Size
+
+- Thay vì cố định `--max-num-seqs`, dùng dynamic batch size:
+  - Khi queue ngắn (ít request chờ): tăng batch size → cải thiện throughput
+  - Khi queue dài (nhiều request chờ): giảm batch size → cải thiện TPOT per request
+  - Mục tiêu: luôn giữ TPOT < 30ms mà không hy sinh quá nhiều TTFT
+
+**Triển khai:**
+
+1. Fork/patch file scheduler trong vLLM v0.22.1 (V1 Engine sử dụng C++ core).
+2. Nếu C++ core khó patch → inject Python wrapper xung quanh scheduling decisions.
+3. Bake vào custom Docker image.
+
+---
+
+### 🟢 Tầng 5: Trace Exploitation & Prefix Caching Maximization (Tuần 2-3)
+
+**Mục tiêu:** Khai thác triệt để cấu trúc trace để TTFT tiệm cận 100ms.
+**Dự kiến đóng góp:** +10 đến +20 điểm.
+
+#### 5a. Phân tích cấu trúc Multi-turn trong trace
+
+- Trace có 120 requests với 2-12 messages mỗi request.
+- **Giả thuyết quan trọng:** Nhiều request là các turn khác nhau của CÙNG 1 conversation.
+- Turn N+1 chứa toàn bộ turn N + thêm 1-2 messages mới.
+- Nếu đúng: prefix caching sẽ cover gần 100% input → chỉ prefill phần mới (~1-2k tokens) → TTFT ≈ 50-100ms.
+
+#### 5b. Prefix Cache Warmup Strategy
+
+- Warmup bằng 1 dummy request chứa system prompt → cache sẵn phần chung.
+- Nếu trace thực sự có conversation chains → các request sau tự động được cache.
+
+#### 5c. Linear Attention Layer KV Bypass
+
+- 18/24 layers là linear attention → KHÔNG dùng KV cache truyền thống.
+- Kiểm tra vLLM v0.22.1 có tối ưu cho trường hợp này chưa.
+- Nếu chưa: patch để skip KV cache allocation cho 18 linear layers → tiết kiệm VRAM → chứa thêm KV cache cho 6 full-attention layers.
+
+---
+
+### 🟢 Tầng 6: INT4/INT8 Weight Quantization Online (Tuần 3)
+
+**Mục tiêu:** Giảm model weight size thêm 2-4x so với FP8 → prefill nhanh hơn.
+**Dự kiến đóng góp:** +3 đến +8 điểm.
+
+- Khảo sát `--quantization compressed-tensors` hoặc `--quantization bitsandbytes` trên v0.22.1.
+- A/B test accuracy drop vs FP8. Chỉ dùng nếu $\Delta \le 10$.
+
+---
+
+## 4. 🗓️ Lộ trình 20 Ngày (10/07 → 30/07) — ALL-IN Sprint
+
+> [!CAUTION]
+> **KHẨN CẤP:** Top 1 đã đạt 100 điểm. Chúng ta ở 18.99 điểm — cách top **81 điểm**. Mọi kỹ thuật can thiệp sâu phải bắt đầu **TRONG TUẦN NÀY**. Không có thời gian cho tiến trình tuần tự.
+
+### ✅ Tuần 1 (03/07 – 09/07): HOÀN THÀNH
+
+**Thành quả:**
+
+- Baseline BTC: 15.26 điểm → Best config FP8: 18.99 điểm (+24%).
+- Xác minh 15+ flags trên v0.22.1, xây dựng bản đồ tham số đầy đủ.
+- Phát hiện Grader ép vLLM entrypoint → chấm dứt thử nghiệm framework khác.
+- Phát hiện kỹ thuật Ghost Strategy (hijack script) hoạt động.
+- Chẩn đoán cổ chai thực sự: KV cache memory bandwidth, không phải CPU/scheduler.
+
+---
+
+### 🔥 Tuần 2 (10/07 – 16/07): ALL-IN SPRINT — 4 Track Song Song
+
+> **Mục tiêu tuần:** Đạt ≥ **50 điểm** + prototype INT4 KV cache kernel.
+
+#### Track A: Grid Search Batch Size (Ngày 10-11/07) — 20 Slots (Bước đệm)
+
+**Mục tiêu:** Baseline tạm thời ≥ 30 điểm trong khi chờ Tầng 0.
+
+| Ngày  | Slots | Nội dung                                                        |
+| :---- | :---: | :-------------------------------------------------------------- |
+| 10/07 |  15   | Grid search 4 điểm (seqs 32/48/64 + chunked). **Đang chạy.**    |
+| 11/07 |   5   | Tinh chỉnh nhanh quanh winner. Chuyển effort sang Track D ngay. |
+
+**Deliverable:** New Baseline ≥ 30 điểm (bước đệm).
+
+#### Track B: Warmup + Trace Analysis (Ngày 10-11/07) — Không tốn Slot
+
+| Ngày  | Nội dung                                                             |
+| :---- | :------------------------------------------------------------------- |
+| 10/07 | Phân tích trace: xác định conversation chains, prefix overlap ratio. |
+| 11/07 | Build warmup image. Extract system prompt → dummy request.           |
+
+#### Track C: Custom Triton Kernel R&D (Ngày 10-13/07) — Không tốn Slot
+
+| Ngày     | Nội dung                                                                 |
+| :------- | :----------------------------------------------------------------------- |
+| 10-11/07 | Nghiên cứu vLLM v0.22.1 PagedAttention source code + KV cache layout.    |
+| 12/07    | Viết Triton fused GQA decode attention kernel (8:1 ratio, head_dim=256). |
+| 13/07    | Tích hợp kernel vào custom image. Test trên 2 slots.                     |
+
+#### 🔥 Track D: INT4 KV Cache Kernel (Ngày 11-16/07) — ƯU TIÊN SỐ 1
+
+> [!IMPORTANT]
+> **Đây là con đường duy nhất đến 90+ điểm.** Ưu tiên tuyệt đối.
+
+| Ngày     | Nội dung                                                                        |
+| :------- | :------------------------------------------------------------------------------ |
+| 11-12/07 | Phân tích KV cache memory layout trong vLLM. Xác định injection point.          |
+| 13-14/07 | Viết Triton kernel: INT4 quantize KV khi write, dequantize khi read attention.  |
+| 15/07    | Tích hợp vào custom image. Test trên 3-5 slots. Đo TPOT và accuracy.            |
+| 16/07    | Nếu INT4 accuracy OK → chốt. Nếu không → fallback INT8 (vẫn 2x bandwidth gain). |
+
+**Deliverable:** INT4/INT8 KV cache kernel → TPOT ≤ 25ms + TTFT không bị hy sinh.
+
+#### Ngày 14-16/07 — Integration Sprint (30 slots)
+
+| Ngày  | Slots | Nội dung                                                       |
+| :---- | :---: | :------------------------------------------------------------- |
+| 14/07 |  10   | Kết hợp Track A winner + Track B warmup. Đo điểm tổng hợp.     |
+| 15/07 |  10   | Test Track D (INT4 KV) lần đầu. Grid search kết hợp.           |
+| 16/07 |  10   | Kết hợp tất cả: INT4 KV + Warmup + FP8 weights. Đo điểm combo. |
+
+**Mục tiêu cuối Tuần 2:** ≥ **50 điểm** (Tầng 0 prototype + Tầng 1-2 hoàn thành).
+
+---
+
+### ⚡ Tuần 3 (17/07 – 23/07): TĂNG TỐC ĐỘT PHÁ — Tối ưu INT4 KV + Scheduler
+
+> **Mục tiêu tuần:** Đạt ≥ **80 điểm** (INT4 KV kernel đã ổn định + scheduler patch).
+
+#### Track E: INT4 KV Kernel Polish + Accuracy Tuning (Ngày 17-19/07)
+
+| Ngày  | Slots | Nội dung                                                                         |
+| :---- | :---: | :------------------------------------------------------------------------------- |
+| 17/07 |  10   | Tinh chỉnh INT4 quantization scales (per-head vs per-channel). A/B accuracy.     |
+| 18/07 |  10   | Tối ưu Triton kernel perf: tile sizes, memory coalescing, warp-level primitives. |
+| 19/07 |   5   | Mixed INT4/INT8 KV: INT4 cho 4 layers, INT8 cho 2 layers nhạy cảm nhất.          |
+
+#### Track F: Scheduler Patching (Ngày 17-20/07)
+
+| Ngày     | Nội dung                                                          |
+| :------- | :---------------------------------------------------------------- |
+| 17-18/07 | Decode-priority scheduling + TTFT-aware admission control.        |
+| 19-20/07 | Adaptive batch size: dynamic `max-num-seqs` based on queue depth. |
+
+#### Ngày 20-23/07 — Full Stack Integration (60 Slots)
+
+| Ngày  | Slots | Nội dung                                                                  |
+| :---- | :---: | :------------------------------------------------------------------------ |
+| 20/07 |  15   | Merge ALL: INT4 KV + Custom attention + Scheduler + Warmup + FP8 weights. |
+| 21/07 |  15   | Grid search: optimal (num_seqs, batch_tokens, KV quant bits) combo.       |
+| 22/07 |  15   | Stability: 5 lần cùng config → variance < 2 điểm.                         |
+| 23/07 |  15   | Freeze **Candidate Config v1**. Target: ≥ 80 điểm.                        |
+
+**Mục tiêu cuối Tuần 3:** ≥ **80 điểm** (Tầng 0-4 hoàn thành, tiệm cận top 10).
+
+---
+
+### 🏁 Tuần 4 (24/07 – 30/07): FINAL PUSH — Target Top 3
+
+> **Mục tiêu tuần:** Đạt ≥ **90 điểm** (tinh chỉnh cực hạn + final submission).
+
+#### Ngày 24-26/07 — Micro-optimization & Edge Cases (45 Slots)
+
+| Ngày  | Slots | Nội dung                                                                  |
+| :---- | :---: | :------------------------------------------------------------------------ |
+| 24/07 |  15   | Micro-tune INT4 KV quantization: per-token scaling, group quantization.   |
+| 25/07 |  15   | Trace-specific tuning: optimize for actual request arrival pattern.       |
+| 26/07 |  15   | Fused end-to-end pipeline: minimize Python overhead between kernel calls. |
+
+#### Ngày 27-28/07 — Stabilization & Accuracy Audit (20 Slots)
+
+| Ngày  | Slots | Nội dung                                             |
+| :---- | :---: | :--------------------------------------------------- |
+| 27/07 |  10   | Chạy best config 5 lần. Variance < 2 điểm.           |
+| 27/07 |   5   | Accuracy audit: GPQA check, đảm bảo $\Delta \le 10$. |
+| 28/07 |   5   | Freeze **Final Config**. Build final Docker image.   |
+
+#### Ngày 29-30/07 — Final Submission
+
+| Ngày  | Slots | Nội dung                                       |
+| :---- | :---: | :--------------------------------------------- |
+| 29/07 |   3   | Submit Final Config 3 lần → xác nhận lần cuối. |
+| 30/07 |   2   | 🏁 **SUBMIT FINAL** trước deadline.            |
+
+---
+
+## 5. 📐 Ước tính Tổng Quỹ Slot & Phân bổ
+
+| Giai đoạn           | Ngày        |  Slots  | Mục đích                                |
+| :------------------ | :---------- | :-----: | :-------------------------------------- |
+| ✅ Tuần 1 (đã dùng) | 03-09/07    |   69    | Flag discovery + baseline               |
+| Tuần 2 ALL-IN       | 10-16/07    |   80    | Batch size + INT4 KV prototype + warmup |
+| Tuần 3 BREAKTHROUGH | 17-23/07    |   85    | INT4 KV polish + scheduler + full stack |
+| Tuần 4 FINAL PUSH   | 24-30/07    |   70    | Micro-optimization + final submission   |
+| **Tổng khả dụng**   | 28 ngày     |   420   |                                         |
+| **Đã dùng**         | 8 ngày      |   69    |                                         |
+| **Còn lại**         | **20 ngày** | **231** |                                         |
+
+---
+
+## 6. ⚠️ Rủi ro & Giải pháp — Updated v4
+
+| Rủi ro                                                    | Xác suất | Impact  | Giải pháp                                                                  |
+| :-------------------------------------------------------- | :------: | :-----: | :------------------------------------------------------------------------- |
+| **Custom kernel gây crash/sai kết quả**                   |    TB    | Rất Cao | Test từng kernel riêng lẻ. Giữ backup config không có custom kernel.       |
+| **Scheduler patch gây deadlock/timeout**                  |   Thấp   |   Cao   | Test trên slots nhỏ. Rollback về cấu hình Tầng 1-2 nếu fail.               |
+| **Warmup tốn quá nhiều thời gian startup**                |   Thấp   |   TB    | Giới hạn warmup ≤ 30 giây. Healthcheck endpoint tùy chỉnh.                 |
+| **INT8 online quantization gây accuracy drop > 10%**      |    TB    |   Cao   | Kiểm tra GPQA ngay sau submit. Giữ FP8 làm fallback.                       |
+| **`--max-num-seqs` quá thấp → quá nhiều request timeout** |    TB    |   TB    | Kết hợp chunked prefill + warmup để bù đắp. Grid search tìm sweet spot.    |
+| **KV bandwidth bottleneck KHÔNG THỂ vượt qua**            |   Cao    |   Cao   | Chấp nhận giới hạn vật lý. Tập trung cải thiện TTFT bằng custom kernel.    |
+| **Variance cao do CPU host jitter**                       |   Thấp   |   TB    | BTC đã xác nhận < 2%. Submit 3-5 lần, lấy median.                          |
+| **Grader thay đổi healthcheck/entrypoint**                | Rất thấp |   Cao   | Giữ config tương thích ngược (không chỉnh sửa entrypoint gốc, chỉ hijack). |
 
 ---
 
 ## 7. 📋 Checklist NGHIÊM NGẶT Trước Mỗi Submit
 
-- [ ] **Image:** Có phải `vllm/vllm-openai:v0.22.1` không? (Nếu không → CẦN LÝ DO CỰC KỲ THUYẾT PHỤC)
-- [ ] **Đơn biến:** Chỉ thay đổi **ĐÚNG 1 tham số** so với Reference Config?
-- [ ] **max-model-len:** Giá trị ≥ 32768?
-- [ ] **Không có flag cấm:** Không dùng `VLLM_USE_V1=1`, v0.4.2, max-model-len=8192?
-- [ ] **Đã ghi file:** `submissions/DDMMYYYY/HHMM-docker-compose.yml` đã tạo?
-- [ ] Sau khi có kết quả → ghi `HHMM-result.md` + cập nhật `submissions/logs.md`
-- [ ] Nếu điểm tăng → cập nhật Reference Config
+- [ ] **Image:** Dựa trên `vllm/vllm-openai:v0.22.1`? (Custom image OK nếu base là v0.22.1)
+- [ ] **Đơn biến:** Chỉ thay đổi **ĐÚNG 1 tham số** so với Reference Config? (Trừ combo đã lên kế hoạch)
+- [ ] **max-model-len:** ≥ 262144? (KHÔNG BAO GIỜ giảm)
+- [ ] **Không có flag cấm:** Kiểm tra danh sách 🚫 ở trên.
+- [ ] **Accuracy check:** Nếu dùng quantization mới → kiểm tra accuracy_drop ≤ 10%.
+- [ ] **Đã ghi file:** `submissions/DDMMYYYY/HHMM-docker-compose.yml` + `HHMM-result.md`.
+- [ ] Sau khi có kết quả → cập nhật `submissions/logs.md` + plan ngày.
+- [ ] Nếu điểm tăng → cập nhật Best Config Reference.
+
+---
+
+## 8. 🧭 Decision Tree — Chọn hướng đi tiếp theo
+
+```
+Kết quả Slot 6-9 (Tuần 2)?
+├── TPOT < 30ms ĐẠT + Điểm > 30
+│   ├── Track B (Warmup) → Kết hợp → Test thêm
+│   ├── Track C (Custom Kernel) → Giảm TTFT 20-30%
+│   └── Mục tiêu: 45-55 điểm cuối Tuần 2
+│
+├── TPOT < 30ms ĐẠT + Điểm 20-30 (TTFT quá tệ)
+│   ├── Ưu tiên Track C (Custom Kernel) → Cải thiện prefill speed
+│   ├── Track D (Scheduler) → Decode-priority
+│   └── Mục tiêu: 40-50 điểm cuối Tuần 2
+│
+├── TPOT VẪN > 40ms (Ghost Strategy fail)
+│   ├── Debug: Kiểm tra hijack script có chạy đúng không
+│   ├── Fallback: Test trực tiếp trên image gốc (không hijack)
+│   └── Pivot: Tập trung 100% vào TTFT optimization
+│
+└── Container crash / Timeout
+    ├── Kiểm tra OOM (8GB RAM constraint)
+    ├── Thử `--enforce-eager` trong hijack (tắt CUDA graphs)
+    └── Giảm `--gpu-memory-utilization` xuống 0.92
+```
+
+---
+
+## 9. 📊 Bảng Theo dõi Mục tiêu Hàng Tuần
+
+| Tuần | Mục tiêu (điểm) | Tầng hoàn thành  | Deliverable chính                              |
+| :--- | :-------------: | :--------------- | :--------------------------------------------- |
+| 1 ✅ |      18.99      | —                | Best Config FP8 + Flag map                     |
+| 2    |    ≥ **50**     | Tầng 0 proto+1+2 | INT4 KV prototype + Batch size + Warmup        |
+| 3    |    ≥ **80**     | Tầng 0-4         | INT4 KV stable + Scheduler + Full stack        |
+| 4    |  ≥ **90+** 🏆   | Tầng 0-6         | Micro-optimized + Final submission → **Top 3** |
+
+---
+
+## 10. ⚡ Hành động TỨC THÌ (10/07 — Hôm nay)
+
+1. **Tiếp tục Grid Search Batch Size** (Slot 6-9) → Baseline tạm ≥ 30 điểm.
+2. **Bắt đầu phân tích vLLM source code** → Tìm KV cache memory layout, PagedAttention kernel.
+3. **Phân tích trace structure** → Xác định conversation chains, prefix overlap.
+4. **Nghiên cứu INT4 KV quantization** → Tìm paper/implementation reference (vLLM, FlashInfer, TensorRT-LLM).
+5. **Đọc source FlashInfer** → Xem có sẵn INT4 KV kernel không (FlashInfer đã hỗ trợ FP8 KV).

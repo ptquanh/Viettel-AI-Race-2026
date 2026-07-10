@@ -1,0 +1,34 @@
+# STT 70 - INT4 KV Cache per-token-head (GAME CHANGER)
+# Mục đích: Test --kv-cache-dtype int4_per_token_head trên vLLM v0.22.1
+# Kỳ vọng: TPOT giảm từ 51ms → ~19ms (4x less KV bandwidth)
+# Rủi ro: Accuracy drop, startup crash nếu kernel chưa hỗ trợ
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=int4_per_token_head
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

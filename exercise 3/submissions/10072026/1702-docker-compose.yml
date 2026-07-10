@@ -1,0 +1,35 @@
+# STT 72 - FP8 per-token-head KV Cache (So sánh với fp8 cũ - STT 17/61)
+# Mục đích: Test --kv-cache-dtype fp8_per_token_head (khác fp8 cũ!)
+# Kỳ vọng: FP8 per-token-head có thể nhanh hơn fp8 per-tensor cũ
+#   STT 17/61: dùng --kv-cache-dtype fp8 → TPOT TĂNG từ 51ms → 63ms (thất bại)
+#   Lần này dùng per-token-head mode → kernel khác, ít overhead hơn
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=fp8_per_token_head
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
