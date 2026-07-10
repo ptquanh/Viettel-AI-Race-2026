@@ -13,7 +13,7 @@ Trước khi thực hiện bất kỳ đề xuất thay đổi hoặc tạo file
    - Nhận diện các cấu hình đã thử nghiệm thất bại (Fail) hoặc bỏ qua (Skip) để tránh lặp lại sai lầm.
 2. **Phân tích cấu hình Model & Kiến trúc:**
    - Đọc file `config.json` của model mục tiêu (ví dụ: [config.json](../exercise%203/Qwen3.5-2B-BTC/config.json)) để nắm rõ `model_type`, `architectures`, `layer_types` (như hybrid linear attention), tránh đưa các flag không tương thích hoặc chọn sai backend engine (ví dụ: chọn Turbomind khi model có linear attention).
-3. **Kiểm tra giới hạn tài nguyên:** Xác định tài nguyên thực tế được cấp trong docker-compose (ví dụ: limits cpus, memory, gpus).
+3. **Kiểm tra giới hạn tài nguyên:** Xác định tài nguyên thực tế được cấp. Cấu hình phần cứng thực tế của BTC cấp phát tự động cho mỗi lượt chấm là: **1 instance MiG H200 (18GB VRAM, 3 Core CPU, 8GB RAM)**.
 
 ---
 
@@ -65,3 +65,8 @@ Ngay sau khi có kết quả từ portal (hoặc khi phát hiện lỗi khởi �
 
 - **Quy tắc bắt buộc:** Hiện tại, bài thi này chỉ hỗ trợ **Online Quantization** (lượng tử hóa động khi load model), **KHÔNG** hỗ trợ offline quantization dưới dạng các pre-quantize model weight (như các checkpoint model AWQ, GPTQ được tải sẵn từ ngoài vào). Agent không được thử nghiệm nạp weights pre-quantized từ bên ngoài.
 
+---
+
+## 5. QUY ĐỊNH VỀ SERVING FRAMEWORK
+
+- **Quy tắc bắt buộc:** Bài thi này chỉ hỗ trợ và chạy ổn định trên **vLLM framework**. Hệ thống grader chấm bài tự động ép buộc cấu hình chạy của vLLM. Không thử nghiệm các serving framework khác (như SGLang, LMDeploy, Aphrodite, v.v.) vì chúng không tương thích hoặc gây timeout/lỗi hệ thống khi chấm bài.

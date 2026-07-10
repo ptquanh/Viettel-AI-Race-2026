@@ -184,12 +184,9 @@ Dựa trên thực tế 32 lần chạy thử nghiệm, các flag/cấu hình sa
 | **`--enforce-eager`**                       | Tắt CUDA graphs → giảm VRAM overhead, trade-off latency | Cần xác minh         |  🟠 P1  |
 | **CPU Thread Limits** (`OMP_NUM_THREADS=1`) | Tránh thrashing 3 cores                                 | Ổn định hoá          |  🟠 P1  |
 
-### 🟢 Phase 3: Alternative Framework (nếu vLLM bão hòa)
+### 🟢 Phase 3: Alternative Framework (Bị cấm / Không hỗ trợ)
 
-| Hướng                   | Mô tả                           | Khi nào                                          |
-| :---------------------- | :------------------------------ | :----------------------------------------------- |
-| **SGLang**              | RadixAttention, scheduling khác | Chỉ nếu vLLM đã squeeze hết                      |
-| **Custom Docker image** | vLLM mới hơn, nhẹ hơn           | Chỉ nếu có flag quan trọng không có trên v0.22.1 |
+Hệ thống grader chấm bài tự động ép buộc cấu hình chạy của vLLM và không tương thích các serving engine khác như SGLang, LMDeploy, Aphrodite, v.v. Tất cả các nỗ lực chuyển đổi framework đều dẫn đến lỗi khởi chạy hoặc chấm điểm thất bại. Do đó, Phase 3 được điều chuyển hoàn toàn sang tối ưu hóa sâu backend attention (như FlashInfer) và scheduler của vLLM.
 
 ### ❌ DANH SÁCH CẤM (đã chứng minh thất bại hoặc crash)
 
@@ -290,24 +287,29 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 **Phát hiện cực kỳ quan trọng về Grader của BTC:**
 
-- Grader **bỏ qua hoàn toàn cấu hình `entrypoint`** trong `docker-compose.yml` của thí sinh.
-- Grader luôn áp đặt lệnh khởi động cố định: `/opt/py3/bin/python3 -m vllm.entrypoints.openai.api_server <command của thí sinh>`.
-- Để chạy được các framework khác (LMDeploy, SGLang, Aphrodite), ta bắt buộc phải xây dựng custom image và thực hiện **python3 hijack** tại `/opt/py3/bin/python3` nhằm đánh lừa grader, chuyển hướng cuộc gọi sang engine mong muốn thông qua các tham số cấu hình truyền bằng biến môi trường (`environment` trong compose).
+- Grader **bỏ qua hoàn toàn cấu hình `entrypoint`** trong `docker-compose.yml` của thí sinh và áp đặt lệnh khởi động vLLM.
+- Các thử nghiệm hijack để chạy Aphrodite, SGLang, LMDeploy đều **Thất bại hoàn toàn** (lỗi timeout, exit code 126, crash Turbomind RPC).
+- **Kết luận:** Hệ thống chấm điểm chỉ tương thích với vLLM. Dừng toàn bộ các thử nghiệm liên quan đến framework khác.
 
-| Slot     | Tên thử nghiệm         | Cấu hình & Mô tả                                                                     | Kết quả thực tế                     | Bài học & Hành động tiếp theo                                                                                                                                     |
-| -------- | ---------------------- | ------------------------------------------------------------------------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 (0811) | Aphrodite FP8 Test     | `aphroditeorg/aphrodite:latest` + FP8 lượng hóa KV cache.                            | **Thất bại (Startup Timeout)**.     | Image Aphrodite quá nặng (~15GB) gây quá hạn thời gian tải (pull) của grader.                                                                                     |
-| 2 (0843) | LMDeploy BF16 Test     | `openmmlab/lmdeploy:v0.7.0-cu12` chạy trực tiếp model gốc.                           | **Thất bại (Startup Error)**.       | Thất bại do thiếu thư viện `vllm` trong environment khi grader gọi entrypoint mặc định. Tuy nhiên, image được pull rất nhanh và khởi chạy thành công (pod ready). |
-| 3 (0940) | LMDeploy Hijacked Test | Sử dụng custom image `ptquanh/viettel-lmdeploy:v1` (Base LMDeploy + python3 hijack). | **Thất bại (Startup Error - 126)**. | Do shebang `#!/usr/bin/env python3` bị đệ quy vô hạn qua PATH. Đã sửa sang Bash script để chặn đứng đệ quy.                                                       |
-| 4 (1026) | LMDeploy Hijacked v2   | Chạy lại custom image với hijack bằng Bash script (`python3_hijack`).                | **Thất bại (Startup Timeout)**.     | Do file lưu trên Windows chứa CRLF line endings làm hỏng bộ dịch của Bash script. Đã sửa bằng cách dùng `sed` làm sạch CRLF khi build.                            |
-| 5 (1130) | LMDeploy Hijacked v3   | Chạy lại custom image có khử CRLF + dùng đường dẫn tuyệt đối cho LMDeploy.           | TBD                                 | Đánh giá khả năng tương thích của LMDeploy Turbomind C++ Engine trên hệ thống chấm.                                                                               |
-| 6 (1150) | LMDeploy INT8 KV Cache | Custom image + bật `--quant-policy 8` (online INT8 KV cache).                        | TBD                                 | Kiểm thử khả năng tối ưu bộ nhớ của INT8 KV Cache và sự sụt giảm độ chính xác GPQA.                                                                               |
+| Slot | Tên thử nghiệm        | Cấu hình & Mô tả                                                          | Kết quả thực tế        | Bài học & Hành động tiếp theo                                                                 |
+| ---- | --------------------- | ------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------- |
+| 1-6  | Framework Exploration | Thử nghiệm Aphrodite, SGLang, LMDeploy qua các phiên bản hijack khác nhau | **Thất bại hoàn toàn** | Các framework khác không tương thích với grader của BTC. Quay lại tập trung tối ưu vLLM 100%. |
 
-#### Ngày 10-12/07 — Advanced Techniques & Early Freezing (45 Slots)
+#### Ngày 10-12/07 — Chiến dịch đột phá TPOT & Chuẩn hóa vLLM (45 Slots)
 
-- Thử nghiệm speculative decoding (nếu framework/model hỗ trợ ổn định).
-- Thử nghiệm custom entrypoint warmup script trước khi benchmark chạy chính thức.
-- Đóng băng cấu hình tối ưu nhất cho giai đoạn này ("Reference Config v3").
+**Phân tích cổ chai:** Chỉ số TPOT (Time-Per-Output-Token) hiện tại của model Qwen3.5-2B là ~51ms, vượt ngưỡng trần (ceiling) 45ms nên phần điểm TPOT (chiếm 50% tổng trọng số) đang bị **0 điểm**. Mục tiêu ngày 10/07 là giảm TPOT xuống dưới 45ms (tốt nhất là tiệm cận 20ms) để mở khóa điểm số.
+
+##### Kế hoạch 15 Slots ngày 10/07/2026:
+
+- **Slot 1 (0815-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). Kỳ vọng giảm KV Cache bandwidth đọc từ VRAM 50% (~31GB -> ~15GB), đẩy TPOT xuống ~27-30ms.
+- **Slot 2 (0830-docker-compose.yml):** MTP Speculative Decoding retry (image gốc) với `--speculative-config`. Kỳ vọng tăng throughput lên 1.6-1.7x, đưa TPOT hiệu dụng về ~32ms.
+- **Slot 3 (0845-docker-compose.yml):** FlashInfer backend via hijack (custom image `vllm-v0.22.1-flashinfer`). Thử nghiệm attention backend tối ưu cho long context.
+- **Slot 4:** FP8 KV Combo via Hijack (so sánh với native ở Slot 1).
+- **Slot 5:** Combo FP8 KV + MTP (Holy Grail test, kỳ vọng đưa TPOT về ~18ms, đạt ~70 điểm).
+- **Slot 6:** FP8 KV Cache + KV Scales Calibration (`--calculate-kv-scales`) để giảm thiểu sụt giảm độ chính xác GPQA Diamond.
+- **Slot 7:** FP8 KV Cache + GPU Mem 0.90 (giảm phân mảnh và overhead CUDA).
+- **Slot 8:** FlashInfer + FP8 KV Combo.
+- **Slot 9-15:** Tinh chỉnh các tham số tốt nhất thu được từ Phase 1 & 2 để chốt cấu hình tối ưu.
 
 ---
 
@@ -317,7 +319,7 @@ _Mục tiêu: Đưa điểm số tiệm cận mốc mục tiêu 25-30 điểm, k
 
 #### Ngày 13-16/07 — Tối ưu hóa cực hạn
 
-- Tiếp tục tinh chỉnh các tham số sâu của framework đã chọn (vLLM/SGLang).
+- Tiếp tục tinh chỉnh các tham số sâu của framework đã chọn (vLLM).
 - Khảo sát độ ổn định của điểm số khi lượng VRAM thay đổi nhẹ.
 
 #### Ngày 17-19/07 — Đánh giá phân phối độ trễ
@@ -404,7 +406,7 @@ _Mục tiêu: Kỹ thuật nâng cao + đóng băng config cuối._
 
 | Rủi ro                                         |    Xác suất     | Impact  | Giải pháp                                                              |
 | :--------------------------------------------- | :-------------: | :-----: | :--------------------------------------------------------------------- |
-| **v0.22.1 không hỗ trợ chunked prefill / FP8** |       TB        | Rất Cao | Ngày 07/07 sẽ xác minh. Nếu fail → chuyển sang tuning tham số + SGLang |
+| **v0.22.1 không hỗ trợ chunked prefill / FP8** |       TB        | Rất Cao | Ngày 07/07 sẽ xác minh. Nếu fail → chuyển sang tuning tham số vLLM     |
 | **FP8 gây accuracy drop > 10%**                |     Thấp-TB     |   Cao   | Kiểm tra `accuracy_drop` kết quả. Giữ BF16 fallback                    |
 | **max-model-len nhỏ gây truncate input**       |    Đã xảy ra    |   Cao   | ≥ 32768, an toàn: 49152 hoặc 65536                                     |
 | **Variance cao giữa các lần submit**           |       TB        |   TB    | Submit nhiều lần cùng config, chọn median                              |

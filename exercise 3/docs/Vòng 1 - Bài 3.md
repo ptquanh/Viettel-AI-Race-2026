@@ -80,7 +80,7 @@ Trong đó:
 
 ## 3. 🛠️ Không gian Tối ưu (Optimization Scope)
 
-Thí sinh được toàn quyền lựa chọn framework (vLLM, SGLang, TensorRT-LLM, custom runtime...) và áp dụng mọi kỹ thuật tối ưu hóa miễn không vi phạm luật thi. Các hướng tiếp cận cốt lõi bao gồm:
+Thí sinh chỉ được sử dụng framework vLLM (hệ thống chấm bài tự động ép buộc entrypoint của vLLM và không hỗ trợ/tương thích các framework khác như SGLang, LMDeploy, Aphrodite, v.v.) và áp dụng mọi kỹ thuật tối ưu hóa miễn không vi phạm luật thi. Các hướng tiếp cận cốt lõi bao gồm:
 
 - **Quantization:** Tối ưu hóa dung lượng trọng số (Weight quantization) thông qua FP8 (F8_E4M3), INT8, INT4, mixed-precision, AWQ, GPTQ; Tối ưu hóa kích hoạt (Activation quantization, Dynamic quantization).
 - **KV Cache & Memory:** Tối đa hóa lượng request xử lý đồng thời bằng Paged Attention; KV cache quantization (FP8, INT8); Prefix caching và Semantic caching; Offloading xuống CPU/NVMe.

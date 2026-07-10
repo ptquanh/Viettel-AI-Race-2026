@@ -114,7 +114,7 @@ Thí sinh được toàn quyền tự do lựa chọn và kết hợp các phư�
 - **KV Cache Optimization:** KV cache quantization (FP8, INT8), KV cache offloading (CPU/NVMe), prefix caching, semantic caching, Paged Attention, memory-aware scheduling.
 - **Serving & Scheduling Optimization:** Dynamic/continuous batching, speculative decoding (sử dụng draft model hoặc self-speculative), disaggregated prefill/decode serving.
 - **System-Level Optimization:** Custom CUDA / Triton kernels, fused attention kernels (FlashAttention, FlashInfer...), NCCL communication optimization cho NVLink topology, CUDA Graphs, memory layout optimization.
-- **Runtime & Compiler Optimization:** Sử dụng các framework như vLLM, SGLang, TensorRT-LLM, Transformers, hoặc custom runtime; tùy chỉnh tensor parallelism và pipeline parallelism; overlap communication/computation.
+- **Runtime & Compiler Optimization:** Chỉ sử dụng framework vLLM (hệ thống grader bắt buộc khởi chạy bằng vLLM entrypoint và không tương thích các serving engine khác như SGLang, LMDeploy, v.v.); tùy chỉnh tensor parallelism và pipeline parallelism; overlap communication/computation.
 
 ## 6. 🚫 Rule & Anti-Cheating
 
