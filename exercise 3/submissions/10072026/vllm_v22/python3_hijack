@@ -1,0 +1,42 @@
+#!/bin/bash
+ARGS="$*"
+
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity] Intercepted! Waking up Modern vLLM 0.22.1 with max-cudagraph-capture-size..."
+    
+    # Giảm tối đa logging overhead bằng WARNING level (tránh nghẽn CPU và I/O Docker daemon ghi log)
+    export VLLM_LOGGING_LEVEL=WARNING
+    
+    # Ép Python dọn dẹp RAM cực đoan khi tạo worker để cứu 8GB RAM hệ thống
+    export VLLM_WORKER_MULTIPROC_METHOD=spawn
+    export OMP_NUM_THREADS=2
+    export RAY_DEDUP_LOGS=0
+
+    # Đọc cấu hình động từ Environment Variables trong docker-compose
+    MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-48}
+    MAX_NUM_BATCHED_TOKENS=${VLLM_MAX_NUM_BATCHED_TOKENS:-2048}
+    ENABLE_CHUNKED_PREFILL=${VLLM_ENABLE_CHUNKED_PREFILL:-1}
+    
+    echo "[Antigravity] Config - Seqs: ${MAX_NUM_SEQS}, Chunked Prefill: ${ENABLE_CHUNKED_PREFILL}, Batched Tokens: ${MAX_NUM_BATCHED_TOKENS}"
+
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server" \
+         "--model" "/model" \
+         "--served-model-name" "Qwen3.5-2B" \
+         "--host" "0.0.0.0" \
+         "--port" "8000" \
+         "--max-model-len" "262144" \
+         "--gpu-memory-utilization" "0.95" \
+         "--enable-prefix-caching" \
+         "--max-num-seqs" "$MAX_NUM_SEQS" \
+         "--no-enable-log-requests")
+
+    if [ "$ENABLE_CHUNKED_PREFILL" = "1" ]; then
+        CMD+=("--enable-chunked-prefill" "--max-num-batched-tokens" "$MAX_NUM_BATCHED_TOKENS")
+    fi
+         
+    echo "[Antigravity] Executing: ${CMD[*]}"
+    exec "${CMD[@]}"
+else
+    # Fallback an toàn
+    exec "/usr/bin/python3_real" "$@"
+fi
