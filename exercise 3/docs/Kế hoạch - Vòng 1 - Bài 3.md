@@ -301,14 +301,14 @@ _Mục tiêu: Xác minh flag nào khả dụng trên v0.22.1, sau đó tập tru
 
 ##### Kế hoạch 15 Slots ngày 10/07/2026:
 
-- **Slot 1 (0815-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). Kỳ vọng giảm KV Cache bandwidth đọc từ VRAM 50% (~31GB -> ~15GB), đẩy TPOT xuống ~27-30ms.
-- **Slot 2 (0830-docker-compose.yml):** MTP Speculative Decoding retry (image gốc) với `--speculative-config`. Kỳ vọng tăng throughput lên 1.6-1.7x, đưa TPOT hiệu dụng về ~32ms.
+- **Slot 1 (0818-docker-compose.yml):** Combo FP8 Weights + FP8 KV Cache (image gốc). **Thất bại (10.88 điểm, tbt_median=63ms)** do overhead lượng tử KV Cache quá lớn trên vLLM v0.22.1.
+- **Slot 2 (0925-docker-compose.yml):** MTP Speculative Decoding (image gốc). **Thất bại (10.53 điểm, TTFT P50 vọt lên 2.8s)** do overhead verify draft model nghẽn CPU nghiêm trọng trên 3 cores.
 - **Slot 3 (0845-docker-compose.yml):** FlashInfer backend via hijack (custom image `vllm-v0.22.1-flashinfer`). Thử nghiệm attention backend tối ưu cho long context.
-- **Slot 4:** FP8 KV Combo via Hijack (so sánh với native ở Slot 1).
-- **Slot 5:** Combo FP8 KV + MTP (Holy Grail test, kỳ vọng đưa TPOT về ~18ms, đạt ~70 điểm).
-- **Slot 6:** FP8 KV Cache + KV Scales Calibration (`--calculate-kv-scales`) để giảm thiểu sụt giảm độ chính xác GPQA Diamond.
-- **Slot 7:** FP8 KV Cache + GPU Mem 0.90 (giảm phân mảnh và overhead CUDA).
-- **Slot 8:** FlashInfer + FP8 KV Combo.
+- **Slot 4 (0900-docker-compose.yml):** CUDA Graph capture size 65k (`--max-seq-len-to-capture=65536` + FP8 weights) để giữ CUDA Graph decode không fallback về eager mode khi context > 8192 (chuỗi thực tế 20k-42k), triệt tiêu CPU overhead.
+- **Slot 5:** CUDA Graph capture size 131k (`--max-seq-len-to-capture=131072`).
+- **Slot 6:** Combo FlashInfer + CUDA Graph capture 65k.
+- **Slot 7:** Combo MTP Speculative + CUDA Graph capture 65k.
+- **Slot 8:** Best combo refinement #1
 - **Slot 9-15:** Tinh chỉnh các tham số tốt nhất thu được từ Phase 1 & 2 để chốt cấu hình tối ưu.
 
 ---
