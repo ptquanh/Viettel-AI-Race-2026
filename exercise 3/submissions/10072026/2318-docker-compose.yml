@@ -1,4 +1,4 @@
-# STT 75 - TurboQuant 3-bit Key / 4-bit Value Hybrid KV Cache 🔥
+# STT 75 - TurboQuant 3-bit Key / 4-bit Value Hybrid KV Cache 🔥 (Đổi tên từ 2255 thành 2318)
 # Mục đích: Test cờ nén cao TurboQuant k3v4 (3-bit Keys + 4-bit Values + Norm Correction)
 # Cấu hình: --kv-cache-dtype turboquant_k3v4_nc + --quantization fp8 (hijack-v4)
 # Kỳ vọng: TPOT cực thấp (~15ms) nhờ nén KV cache tối đa (~4.3x), Norm Correction giúp kiểm soát accuracy drop.
