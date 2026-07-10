@@ -1,0 +1,34 @@
+# STT 75 - TurboQuant 3-bit Key / 4-bit Value Hybrid KV Cache 🔥
+# Mục đích: Test cờ nén cao TurboQuant k3v4 (3-bit Keys + 4-bit Values + Norm Correction)
+# Cấu hình: --kv-cache-dtype turboquant_k3v4_nc + --quantization fp8 (hijack-v4)
+# Kỳ vọng: TPOT cực thấp (~15ms) nhờ nén KV cache tối đa (~4.3x), Norm Correction giúp kiểm soát accuracy drop.
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=turboquant_k3v4_nc
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

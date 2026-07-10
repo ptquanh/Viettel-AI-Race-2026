@@ -1,13 +1,13 @@
-# STT 70 - INT4 KV Cache per-token-head (GAME CHANGER)
-# Mục đích: Test --kv-cache-dtype int4_per_token_head trên vLLM v0.22.1
-# Kỳ vọng: TPOT giảm từ 51ms → ~19ms (4x less KV bandwidth)
-# Rủi ro: Accuracy drop, startup crash nếu kernel chưa hỗ trợ
+# STT 74 - TurboQuant FP8-INT4 Hybrid KV Cache 🔥 (Đổi tên từ 2251 thành 2302)
+# Mục đích: Test cờ nén lai FP8 Keys + 4-bit Values được portal hỗ trợ
+# Cấu hình: --kv-cache-dtype turboquant_k8v4 + --quantization fp8 (hijack-v4)
+# Kỳ vọng: TPOT giảm từ 51ms → ~25ms (băng thông KV cache giảm ~2.6x), đảm bảo accuracy ổn định hơn 4-bit thuần.
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
     environment:
       - HIJACK_ENGINE=vllm-v22-v4
-      - VLLM_KV_CACHE_DTYPE=int4_per_token_head
+      - VLLM_KV_CACHE_DTYPE=turboquant_k8v4
       - VLLM_QUANTIZATION=fp8
       - VLLM_ENABLE_CHUNKED_PREFILL=0
     entrypoint:

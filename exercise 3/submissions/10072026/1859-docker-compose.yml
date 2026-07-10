@@ -1,0 +1,33 @@
+# STT 70 - INT4 KV Cache per-token-head (GAME CHANGER - Đã đổi tên từ 1700 thành 1859)
+# Mục đích: Test --kv-cache-dtype int4_per_token_head trên vLLM v0.22.1
+# Kết quả: Thất bại do portal không hỗ trợ int4_per_token_head, nhưng trả về các option TurboQuant hợp lệ.
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=int4_per_token_head
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
