@@ -1,0 +1,32 @@
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-phase2-int8
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+      - OMP_NUM_THREADS=3
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_KV_CACHE_DTYPE=int8_per_token_head
+      - VLLM_CUSTOM_KERNEL=1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
