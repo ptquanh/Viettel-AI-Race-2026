@@ -1,0 +1,36 @@
+# STT 76 - FlashInfer Attention Backend + BF16 gốc (max-num-seqs=256) 🔥
+# Mục đích: Đánh giá độc lập hiệu năng của FlashInfer Attention backend trên cấu hình BF16 gốc (không quantized).
+# So sánh trực tiếp với baseline STT 21 (vLLM gốc + FlashAttention + BF16 đạt 18.99 điểm).
+# Kỳ vọng: FlashInfer tối ưu hóa prefill & decode tốt hơn cho GQA của Qwen3.5, giúp giảm TPOT < 51ms.
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-flashinfer
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=auto
+      - VLLM_QUANTIZATION=none
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+      - VLLM_MAX_NUM_SEQS=256
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

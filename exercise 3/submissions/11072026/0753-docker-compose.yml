@@ -1,0 +1,37 @@
+# STT 84 - Engine V0 + TurboQuant 4-bit KV Cache + FP8 weights 🔥
+# Mục đích: Thử cứu vãn cờ nén TurboQuant bằng cách ép buộc vLLM sử dụng Engine V0 cũ (VLLM_USE_V1=0).
+# Tránh lỗi crash startup `Engine core initialization failed` trên V1 engine của Grader portal.
+# Kỳ vọng: Nếu Engine V0 chạy thành công, cờ turboquant_4bit_nc có thể chạy ổn định và đạt TPOT tối ưu (~19ms).
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_USE_V1=0
+      - VLLM_KV_CACHE_DTYPE=turboquant_4bit_nc
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+      - VLLM_MAX_NUM_SEQS=86
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

@@ -1,0 +1,35 @@
+# STT 78 - FlashInfer Attention Backend + BF16 gốc (max-num-seqs=64) 🔥
+# Mục đích: Đánh giá hiệu năng của FlashInfer Attention backend với max-num-seqs=64.
+# Kỳ vọng: Đánh giá xem seqs=64 có bị nghẽn hàng đợi (queue bottleneck) gây tăng TTFT quá mức như seqs=32/48 không, hay sẽ mang lại TPOT thấp nhất nhờ giảm thiểu tối đa tài nguyên cấp phát tĩnh.
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-flashinfer
+    environment:
+      - HIJACK_ENGINE=vllm-v22-v4
+      - VLLM_KV_CACHE_DTYPE=auto
+      - VLLM_QUANTIZATION=none
+      - VLLM_ENABLE_CHUNKED_PREFILL=0
+      - VLLM_MAX_NUM_SEQS=64
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
