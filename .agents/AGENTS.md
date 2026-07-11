@@ -11,9 +11,10 @@ Trước khi thực hiện bất kỳ đề xuất thay đổi hoặc tạo file
 1. **Đọc lịch sử cuộc thi & logs:** Đọc file [logs.md](../exercise%203/submissions/logs.md) để:
    - Hiểu rõ baseline tốt nhất hiện tại (ví dụ: cấu hình STT 21 đạt 18.99 điểm).
    - Nhận diện các cấu hình đã thử nghiệm thất bại (Fail) hoặc bỏ qua (Skip) để tránh lặp lại sai lầm.
-2. **Phân tích cấu hình Model & Kiến trúc:**
+2. **Đọc tài liệu Specs & Kế hoạch chiến lược:** Đọc [challenge_specification.md](../exercise%203/docs/challenge_specification.md) và [phase1_execution_plan.md](../exercise%203/docs/phase1_execution_plan.md) để nắm rõ luật thi, cơ chế tính điểm ERS/Accuracy và định hướng tối ưu chung đã được thống nhất.
+3. **Phân tích cấu hình Model & Kiến trúc:**
    - Đọc file `config.json` của model mục tiêu (ví dụ: [config.json](../exercise%203/Qwen3.5-2B-BTC/config.json)) để nắm rõ `model_type`, `architectures`, `layer_types` (như hybrid linear attention), tránh đưa các flag không tương thích hoặc chọn sai backend engine (ví dụ: chọn Turbomind khi model có linear attention).
-3. **Kiểm tra giới hạn tài nguyên:** Xác định tài nguyên thực tế được cấp. Cấu hình phần cứng thực tế của BTC cấp phát tự động cho mỗi lượt chấm là: **1 instance MiG H200 (18GB VRAM, 3 Core CPU, 8GB RAM)**.
+4. **Kiểm tra giới hạn tài nguyên:** Xác định tài nguyên thực tế được cấp. Cấu hình phần cứng thực tế của BTC cấp phát tự động cho mỗi lượt chấm là: **1 instance MiG H200 (18GB VRAM, 3 Core CPU, 8GB RAM)**.
 
 ---
 
@@ -29,7 +30,7 @@ Mỗi lượt nộp bao gồm 2 file bắt buộc:
 1. **File Compose:** `{HHMM}-docker-compose.yml` (ví dụ: `0732-docker-compose.yml`) hoặc `slot{n}-docker-compose.yml` nếu chưa nộp.
 2. **File Kết quả:** `{HHMM}-result.md` (ví dụ: `0732-result.md`) hoặc `slot{n}-result.md` nếu chưa nộp.
 
-* **Quy định đặt tên theo trạng thái**:
+- **Quy định đặt tên theo trạng thái**:
   - Đối với cấu hình **chưa nộp hoặc chưa có kết quả benchmark**, file phải đặt tên là `slot{n}-docker-compose.yml` và `slot{n}-result.md` (với `n` là 1, 2, 3...).
   - Ngay sau khi đã nộp hoặc có kết quả từ portal, **bắt buộc** phải đổi tên file từ `slot{n}` sang giờ nộp thực tế dạng `{HHMM}` (ví dụ: `1448-docker-compose.yml`).
 
@@ -81,4 +82,4 @@ Ngay sau khi có kết quả từ portal (hoặc khi phát hiện lỗi khởi �
 
 - **Quy tắc bắt buộc:** Từ giờ về sau, mỗi lần sửa đổi bất kỳ thứ gì liên quan đến docker image (đổi tên, đổi phiên bản/tag) hoặc đổi cấu hình (config) trong script hijack:
   1. **Bắt buộc** phải ghi chi tiết nội dung thay đổi vào nhật ký tổng hợp [logs.md](../exercise%203/submissions/logs.md).
-  2. **Bắt buộc** phải tạo/cập nhật file kế hoạch (plan) riêng trong thư mục submit của ngày hôm đó (ví dụ: `exercise 3/submissions/{DDMMYYYY}/plan-{DDMM}.md`) để ghi nhận ý tưởng, các tham số và cấu trúc sửa đổi.
+  2. **Bắt buộc** phải tạo/cập nhật file kế hoạch (plan) riêng trong thư mục submit của ngày hôm đó (ví dụ: `exercise 3/submissions/{DDMMYYYY}/plan-{DDMM}.md`) để ghi nhận ý tưởng, các tham số và cấu trúc sửa đổi. **Lưu ý:** File plan này chỉ tập trung vào các thử nghiệm cụ thể của ngày hôm đó. Các phân tích chung về trace/score phải được tham chiếu trực tiếp tới file [trace_and_score_analysis.md](../exercise%203/docs/trace_and_score_analysis.md) để tránh trùng lặp thông tin.

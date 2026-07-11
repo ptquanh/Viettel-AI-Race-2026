@@ -1,10 +1,16 @@
-# STT 88 - FP8 weights + Chunked Prefill (chunk 4096) + disable-async-output-proc
-# Mục đích: Thử nghiệm tắt async output processing để giảm tải cho CPU (vì CPU chỉ có 3 core).
+# STT 88 - FP8 weights + Custom FP8 KV Cache + Chunk 4096 + Disable Async Output + Warmup 🔥
+# Mục đích: Tắt async output processing để giảm bớt CPU context-switch overhead trên nền Custom FP8 KV Cache + Warmup.
 services:
   model:
-    image: vllm/vllm-openai:v0.22.1
+    image: ptquanh/sandbox-runtime:vllm-phase2-fp8-warmup
     environment:
+      - VLLM_LOGGING_LEVEL=WARNING
       - OMP_NUM_THREADS=3
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_KV_CACHE_DTYPE=fp8
+      - VLLM_CUSTOM_KERNEL=1
+      - VLLM_WARMUP=1
+      - VLLM_DISABLE_ASYNC_OUTPUT=1
     entrypoint:
       - python3
       - -m
@@ -18,11 +24,6 @@ services:
       - --gpu-memory-utilization=0.95
       - --enable-prefix-caching
       - --no-enable-log-requests
-      - --disable-log-stats
-      - --quantization=fp8
-      - --enable-chunked-prefill
-      - --max-num-batched-tokens=4096
-      - --disable-async-output-proc
     ports:
       - "8000:8000"
     shm_size: "4g"
