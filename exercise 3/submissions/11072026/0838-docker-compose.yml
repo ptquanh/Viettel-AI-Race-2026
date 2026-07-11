@@ -1,15 +1,15 @@
-# STT 78 - FlashInfer Attention Backend + BF16 gốc (max-num-seqs=64) 🔥
-# Mục đích: Đánh giá hiệu năng của FlashInfer Attention backend với max-num-seqs=64.
-# Kỳ vọng: Đánh giá xem seqs=64 có bị nghẽn hàng đợi (queue bottleneck) gây tăng TTFT quá mức như seqs=32/48 không, hay sẽ mang lại TPOT thấp nhất nhờ giảm thiểu tối đa tài nguyên cấp phát tĩnh.
+# STT 78 - Prefix Cache Warmup via hijack v5 + FP8 weights
+# Mục đích: Warm up the prefix cache for the common system prompt before benchmarking starts.
+# Kỳ vọng: TTFT batch 1 giảm cực kỳ mạnh từ ~600ms xuống ~50-100ms. Số request passed SLO tăng đáng kể.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-v0.22.1-flashinfer
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v5
     environment:
-      - HIJACK_ENGINE=vllm-v22-v4
+      - HIJACK_ENGINE=vllm-v22-v5
       - VLLM_KV_CACHE_DTYPE=auto
-      - VLLM_QUANTIZATION=none
-      - VLLM_ENABLE_CHUNKED_PREFILL=0
-      - VLLM_MAX_NUM_SEQS=64
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_WARMUP_PREFIX=1
+      - VLLM_MAX_NUM_SEQS=256
     entrypoint:
       - python3
       - -m

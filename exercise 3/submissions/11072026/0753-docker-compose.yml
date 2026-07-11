@@ -1,17 +1,15 @@
-# STT 84 - Engine V0 + TurboQuant 4-bit KV Cache + FP8 weights 🔥
-# Mục đích: Thử cứu vãn cờ nén TurboQuant bằng cách ép buộc vLLM sử dụng Engine V0 cũ (VLLM_USE_V1=0).
-# Tránh lỗi crash startup `Engine core initialization failed` trên V1 engine của Grader portal.
-# Kỳ vọng: Nếu Engine V0 chạy thành công, cờ turboquant_4bit_nc có thể chạy ổn định và đạt TPOT tối ưu (~19ms).
+# STT 79 - Prefix Cache Warmup via hijack v5 + FP8 weights + Max Memory
+# Mục đích: Giống STT 78 nhưng tăng gpu-memory-utilization lên 0.97.
+# Kỳ vọng: Mở rộng KV cache pool để giữ prefix cache không bị evict (bị xóa) khi traffic lên cao, đảm bảo prefix cache tồn tại cho đến tận batch thứ 6.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v4
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-hijack-v5
     environment:
-      - HIJACK_ENGINE=vllm-v22-v4
-      - VLLM_USE_V1=0
-      - VLLM_KV_CACHE_DTYPE=turboquant_4bit_nc
+      - HIJACK_ENGINE=vllm-v22-v5
+      - VLLM_KV_CACHE_DTYPE=auto
       - VLLM_QUANTIZATION=fp8
-      - VLLM_ENABLE_CHUNKED_PREFILL=0
-      - VLLM_MAX_NUM_SEQS=86
+      - VLLM_WARMUP_PREFIX=1
+      - VLLM_MAX_NUM_SEQS=256
     entrypoint:
       - python3
       - -m
@@ -22,7 +20,7 @@ services:
       - --host=0.0.0.0
       - --port=8000
       - --max-model-len=262144
-      - --gpu-memory-utilization=0.95
+      - --gpu-memory-utilization=0.97
       - --enable-prefix-caching
       - --no-enable-log-requests
     ports:

@@ -1,0 +1,65 @@
+#!/bin/bash
+ARGS="$*"
+
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity v5] Ghost Strategy v5 — Prefix Warmup Edition"
+    
+    export VLLM_LOGGING_LEVEL=WARNING
+    export OMP_NUM_THREADS=2
+    
+    MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-256}
+    QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
+    WARMUP_ENABLED=${VLLM_WARMUP_PREFIX:-1}
+    
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server" \
+         "--model" "/model" \
+         "--served-model-name" "Qwen3.5-2B" \
+         "--host" "0.0.0.0" \
+         "--port" "8000" \
+         "--max-model-len" "262144" \
+         "--gpu-memory-utilization" "0.95" \
+         "--enable-prefix-caching" \
+         "--max-num-seqs" "$MAX_NUM_SEQS" \
+         "--no-enable-log-requests")
+    
+    if [ "$QUANTIZATION" != "none" ]; then
+        CMD+=("--quantization" "$QUANTIZATION")
+    fi
+    
+    # START server in background
+    "${CMD[@]}" &
+    SERVER_PID=$!
+    
+    if [ "$WARMUP_ENABLED" = "1" ]; then
+        echo "[Antigravity v5] Waiting for server to be ready for warmup..."
+        
+        # Poll until server is healthy (max 120s)
+        for i in $(seq 1 120); do
+            if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+                echo "[Antigravity v5] Server ready! Starting prefix warmup..."
+                break
+            fi
+            sleep 1
+        done
+        
+        # Check if warmup prompt exists
+        if [ -f "/warmup/system_prompt.txt" ]; then
+            # Read and encode safely via python
+            PROMPT_JSON=$(/usr/bin/python3_real -c "import sys, json; print(json.dumps(open('/warmup/system_prompt.txt', 'r', encoding='utf-8').read()))")
+            
+            # Send single dummy request
+            curl -s http://localhost:8000/v1/chat/completions \
+                -H "Content-Type: application/json" \
+                -d "{\"model\": \"Qwen3.5-2B\", \"messages\": [{\"role\": \"system\", \"content\": ${PROMPT_JSON}}], \"max_tokens\": 1, \"temperature\": 0}" > /dev/null 2>&1
+                
+            echo "[Antigravity v5] Prefix warmup completed successfully!"
+        else
+            echo "[Antigravity v5] Warning: /warmup/system_prompt.txt not found. Skipping warmup."
+        fi
+    fi
+    
+    # Wait for the main server process
+    wait $SERVER_PID
+else
+    exec "/usr/bin/python3_real" "$@"
+fi

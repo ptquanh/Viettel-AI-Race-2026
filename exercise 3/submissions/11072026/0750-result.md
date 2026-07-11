@@ -5,4 +5,13 @@
 
 ## Chỉ số đo được
 
-**Đang chờ kết quả benchmark (TBD)**
+Điểm: **17.80000**
+Số request passed SLO: **86/120**
+TTFT P50: **622ms**
+TTFT P95: **8276ms**
+TPOT (tbt_median): **51ms**
+Accuracy drop: **0**
+
+## Phân tích & Nhận xét
+
+FlashInfer trên BF16 gốc cho kết quả tương đối giống baseline STT 21 (18.99 điểm). Tuy nhiên, do mô hình chạy ở BF16 thay vì FP8, điểm số sụt giảm nhẹ (~1.2 điểm) so với baseline do prefill/decode ở BF16 chậm hơn đôi chút so với FP8. Chỉ số TPOT vẫn bị giới hạn ở 51ms.
