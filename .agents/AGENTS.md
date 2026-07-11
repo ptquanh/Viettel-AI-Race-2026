@@ -36,7 +36,7 @@ Mỗi lượt nộp bao gồm 2 file bắt buộc:
 
 ### Bước 2: Cấu trúc chuẩn của file `{HHMM}-result.md`
 
-File kết quả ban đầu khi nộp bài phải có định dạng:
+File kết quả ban đầu khi nộp bài (trạng thái chờ) phải có định dạng:
 
 ```markdown
 # Kết quả Benchmark - {HH:MM} {DD/MM/YYYY} (STT {Số thứ tự} - {Tên cấu hình/Ý tưởng tối ưu})
@@ -47,6 +47,41 @@ File kết quả ban đầu khi nộp bài phải có định dạng:
 ## Chỉ số đo được
 
 **Đang chờ kết quả benchmark (TBD)**
+```
+
+Khi đã có kết quả từ portal, **bắt buộc** phải cập nhật file kết quả theo cấu trúc mẫu chuẩn dưới đây (dựa trên `1415-result.md`):
+
+```markdown
+# Kết quả Benchmark - {HH:MM} {DD/MM/YYYY} (STT {Số thứ tự} - {Tên cấu hình/Ý tưởng tối ưu})
+
+- **Cấu hình**: Image `{Tên image}` + các tham số bổ sung.
+- **Mục đích**: {Mô tả ngắn gọn ý tưởng thử nghiệm, tham số đơn biến thay đổi}.
+
+## Chỉ số đo được
+
+| Chỉ số          |    Giá trị    | Ý nghĩa                                             |
+| :-------------- | :-----------: | :-------------------------------------------------- |
+| `final_score`   |  **{Điểm}**   | Điểm số cuối cùng                                   |
+| `ers`           |  **{Điểm}**   | Điểm số hiệu năng (Effective Request Score)         |
+| `erc`           |   **{ERC}**   | Tỷ lệ hoàn thành hiệu quả (Effective Request Ratio) |
+| `penalty`       | **{Penalty}** | Hệ số phạt (1 = Không bị phạt)                      |
+| `passed_slo`    |   **{Số}**    | Số lượng request đạt chuẩn SLO                      |
+| `total_count`   |    **120**    | Tổng số request benchmark                           |
+| `failed_count`  |   **{Số}**    | Số lượng request thất bại                           |
+| `warmup_count`  |   **{Số}**    | Số lượng request warmup                             |
+| `accuracy_drop` |   **{Số}%**   | Độ sụt giảm độ chính xác                            |
+| `tbt_median_ms` |  **{Số} ms**  | Median Time Between Tokens (TPOT)                   |
+| `ttft_p50_ms`   |  **{Số} ms**  | Time To First Token (P50)                           |
+| `ttft_p95_ms`   |  **{Số} ms**  | Time To First Token (P95)                           |
+
+## Phân tích kết quả
+
+1. **{Tiêu đề phân tích hiệu năng}**:
+   - {Chi tiết phân tích, so sánh với baseline, ảnh hưởng của cấu hình đối với TTFT/TPOT}.
+2. **{Tiêu đề phân tích độ chính xác}**:
+   - {Ảnh hưởng của cấu hình đến độ sụt giảm accuracy (GPQA Diamond)}.
+3. **Kết luận**:
+   - {Đánh giá chung cấu hình này có nên đưa làm baseline mới hay loại bỏ/thay đổi}.
 ```
 
 ---
