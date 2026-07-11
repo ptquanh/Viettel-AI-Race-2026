@@ -28,7 +28,7 @@ Phân tích toán học và vật lý về kiến trúc **Qwen3.5-2B** (lai 18 l
 - **Mục tiêu:** Giảm kích thước KV cache từ 12KB/token (BF16) xuống còn 6KB (FP8/INT8) hoặc 3KB (INT4).
 - **Đột phá:** vLLM v0.22.1 tích hợp cơ chế lượng tử hóa KV cache theo cơ chế per-token-head (`fp8_per_token_head`, `int8_per_token_head`).
 - **Custom Kernel:** Nếu cơ chế mặc định của vLLM gây ra overhead CPU quá lớn (như đã thấy ở STT 71-72 khiến TPOT vọt lên 220ms), giải pháp là viết **Custom Triton Kernel** giải nén online ngay trong registers của GPU để triệt tiêu CPU scheduling overhead.
-- _Hiện trạng:_ Đã thử nghiệm thành công FP8 KV Cache + Custom Triton Kernel (STT 83) đạt TPOT kỷ lục 31ms (giảm 40%). INT8 KV Cache (STT 82) thất bại do nghẽn tính toán.
+- _Hiện trạng:_ Đã thử nghiệm thành công FP8 KV Cache + Custom Triton Kernel (STT 83) đạt TPOT kỷ lục 31ms (giảm 40%) **đặc biệt hoàn toàn không bị sụt giảm độ chính xác (accuracy_drop = 0)**. INT8 KV Cache (STT 82) thất bại do nghẽn tính toán.
 
 ### Tầng 2: JIT Warmup via Hijack (Prefix Cache Warmup) — 🔄 [ĐANG CHỜ KẾT QUẢ]
 
