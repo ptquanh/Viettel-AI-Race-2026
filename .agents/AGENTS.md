@@ -26,8 +26,12 @@ Mỗi lần đề xuất một cấu hình nộp bài mới, Agent phải tuân 
 Tất cả các thử nghiệm phải được lưu trong thư mục theo định dạng: `exercise 3/submissions/{DDMMYYYY}/` (ví dụ: `09072026`).
 Mỗi lượt nộp bao gồm 2 file bắt buộc:
 
-1. **File Compose:** `{HHMM}-docker-compose.yml` (ví dụ: `0732-docker-compose.yml`).
-2. **File Kết quả:** `{HHMM}-result.md` (ví dụ: `0732-result.md`).
+1. **File Compose:** `{HHMM}-docker-compose.yml` (ví dụ: `0732-docker-compose.yml`) hoặc `slot{n}-docker-compose.yml` nếu chưa nộp.
+2. **File Kết quả:** `{HHMM}-result.md` (ví dụ: `0732-result.md`) hoặc `slot{n}-result.md` nếu chưa nộp.
+
+* **Quy định đặt tên theo trạng thái**:
+  - Đối với cấu hình **chưa nộp hoặc chưa có kết quả benchmark**, file phải đặt tên là `slot{n}-docker-compose.yml` và `slot{n}-result.md` (với `n` là 1, 2, 3...).
+  - Ngay sau khi đã nộp hoặc có kết quả từ portal, **bắt buộc** phải đổi tên file từ `slot{n}` sang giờ nộp thực tế dạng `{HHMM}` (ví dụ: `1448-docker-compose.yml`).
 
 ### Bước 2: Cấu trúc chuẩn của file `{HHMM}-result.md`
 

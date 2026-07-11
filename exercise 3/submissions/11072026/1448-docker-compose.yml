@@ -1,0 +1,34 @@
+# STT 85 - FP8 weights + Chunked Prefill (chunk 8192)
+# Mục đích: Tìm điểm cân bằng chunk size. 4096 có thể hơi nhỏ khiến CPU phải loop nhiều bước prefill. Tăng lên 8192.
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    environment:
+      - OMP_NUM_THREADS=3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --disable-log-stats
+      - --quantization=fp8
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=8192
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

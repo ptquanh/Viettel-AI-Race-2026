@@ -1,0 +1,34 @@
+# STT 86 - FP8 weights + Chunked Prefill (chunk 2048)
+# Mục đích: Thử nghiệm chunk size siêu nhỏ để max-out GPU occupancy trong lúc decode, trade-off bằng CPU scheduling overhead.
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    environment:
+      - OMP_NUM_THREADS=3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --disable-log-stats
+      - --quantization=fp8
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=2048
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

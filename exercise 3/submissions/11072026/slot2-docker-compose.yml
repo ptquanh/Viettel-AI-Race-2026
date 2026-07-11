@@ -1,0 +1,35 @@
+# STT 87 - FP8 weights + Chunked Prefill (chunk 4096) + max-num-seqs 512
+# Mục đích: Đẩy giới hạn request concurrent lên 512 kết hợp với chunk 4096 để xem có vắt kiệt được GPU/CPU hay không.
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    environment:
+      - OMP_NUM_THREADS=3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --disable-log-stats
+      - --quantization=fp8
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=4096
+      - --max-num-seqs=512
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
