@@ -1,0 +1,34 @@
+# STT 80 - FlashInfer Attention Backend + FP8 weights (Pure optimization, no warmup) 🔥
+# Mục đích: Kết hợp FlashInfer attention backend với lượng tử hóa weights FP8 của mô hình.
+# Loại bỏ hoàn toàn hijack script warmup để tránh overhead CPU làm chậm các request đầu tiên.
+# Kỳ vọng: Đạt TTFT tối ưu của FlashInfer và độ trễ TPOT tốt nhất của FP8 weights, bứt phá qua kỷ lục baseline 18.99 điểm.
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-v0.22.1-flashinfer
+    environment:
+      - VLLM_ATTENTION_BACKEND=FLASHINFER
+      - OMP_NUM_THREADS=3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --quantization=fp8
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

@@ -1,0 +1,35 @@
+# STT 81 - FP8 weights + Chunked Prefill (chunk 4096) 🔥
+# Mục đích: Kết hợp lượng tử hóa weights FP8 của mô hình với Chunked Prefill kích thước lớn (4096 tokens).
+# Kỳ vọng: Chunk size 4096 giúp giảm 8 lần số bước lập lịch (scheduling overhead) so với chunk size 512 mặc định, giúp CPU 3 cores xử lý nhẹ nhàng hơn rất nhiều.
+# Đồng thời, nó vẫn đảm bảo các prefill dài (20k-40k tokens) được chia nhỏ để không chặn (blocking) các request decode, tối ưu hóa cả TTFT và TPOT.
+services:
+  model:
+    image: vllm/vllm-openai:v0.22.1
+    environment:
+      - OMP_NUM_THREADS=3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=Qwen3.5-2B
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=262144
+      - --gpu-memory-utilization=0.95
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --quantization=fp8
+      - --enable-chunked-prefill=True
+      - --max-num-batched-tokens=4096
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
