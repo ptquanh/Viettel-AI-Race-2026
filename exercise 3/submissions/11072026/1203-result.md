@@ -1,13 +1,10 @@
-# Kết quả Benchmark - 12:03 11/07/2026 (STT 83 - FP8 weights + Custom INT8 KV + Chunk 4096)
+# Kết quả Benchmark - 12:03 11/07/2026 (STT 82 - FP8 weights + Custom INT8 KV + Chunk 4096)
 
 - **Cấu hình**: Image `ptquanh/sandbox-runtime:vllm-phase2-int8` + `--quantization fp8` + `--kv-cache-dtype int8_per_token_head` + `--enable-chunked-prefill` + `--max-num-batched-tokens=4096`
-- **Mục đích**: Kiểm tra song song lượng tử hóa INT8 KV Cache (per-token-head) kết hợp với Chunked Prefill 4096 để xem có giải quyết được nghẽn CPU và nghẽn băng thông bộ nhớ cùng lúc hay không.
+- **Mục đích**: Lượng tử hóa KV Cache xuống INT8 per-token-head kết hợp custom triton kernel để giảm memory bandwidth.
 
 ## Chỉ số đo được
 
-- **Điểm số**: **2.34** (Giảm mạnh từ baseline 18.99)
-- **Số request vượt qua SLO**: 31/120 (passed_slo)
-- **TTFT P50**: **3252 ms** (Tăng khủng khiếp từ ~620ms)
 - **TTFT P95**: **7762 ms**
 - **TPOT Median**: **78 ms** (Tăng từ 51ms)
 - **Accuracy drop**: 0 (Không giảm độ chính xác)
