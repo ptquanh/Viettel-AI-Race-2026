@@ -9,9 +9,9 @@
   - Siêu tham số Densification:
     - Bắt đầu từ: 500 iterations (densify_from_iter = 500)
     - Tần suất: 100 iterations (densification_interval = 100)
-    - Ngưỡng gradient: 0.00010 (densify_grad_threshold = 0.0001)
-    - Kết thúc densify ở: 15,000 iterations (bị giới hạn bởi tổng iterations)
-    - Reset opacity mỗi: 2,500 iterations (opacity_reset_interval = 2500)
+    - Ngưỡng gradient: 0.00020 (densify_grad_threshold = 0.0002)
+    - Kết thúc densify ở: 12,000 iterations (densify_until_iter = 12000)
+    - Reset opacity mỗi: 3,000 iterations (opacity_reset_interval = 3000)
   - Loss weights: lambda_dssim = 0.15 (SSIM weight: 0.15, L1 weight: 0.85)
 - **Mục đích**: Thử nghiệm lặp lại cấu hình mặc định (lần thứ 2) nhằm đo lường sai số và độ biến động kết quả (grading variance) của hệ thống chấm bài với baseline 15k.
 

@@ -4,14 +4,14 @@
   - Mô hình: 3D Gaussian Splatting (gốc từ repo graphdeco-inria)
   - Iterations (Số vòng lặp): 7,000 (giảm từ 30,000)
   - Resolution (Độ phân giải): 1 (nguyên gốc)
-  - Antialiasing (Rasterizer): Bật (use_antialiasing = True)
+  - Antialiasing (Rasterizer): Tắt (use_antialiasing = False)
   - Optimizer: sparse_adam (Sparse Adam)
   - Siêu tham số Densification:
     - Bắt đầu từ: 500 iterations (densify_from_iter = 500)
     - Tần suất: 100 iterations (densification_interval = 100)
     - Ngưỡng gradient: 0.00010 (densify_grad_threshold = 0.0001)
-    - Kết thúc densify ở: 7,000 iterations (bị giới hạn bởi tổng iterations)
-    - Reset opacity mỗi: 2,500 iterations (opacity_reset_interval = 2500)
+    - Kết thúc densify ở: 5,000 iterations (densify_until_iter = 5000)
+    - Reset opacity mỗi: 2,500 iterations (mặc định)
   - Loss weights: lambda_dssim = 0.15 (SSIM weight: 0.15, L1 weight: 0.85)
 - **Mục đích**: Chạy thử nghiệm baseline với số lượng iteration tối thiểu (7k) để kiểm tra tốc độ hội tụ và điểm số ban đầu.
 
