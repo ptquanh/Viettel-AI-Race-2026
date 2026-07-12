@@ -26,3 +26,14 @@ _(Ghi chú các quan sát quan trọng, lỗi gặp phải hoặc định hướ
   - Thiết lập thành công hệ thống rules cục bộ (`RULES.md`) và khởi tạo log lịch sử nộp bài hoàn chỉnh.
   - Ghi nhận 7 lần chạy thử nghiệm đầu tiên vào các ngày 08/07 và 09/07 để làm mốc so sánh (baseline).
   - **Phân tích sai số (Grading Variance)**: Qua 6 lần chạy của cùng một cấu hình 15k baseline mặc định, kết quả dao động từ `52.48` đến `55.65` (biên độ tối đa là `3.16` điểm, điểm trung bình đạt `54.03`). Điều này phản ánh rõ tính chất bất định của quá trình huấn luyện/sinh ảnh hoặc hệ thống grader. Khuyên dùng cố định seed chặt chẽ khi huấn luyện để giảm thiểu dao động ngẫu nhiên này.
+  - **Tinh chỉnh Giai đoạn 1 (Parametric Tuning & Stabilization)**:
+    - **Ghim Random Seed**: Vá mã nguồn `train.py` ngay trong notebook để ghim chặt `random.seed(42)`, `np.random.seed(42)`, `torch.manual_seed(42)` cùng cấu hình deterministic của CUDA. Việc này giúp triệt tiêu sai số ngẫu nhiên 3.16 điểm khi chạy cùng cấu hình.
+    - **Hạ `percent_dense`** từ `0.005` xuống `0.002` nhằm giới hạn kích thước tối đa của các Gaussian ở xa, hỗ trợ làm nét hậu cảnh bị mờ nhòe.
+    - **Hạ `densify_grad_threshold`** từ `0.00010` (mặc định) xuống `0.00007` để hạ thấp ngưỡng phân rã điểm, tăng cường độ phủ Gaussian xung quanh các chi tiết siêu mảnh (như dây điện, chóp trụ BTS) đang bị mất nét.
+    - Đồng bộ lại toàn bộ thông tin siêu tham số của STT 1 và STT 2-7 trong các file kết quả chi tiết cho chuẩn khớp cấu hình thực tế của user.
+  - **Sự cố VRAM OOM & Khắc phục**:
+    - _Hiện tượng_: Khi chạy thử nghiệm với `densify_grad_threshold = 0.00007` và `percent_dense = 0.002`, mô hình bị tràn bộ nhớ CUDA (OOM) ở iteration ~4700 trên Kaggle T4 do số lượng Gaussian bùng nổ quá nhanh.
+    - _Giải pháp khắc phục_:
+      - Khôi phục `percent_dense = 0.005` (mức mặc định an toàn) để tránh phân tách điểm quá đà.
+      - Nâng `densify_grad_threshold = 0.00010` (vẫn nhạy bén hơn mức `0.0002` của baseline nhưng đủ an toàn không bị OOM).
+      - Hạ `opacity_reset_interval = 2000` (so với `3000` trước đây) để tăng tần suất dọn dẹp các điểm Gaussian mờ nhạt, giúp giải phóng VRAM định kỳ.
