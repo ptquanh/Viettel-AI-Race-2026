@@ -1,8 +1,8 @@
-# Kết quả Submission - 16:34 09/07/2026 (STT 3 - Baseline GS 30k Iterations - Run 2)
+# Kết quả Submission - 16:34 09/07/2026 (STT 2 - Baseline GS 15k Iterations - Run 1)
 
 - **Cấu hình**:
   - Mô hình: 3D Gaussian Splatting (gốc từ repo graphdeco-inria)
-  - Iterations (Số vòng lặp): 30,000 (mặc định)
+  - Iterations (Số vòng lặp): 15,000 (mặc định)
   - Resolution (Độ phân giải): 1 (nguyên gốc)
   - Antialiasing (Rasterizer): Bật (use_antialiasing = True)
   - Optimizer: sparse_adam (Sparse Adam)
@@ -10,10 +10,10 @@
     - Bắt đầu từ: 500 iterations (densify_from_iter = 500)
     - Tần suất: 100 iterations (densification_interval = 100)
     - Ngưỡng gradient: 0.00010 (densify_grad_threshold = 0.0001)
-    - Kết thúc densify ở: 22,000 iterations (densify_until_iter = 22000)
+    - Kết thúc densify ở: 15,000 iterations (bị giới hạn bởi tổng iterations)
     - Reset opacity mỗi: 2,500 iterations (opacity_reset_interval = 2500)
   - Loss weights: lambda_dssim = 0.15 (SSIM weight: 0.15, L1 weight: 0.85)
-- **Mục đích**: Đánh giá độ ổn định và tính lặp lại của baseline 30k iterations trên hệ thống chấm bài.
+- **Mục đích**: Đánh giá hiệu năng và điểm số của cấu hình baseline mặc định (15k iterations) trên hệ thống chấm bài.
 
 ## Chỉ số đo được
 
@@ -28,9 +28,8 @@
 
 ## Phân tích kết quả
 
-1. **Phân tích so sánh với Run 1 (14:15)**:
-   - Điểm số của Run 2 (`54.97630`) thấp hơn một chút so với Run 1 (`55.65110`).
-   - LPIPS tăng nhẹ từ `31.25%` lên `31.92%` (tệ hơn), PSNR giảm từ `19.49dB` xuống `19.26dB`, và SSIM giảm từ `54.85%` xuống `53.97%`.
-   - Sự dao động này có thể do tính chất ngẫu nhiên trong quá trình khởi tạo điểm hoặc tối ưu hóa (optimizer stochasticity), hoặc do biến động nhẹ trong quá trình sinh ảnh rasterization.
+1. **Phân tích chất lượng ảnh**:
+   - So với cấu hình 7k iterations (STT 1), việc tăng số lượng iterations lên 15k giúp mô hình hội tụ tốt hơn hẳn: điểm số tăng từ `46.97` lên `54.98`.
+   - Các chỉ số LPIPS giảm sâu xuống `31.93%` và PSNR tăng lên `19.26dB`, cho thấy độ chi tiết và sắc nét của ảnh tăng rõ rệt.
 2. **Kết luận**:
-   - Baseline 30k iterations có độ dao động điểm số nhẹ khoảng ~0.67 điểm giữa các lần chạy. Điều này cần được lưu ý khi đánh giá các cải tiến nhỏ để tránh nhầm lẫn giữa cải tiến thực sự với sai số ngẫu nhiên.
+   - Mức 15k iterations cung cấp chất lượng tương đối ổn định và là điểm bắt đầu (baseline) tốt để thử nghiệm các tối ưu hóa khác.
