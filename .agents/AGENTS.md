@@ -1,120 +1,43 @@
-# PROJECT RULES - VIETTEL AI RACE OPTIMIZATION
+# VIETTEL AI RACE - WORKSPACE GENERAL RULES
 
-> Bộ quy tắc bắt buộc áp dụng đối với tất cả các Agent hoạt động trong workspace này nhằm đảm bảo tính kỷ luật, tránh lặp lại sai lầm và duy trì lịch sử thử nghiệm chuẩn xác.
-
----
-
-## 1. PROTOCOL ĐỌC THÔNG TIN & NHẬT KÝ (MANDATORY BEFORE ACTION)
-
-Trước khi thực hiện bất kỳ đề xuất thay đổi hoặc tạo file cấu hình mới nào, Agent **BẮT BUỘC** phải:
-
-1. **Đọc lịch sử cuộc thi & logs:** Đọc file [logs.md](../exercise%203/submissions/logs.md) để:
-   - Hiểu rõ baseline tốt nhất hiện tại (ví dụ: cấu hình STT 21 đạt 18.99 điểm).
-   - Nhận diện các cấu hình đã thử nghiệm thất bại (Fail) hoặc bỏ qua (Skip) để tránh lặp lại sai lầm.
-2. **Đọc tài liệu Specs & Kế hoạch chiến lược:** Đọc [challenge_specification.md](../exercise%203/docs/challenge_specification.md) và [phase1_execution_plan.md](../exercise%203/docs/phase1_execution_plan.md) để nắm rõ luật thi, cơ chế tính điểm ERS/Accuracy và định hướng tối ưu chung đã được thống nhất.
-3. **Phân tích cấu hình Model & Kiến trúc:**
-   - Đọc file `config.json` của model mục tiêu (ví dụ: [config.json](../exercise%203/Qwen3.5-2B-BTC/config.json)) để nắm rõ `model_type`, `architectures`, `layer_types` (như hybrid linear attention), tránh đưa các flag không tương thích hoặc chọn sai backend engine (ví dụ: chọn Turbomind khi model có linear attention).
-4. **Kiểm tra giới hạn tài nguyên:** Xác định tài nguyên thực tế được cấp. Cấu hình phần cứng thực tế của BTC cấp phát tự động cho mỗi lượt chấm là: **1 instance MiG H200 (18GB VRAM, 3 Core CPU, 8GB RAM)**.
+> Bộ quy tắc này áp dụng chung cho tất cả các Agent hoạt động trong workspace, nhằm đảm bảo quy trình làm việc chuẩn mực, có hệ thống và thống nhất cho mọi bài thi (exercise).
 
 ---
 
-## 2. QUY TRÌNH NỘP BÀI CHUẨN (SUBMISSION WORKFLOW)
+## 1. WORKFLOW CHUẨN KHI BẮT ĐẦU TASK
 
-Mỗi lần đề xuất một cấu hình nộp bài mới, Agent phải tuân thủ nghiêm ngặt quy trình sau:
+Khi nhận được yêu cầu xử lý một bài thi cụ thể, Agent **BẮT BUỘC** phải tuân thủ luồng làm việc tuyến tính sau đây trước khi thực hiện bất kỳ thay đổi nào:
 
-### Bước 1: Tạo cấu trúc thư mục nộp bài chuẩn
-
-Tất cả các thử nghiệm phải được lưu trong thư mục theo định dạng: `exercise 3/submissions/{DDMMYYYY}/` (ví dụ: `09072026`).
-Mỗi lượt nộp bao gồm 2 file bắt buộc:
-
-1. **File Compose:** `{HHMM}-docker-compose.yml` (ví dụ: `0732-docker-compose.yml`) hoặc `slot{n}-docker-compose.yml` nếu chưa nộp.
-2. **File Kết quả:** `{HHMM}-result.md` (ví dụ: `0732-result.md`) hoặc `slot{n}-result.md` nếu chưa nộp.
-
-- **Quy định đặt tên theo trạng thái**:
-  - Đối với cấu hình **chưa nộp hoặc chưa có kết quả benchmark**, file phải đặt tên là `slot{n}-docker-compose.yml` và `slot{n}-result.md` (với `n` là 1, 2, 3...).
-  - Ngay sau khi đã nộp hoặc có kết quả từ portal, **bắt buộc** phải đổi tên file từ `slot{n}` sang giờ nộp thực tế dạng `{HHMM}` (ví dụ: `1448-docker-compose.yml`).
-
-### Bước 2: Cấu trúc chuẩn của file `{HHMM}-result.md`
-
-File kết quả ban đầu khi nộp bài (trạng thái chờ) phải có định dạng:
-
-```markdown
-# Kết quả Benchmark - {HH:MM} {DD/MM/YYYY} (STT {Số thứ tự} - {Tên cấu hình/Ý tưởng tối ưu})
-
-- **Cấu hình**: Image `{Tên image}` + các tham số bổ sung.
-- **Mục đích**: {Mô tả ngắn gọn ý tưởng thử nghiệm, tham số đơn biến thay đổi}.
-
-## Chỉ số đo được
-
-**Đang chờ kết quả benchmark (TBD)**
-```
-
-Khi đã có kết quả từ portal, **bắt buộc** phải cập nhật file kết quả theo cấu trúc mẫu chuẩn dưới đây (dựa trên `1415-result.md`):
-
-```markdown
-# Kết quả Benchmark - {HH:MM} {DD/MM/YYYY} (STT {Số thứ tự} - {Tên cấu hình/Ý tưởng tối ưu})
-
-- **Cấu hình**: Image `{Tên image}` + các tham số bổ sung.
-- **Mục đích**: {Mô tả ngắn gọn ý tưởng thử nghiệm, tham số đơn biến thay đổi}.
-
-## Chỉ số đo được
-
-| Chỉ số          |    Giá trị    | Ý nghĩa                                             |
-| :-------------- | :-----------: | :-------------------------------------------------- |
-| `final_score`   |  **{Điểm}**   | Điểm số cuối cùng                                   |
-| `ers`           |  **{Điểm}**   | Điểm số hiệu năng (Effective Request Score)         |
-| `erc`           |   **{ERC}**   | Tỷ lệ hoàn thành hiệu quả (Effective Request Ratio) |
-| `penalty`       | **{Penalty}** | Hệ số phạt (1 = Không bị phạt)                      |
-| `passed_slo`    |   **{Số}**    | Số lượng request đạt chuẩn SLO                      |
-| `total_count`   |    **120**    | Tổng số request benchmark                           |
-| `failed_count`  |   **{Số}**    | Số lượng request thất bại                           |
-| `warmup_count`  |   **{Số}**    | Số lượng request warmup                             |
-| `accuracy_drop` |   **{Số}%**   | Độ sụt giảm độ chính xác                            |
-| `tbt_median_ms` |  **{Số} ms**  | Median Time Between Tokens (TPOT)                   |
-| `ttft_p50_ms`   |  **{Số} ms**  | Time To First Token (P50)                           |
-| `ttft_p95_ms`   |  **{Số} ms**  | Time To First Token (P95)                           |
-
-## Phân tích kết quả
-
-1. **{Tiêu đề phân tích hiệu năng}**:
-   - {Chi tiết phân tích, so sánh với baseline, ảnh hưởng của cấu hình đối với TTFT/TPOT}.
-2. **{Tiêu đề phân tích độ chính xác}**:
-   - {Ảnh hưởng của cấu hình đến độ sụt giảm accuracy (GPQA Diamond)}.
-3. **Kết luận**:
-   - {Đánh giá chung cấu hình này có nên đưa làm baseline mới hay loại bỏ/thay đổi}.
-```
+1. **Hiểu cấu trúc thư mục & Đọc README (Directory Tree & README):**
+   - Đọc và phân tích cây thư mục của bài thi (`exercise {N}/`) để xác định chính xác vị trí các folder quan trọng như `docs/`, `submissions/`, `src/`, v.v.
+   - Kiểm tra và đọc file `README.md` ở thư mục gốc của bài thi (nếu có) để nắm được tổng quan chung và hướng dẫn chạy mã nguồn/notebook.
+2. **Đọc tài liệu quy định (Docs & Local Rules):**
+   - Đọc các tài liệu đặc tả trong thư mục `docs/` của bài thi đó (ví dụ: `challenge_specification.md`).
+   - Kiểm tra và đọc file quy định riêng của bài thi (ví dụ: `RULES.md` nằm trong thư mục bài thi) nếu có. File này chứa các ràng buộc kỹ thuật ngặt nghèo riêng biệt cho bài thi đó.
+3. **Đọc lịch sử thử nghiệm (Logs):**
+   - Đọc file `logs.md` trong thư mục `submissions/` để hiểu rõ tiến độ, những thử nghiệm đã làm, baseline tốt nhất hiện tại, cũng như các thử nghiệm thất bại (Fail) nhằm tránh lặp lại sai lầm.
+4. **Đọc kế hoạch cũ (Old Plans):**
+   - Đọc các bản kế hoạch (plans) đã được tạo và thực thi trước đó (thường nằm trong thư mục submit theo ngày hoặc trong `docs/`).
+5. **Đánh giá & Tìm lỗ hổng (Analyze Gaps):**
+   - Phân tích nguyên nhân lỗi, điểm nghẽn (bottleneck) hoặc những hạn chế của plan cũ dựa trên thông tin từ log, trace hoặc phản hồi của user.
+6. **Đề xuất kế hoạch mới (Propose New Plan):**
+   - Dựa trên các phân tích lỗ hổng, đề xuất một định hướng giải quyết vấn đề và vạch ra kế hoạch (plan) mới, sau đó mới tiến hành code hoặc chạy thử nghiệm.
 
 ---
 
-## 3. PROTOCOL CẬP NHẬT PLAN & LOGS SAU MỖI LẦN NỘP
+## 2. QUY ĐỊNH VỀ TỔ CHỨC CẤU TRÚC BÀI THI
 
-Ngay sau khi có kết quả từ portal (hoặc khi phát hiện lỗi khởi động/chấm điểm thất bại), Agent **BẮT BUỘC** phải:
+Mỗi bài thi (Exercise) được quản lý gọn gàng trong thư mục riêng của nó (`exercise 1`, `exercise 2`, `exercise 3`...). Bên trong mỗi bài thi cần duy trì cấu trúc chuẩn mực:
 
-1. **Cập nhật File Kết quả `{HHMM}-result.md`:**
-   - Thay thế trạng thái `TBD` bằng kết quả chi tiết: điểm đạt được, số request passed SLO (ví dụ: `86/120`), TTFT, TPOT.
-   - Nếu thất bại, phải copy toàn bộ trace lỗi/log container thu thập được và đưa ra phân tích nguyên nhân kỹ thuật cụ thể.
-2. **Cập nhật Nhật ký tổng hợp [logs.md](../exercise%203/submissions/logs.md):**
-   - Bổ sung một dòng mới vào bảng kết quả với định dạng chuẩn:
-     `| {STT} | {Đường dẫn thư mục nộp} | {Mô tả cấu hình/Image} | **{Điểm số/Fail/Skip}** | {Chi tiết thay đổi/Ý tưởng} | {Kết luận rút ra/Lý do lỗi} |`
-   - Cập nhật phần lưu ý nếu có phát hiện quan trọng.
-3. **Cập nhật Implementation Plan (`implementation_plan.md`):** Đánh giá xem hướng đi hiện tại có cần điều chỉnh (ví dụ: chuyển từ tối ưu LMDeploy sang quay lại tối ưu vLLM).
+- **`docs/`**: Chứa tất cả tài liệu phân tích, đặc tả đề bài, phân tích trace và chiến lược dài hạn.
+- **`submissions/`**: Chứa các bản nộp (được gom theo từng ngày), lịch sử nộp bài và file tổng hợp `logs.md`.
+- **`RULES.md` (Tuỳ chọn)**: Chứa các quy định chuyên biệt, công thức tính điểm và ràng buộc kỹ thuật _chỉ áp dụng riêng cho bài thi đó_.
+- Các thư mục mã nguồn (`src/`), dữ liệu (`data/`), hoặc scripts tuỳ thuộc vào yêu cầu bài toán.
 
 ---
 
-## 4. QUY ĐỊNH VỀ QUANTIZATION
+## 3. QUY ĐỊNH GHI NHẬT KÝ (LOGGING) VÀ BÁO CÁO
 
-- **Quy tắc bắt buộc:** Hiện tại, bài thi này chỉ hỗ trợ **Online Quantization** (lượng tử hóa động khi load model), **KHÔNG** hỗ trợ offline quantization dưới dạng các pre-quantize model weight (như các checkpoint model AWQ, GPTQ được tải sẵn từ ngoài vào). Agent không được thử nghiệm nạp weights pre-quantized từ bên ngoài.
-
----
-
-## 5. QUY ĐỊNH VỀ SERVING FRAMEWORK
-
-- **Quy tắc bắt buộc:** Bài thi này chỉ hỗ trợ và chạy ổn định trên **vLLM framework**. Hệ thống grader chấm bài tự động ép buộc cấu hình chạy của vLLM. Không thử nghiệm các serving framework khác (như SGLang, LMDeploy, Aphrodite, v.v.) vì chúng không tương thích hoặc gây timeout/lỗi hệ thống khi chấm bài.
-
----
-
-## 6. QUY ĐỊNH GHI NHẬT KÝ THAY ĐỔI IMAGE & HIJACK
-
-- **Quy tắc bắt buộc:** Từ giờ về sau, mỗi lần sửa đổi bất kỳ thứ gì liên quan đến docker image (đổi tên, đổi phiên bản/tag) hoặc đổi cấu hình (config) trong script hijack:
-  1. **Bắt buộc** phải ghi chi tiết nội dung thay đổi vào nhật ký tổng hợp [logs.md](../exercise%203/submissions/logs.md).
-  2. **Bắt buộc** phải tạo/cập nhật file kế hoạch (plan) riêng trong thư mục submit của ngày hôm đó (ví dụ: `exercise 3/submissions/{DDMMYYYY}/plan-{DDMM}.md`) để ghi nhận ý tưởng, các tham số và cấu trúc sửa đổi. **Lưu ý:** File plan này chỉ tập trung vào các thử nghiệm cụ thể của ngày hôm đó. Các phân tích chung về trace/score phải được tham chiếu trực tiếp tới file [trace_and_score_analysis.md](../exercise%203/docs/trace_and_score_analysis.md) để tránh trùng lặp thông tin.
+- Mọi sự thay đổi đáng kể mang tính thử nghiệm (chỉnh sửa cấu hình, tham số, thêm thuật toán, thay đổi image) đều **bắt buộc phải được ghi nhận vào `logs.md`** của bài thi tương ứng.
+- Khi ghi log, cần nêu bật được: Ý tưởng thay đổi là gì? Mục đích của sự thay đổi đó? Kết quả đạt được như thế nào? Nếu lỗi thì do nguyên nhân gì?
+- Sau mỗi lần nộp bài hoặc chạy benchmark thành công/thất bại, phải cập nhật file kết quả tương ứng và file logs.md ngay lập tức.
