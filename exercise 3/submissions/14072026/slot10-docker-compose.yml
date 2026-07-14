@@ -3,7 +3,7 @@ services:
     image: ptquanh/sandbox-runtime:vllm-phase2-fp8-warmup-v2
     environment:
       - OMP_NUM_THREADS=3
-      - VLLM_MAX_NUM_SEQS=256
+      - VLLM_MAX_NUM_SEQS=24
       - VLLM_QUANTIZATION=fp8
       - VLLM_KV_CACHE_DTYPE=fp8
       - VLLM_WARMUP=1
