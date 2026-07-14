@@ -7,7 +7,7 @@ services:
       - VLLM_QUANTIZATION=fp8
       - VLLM_KV_CACHE_DTYPE=fp8
       - VLLM_WARMUP=1
-      - VLLM_ENABLE_CHUNKED_PREFILL=0
+      - VLLM_ENABLE_CHUNKED_PREFILL=1
       - VLLM_CUSTOM_KERNEL=1
     entrypoint:
       - python3
