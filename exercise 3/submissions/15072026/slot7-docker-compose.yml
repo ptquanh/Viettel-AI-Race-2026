@@ -1,0 +1,26 @@
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-phase2-fp8-warmup-v2
+    environment:
+      - OMP_NUM_THREADS=4
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_KV_CACHE_DTYPE=fp8
+      - VLLM_WARMUP=1
+      - VLLM_ENABLE_CHUNKED_PREFILL=1
+      - VLLM_MAX_NUM_BATCHED_TOKENS=16384
+      - VLLM_CUSTOM_KERNEL=1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    ports:
+      - "8000:8000"
+    shm_size: "4g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
