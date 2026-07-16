@@ -6,10 +6,11 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 
 ## Kết quả các đợt chạy thử nghiệm (Submissions)
 
-| STT | Mã thử nghiệm / File        | Cấu hình & Tham số chính       |  Dự kiến  |   Điểm    | ERC | Passed SLO | TTFT P50 | TTFT P95 | TPOT | Acc Drop | Penalty | Failed/Warm | Ghi chú & Kết luận                                                                                                     |
-| :-- | :-------------------------- | :----------------------------- | :-------: | :-------: | :-: | :--------: | :------: | :------: | :--: | :------: | :-----: | :---------: | :--------------------------------------------------------------------------------------------------------------------- |
-| 1   | `submissions/16072026/1333` | Baseline BTC + OMP=4 + Seqs=48 | **70.0+** | **42.91** |  -  |     -      |  103ms   |  151ms   | 5ms  |    0%    |    1    |   0 / 90    | Kết quả LFM2.5 đầu tiên. TTFT P95 cực tốt (151ms) nhờ Prefix Caching, TPOT Median = 5ms. Cần giảm Seqs để tối ưu TPOT. |
-| 2   | `submissions/16072026/1645` | Baseline BTC + OMP=4 + Seqs=32 | **60.0+** | **43.08** |  -  |     -      |  103ms   |  158ms   | 5ms  |    0%    |    1    |   0 / 90    | Điểm số tăng nhẹ lên 43.08 nhưng TPOT vẫn kẹt ở 5ms. Trễ TTFT P95 tăng nhẹ lên 158ms do hàng đợi bị hẹp lại.           |
+| STT | Mã thử nghiệm / File        | Cấu hình & Tham số chính       |  Dự kiến  |   Điểm    | ERC | Passed SLO | TTFT P50 | TTFT P95 | TPOT | Acc Drop | Penalty | Failed/Warm | Ghi chú & Kết luận                                                                                                          |
+| :-- | :-------------------------- | :----------------------------- | :-------: | :-------: | :-: | :--------: | :------: | :------: | :--: | :------: | :-----: | :---------: | :-------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `submissions/16072026/1333` | Baseline BTC + OMP=4 + Seqs=48 | **70.0+** | **42.91** |  -  |     -      |  103ms   |  151ms   | 5ms  |    0%    |    1    |   0 / 90    | Kết quả LFM2.5 đầu tiên. TTFT P95 cực tốt (151ms) nhờ Prefix Caching, TPOT Median = 5ms. Cần giảm Seqs để tối ưu TPOT.      |
+| 2   | `submissions/16072026/1645` | Baseline BTC + OMP=4 + Seqs=32 | **60.0+** | **43.08** |  -  |     -      |  103ms   |  158ms   | 5ms  |    0%    |    1    |   0 / 90    | Điểm số tăng nhẹ lên 43.08 nhưng TPOT vẫn kẹt ở 5ms. Trễ TTFT P95 tăng nhẹ lên 158ms do hàng đợi bị hẹp lại.                |
+| 3   | `submissions/16072026/1724` | Baseline BTC + OMP=4 + Seqs=24 | **65.0+** | **42.46** |  -  |     -      |  102ms   |  153ms   | 5ms  |    0%    |    1    |   0 / 90    | Điểm số giảm xuống 42.46. TTFT có cải thiện nhẹ nhưng TPOT Median vẫn kẹt cứng ở 5ms. Hàng đợi bị ứ đọng khi Poisson burst. |
 
 ---
 
