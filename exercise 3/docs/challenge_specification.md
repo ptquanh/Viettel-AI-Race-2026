@@ -1,6 +1,6 @@
 # 🚀 [Bài 3] LLM Inference Optimization Challenge - Specification
 
-Tài liệu này tổng hợp toàn bộ thông tin chính thức từ Ban Tổ Chức (BTC) về yêu cầu, môi trường, cơ chế tính điểm và quy định của cuộc thi.
+Tài liệu này tổng hợp toàn bộ thông tin chính thức từ Ban Tổ Chức (BTC) về yêu cầu, môi trường, cơ chế tính điểm và quy định của cuộc thi sau khi cập nhật mô hình mục tiêu và các chỉ số đo lường mới.
 
 ---
 
@@ -20,9 +20,9 @@ Tài liệu này tổng hợp toàn bộ thông tin chính thức từ Ban Tổ 
 Mỗi lượt nộp bài sẽ được chấm điểm tự động trên hạ tầng được cô lập vật lý:
 
 - **Phần cứng:** **1 instance MiG H200** (Phân bổ: **18GB VRAM**, **3 Core CPU**, **8GB RAM**).
-- **Hệ điều hành & Driver:** Ubuntu 22.04 LTS, CUDA 12.x.
-- **Mô hình mục tiêu:** **Qwen/Qwen3.5-2B** (Dense Transformer, gốc BF16, tải từ HuggingFace Hub với Hash cố định).
-- **Serving Engine:** Về mặt lý thuyết, BTC cho phép toàn quyền lựa chọn framework (vLLM, SGLang, TensorRT-LLM, custom runtime...). Tuy nhiên, trong thực tế Vòng 1, hệ thống chấm bài tự động ép buộc cấu hình và entrypoint của vLLM, các serving engine khác không tương thích/bị báo lỗi khởi động, do đó khuyến nghị chỉ sử dụng **vLLM framework**.
+- **Hệ điều hành & Driver (host):** Ubuntu 24.04 LTS, NVIDIA driver 590.x (hỗ trợ CUDA 13.x).
+- **Mô hình mục tiêu:** **LiquidAI/LFM2.5-1.2B-Instruct** (Kiến trúc Liquid Foundation Model, tải từ HuggingFace Hub với Hash cố định).
+- **Serving Engine:** Thí sinh chỉ được phép sử dụng serving framework **vLLM** cho bài thi này.
 
 ---
 
@@ -34,7 +34,7 @@ $$Score = 100 \times ERS \times f(\Delta)$$
 
 ### A. ERS (Effective Request Score)
 
-ERS là điểm số trung bình của $N$ requests ($N = 120$) trong file trace dữ liệu:
+ERS là điểm số trung bình của $N$ requests ($N = 330$ requests được chấm điểm sau 15 hội thoại primer khởi động không tính điểm) trong file trace dữ liệu:
 
 $$ERS = \frac{1}{N} \sum_{i=1}^{N} S_{request, i} \in [0, 1]$$
 
@@ -53,28 +53,24 @@ $$s_{ttft} = (x_{ttft})^\gamma = \left[ \text{clamp}\left( \frac{C_{ttft} - TTFT
 
 $$s_{tpot} = (x_{tpot})^\gamma = \left[ \text{clamp}\left( \frac{C_{tpot} - TPOT_{mean}}{C_{tpot} - F_{tpot}}, 0, 1 \right) \right]^\gamma$$
 
-**Tham số cấu hình:**
+**Tham số cấu hình mới:**
 
 | Ký hiệu    | Ý nghĩa           | Giá trị |
 | :--------- | :---------------- | :------ |
-| $F_{ttft}$ | Floor của TTFT    | 100 ms  |
-| $C_{ttft}$ | Ceiling của TTFT  | 1500 ms |
-| $F_{tpot}$ | Floor của TPOT    | 20 ms   |
-| $C_{tpot}$ | Ceiling của TPOT  | 45 ms   |
+| $F_{ttft}$ | Floor của TTFT    | 10 ms   |
+| $C_{ttft}$ | Ceiling của TTFT  | 400 ms  |
+| $F_{tpot}$ | Floor của TPOT    | 1 ms    |
+| $C_{tpot}$ | Ceiling của TPOT  | 10 ms   |
 | $\gamma$   | Hệ số lũy thừa    | 2       |
 | $w$        | Trọng số của TTFT | 0.5     |
 
-**Giải thích các tham số cấu hình:**
+_Với kiến trúc recurrent đặc thù của LFM, các chỉ số Floor/Ceiling latency đã được siết chặt tối đa (TTFT Floor 10ms, TPOT Floor 1ms) để phản ánh tốc độ xử lý siêu nhanh của mô hình._
 
-- $F_{ttft}, F_{tpot}$: Cận dưới (Floor) của TTFT và TPOT — độ trễ đạt mức này hoặc thấp hơn sẽ nhận điểm tối đa ($s=1.0$).
-- $C_{ttft}, C_{tpot}$: Cận trên (Ceiling) của TTFT và TPOT — độ trễ chạm mức này hoặc cao hơn sẽ bị tính $0$ điểm ($s=0.0$).
-- $w$: Trọng số ưu tiên của TTFT ($0 < w < 1$).
-- $\gamma$: Hệ số lũy thừa ($\gamma \ge 1$) quy định độ dốc của hàm phạt (penalty curve).
-- Hàm $\text{clamp}(x, 0, 1)$: Giới hạn giá trị của $x$ luôn nằm trong đoạn $[0, 1]$.
+### B. Accuracy Gate (GPQA Diamond - Hậu kiểm sau vòng online)
 
-### B. Accuracy Gate (GPQA Diamond)
+Không chấm GPQA trên từng lượt nộp online. Sau khi vòng online kết thúc, đội thi chọn thủ công tối đa 5 submissions tốt nhất để BTC hậu kiểm và chạy GPQA full.
 
-Đánh giá độ chính xác độc lập qua bộ 100 câu hỏi GPQA Diamond. Độ sụt giảm accuracy $\Delta$ so với baseline BF16 (reference, mặc định baseline đạt 0.4):
+Độ sụt giảm chất lượng ($\Delta$) so với baseline BF16 (mặc định baseline đạt 0.4):
 
 $$\Delta = \text{baseline\_accuracy} - \text{GPQA\_accuracy\_của\_đội}$$
 
@@ -92,40 +88,40 @@ $$
 
 ## 4. 🛠️ Phạm vi tối ưu được phép
 
-Thí sinh được khuyến khích sử dụng các kỹ thuật sau:
+Thí sinh được khuyến khích sử dụng các kỹ thuật sau trên vLLM:
 
-- **Quantization:** FP8 (F8_E4M3), INT8, AWQ, GPTQ (Quantization động online khi load model được phép; cấm dùng weights đã được offline pre-quantized từ bên ngoài).
-- **KV Cache:** Lượng tử hóa KV cache (FP8, INT8), prefix caching, semantic caching, Paged Attention.
-- **Serving Runtime:** Continuous batching, speculative decoding (draft model/self-speculative), custom CUDA/Triton kernels, fused attention (FlashAttention, FlashInfer).
-- **System Tuning:** Overlap communication/computation, CUDA Graphs, CPU thread configuration (`OMP_NUM_THREADS`).
+- **Quantization:** Các kỹ thuật Online Quantization.
+- **KV Cache & Memory:** Tối đa hóa lượng request xử lý đồng thời bằng Paged Attention; KV cache quantization (FP8, INT8); Prefix caching và Semantic caching; Offloading xuống CPU/NVMe.
+- **Serving & Scheduling:** Ứng dụng Dynamic/Continuous batching; Speculative decoding; Memory-aware scheduling.
+- **System & Runtime:** Viết custom CUDA/Triton kernels; Tích hợp Fused attention kernels (FlashAttention, FlashInfer); Tối ưu hóa memory layout và CUDA Graphs.
 
 ---
 
 ## 5. 🚫 Quy định chống gian lận (Anti-Cheating)
 
-- ❌ Không hardcode đáp án của GPQA Diamond probe subset.
-- ❌ Không pre-compute response (tính toán trước kết quả đầu ra cho trace).
+- ❌ Nghiêm cấm pre-bake, hardcode kết quả, cơ chế dual-path hoặc lách luật (gaming) phương pháp đo lường.
 - ❌ Không thực hiện cuộc gọi mạng ra ngoài (External Network Calls) từ inference server.
-- ❌ Không thay đổi tokenizer hoặc cấu hình arrival timestamp của trace benchmark.
+- ❌ Không can thiệp trái phép vào tokenizer hoặc weights của mô hình.
+- ❌ Không tráo đổi Docker image sau khi đã chốt nộp bài.
 
 ---
 
-## 6. File `docker-compose.yml` mẫu của BTC
+## 6. File `docker-compose.yml` mẫu của BTC cho LFM2.5
 
 ```yaml
 services:
   model:
     image: vllm/vllm-openai:v0.22.1
     entrypoint:
-      - python3
-      - -m
-      - vllm.entrypoints.openai.api_server
+      - python3 #Don't change this to vllm-server
+      - -m #Don't change this to vllm-server
+      - vllm.entrypoints.openai.api_server #Don't change this to vllm-server
     command:
-      - --model=/model
-      - --served-model-name=Qwen3.5-2B
-      - --host=0.0.0.0
-      - --port=8000
-      - --max-model-len=262144
+      - --model=/model #Don't change this to vllm-server
+      - --served-model-name=LFM2.5-1.2B-Instruct #Don't change this to vllm-server
+      - --host=0.0.0.0 #Don't change this to vllm-server
+      - --port=8000 #Don't change this to vllm-server
+      - --max-model-len=32768
       - --gpu-memory-utilization=0.95
       - --tensor-parallel-size=1
       - --enable-prefix-caching

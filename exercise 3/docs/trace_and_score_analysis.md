@@ -1,63 +1,63 @@
-# Phân tích Workload Trace & Công thức Điểm (Viettel AI Race)
+# Phân tích Workload Trace & Công thức Điểm (LFM2.5-1.2B-Instruct)
 
-Tài liệu này lưu trữ các phân tích dùng chung về cấu trúc dữ liệu trace benchmark và suy diễn công thức tính điểm của Ban tổ chức để tái sử dụng cho các kế hoạch tối ưu.
+Tài liệu này lưu trữ các phân tích về cấu trúc dữ liệu trace benchmark mới (`trace_grading_public.jsonl`) và suy diễn công thức tính điểm ERS mới của Ban tổ chức.
 
 ---
 
 ## 1. Phân tích Trace Data (Workload Structure)
 
-### Cấu trúc Workload (dựa trên trace-round1.jsonl)
+### Cấu trúc Workload (dựa trên trace_grading_public.jsonl)
 
-| Chỉ số | Giá trị |
-| :--- | :--- |
-| **Tổng requests** | 120 |
-| **Cấu trúc** | **20 conversation chains x 6 turns** |
-| **Arrival pattern** | 6 bursts x 20 requests, cách nhau 5 giây |
-| **max_tokens** | 200 (tất cả) |
-| **temperature** | 0 (deterministic) |
-| **seed** | 42 (cố định) |
-| **System prompt** | **Duy nhất 1 prompt cho tất cả 120 requests** |
+| Chỉ số                              | Giá trị                                                            |
+| :---------------------------------- | :----------------------------------------------------------------- |
+| **Tổng số lượt (turns/requests)**   | 420                                                                |
+| **Số lượt khởi động (Warm-up)**     | 90 (15 hội thoại primer x 6 turns - không tính điểm)               |
+| **Số lượt chấm điểm**               | 330 (55 hội thoại x 6 turns)                                       |
+| **Cấu trúc hội thoại**              | **70 conversation chains x 6 turns**                               |
+| **Arrival pattern**                 | Phân phối Poisson (khoảng thời gian arrival ~303 giây)             |
+| **max_tokens**                      | 200 (tất cả output tối đa 200 tokens)                              |
+| **Context input**                   | Tối đa ~4000 tokens (median ~3999 tokens)                          |
+| **Tổng sequence length tối đa**     | ~4200 tokens (input + output)                                      |
+| **User Thinking Time (`think_ms`)** | 3000 ms (Cố định 3s trước khi gửi turn tiếp theo trong cùng chain) |
 
-### Chi tiết Conversation Chains
+### Chi tiết Conversation Chains & Turns
 
-```
-Chain #0: req[0] -> req[20] -> req[40] -> req[60] -> req[80] -> req[100]
-Chain #1: req[1] -> req[21] -> req[41] -> req[61] -> req[81] -> req[101]
-...
-Chain #19: req[19] -> req[39] -> req[59] -> req[79] -> req[99] -> req[119]
-```
-
-### Các Batch Burst theo thời gian
-
-| Batch | Thời điểm | Messages | Est. Tokens | Mô tả |
-| :---: | :-------: | :------: | :---------: | :--- |
-| 1 | t=0s | 2 msgs | ~20k tokens | System + User (turn 1) |
-| 2 | t=5s | 4 msgs | ~24k tokens | + Assistant response + User (turn 2) |
-| 3 | t=10s | 6 msgs | ~28k tokens | + Turn 3 |
-| 4 | t=15s | 8 msgs | ~33k tokens | + Turn 4 |
-| 5 | t=20s | 10 msgs | ~37k tokens | + Turn 5 |
-| 6 | t=25s | 12 msgs | ~42k tokens | + Turn 6 (longest) |
-
-> 💡 **100% Prefix Sharing**: Mỗi request trong batch N là **prefix chính xác** của request tương ứng trong batch N+1. Ví dụ: `req[0]` (2 msgs) là prefix của `req[20]` (4 msgs), `req[40]` (6 msgs), v.v.
->
-> Điều này có nghĩa là nếu prefix caching hoạt động tốt, batch 2-6 **KHÔNG cần prefill lại toàn bộ context** mà chỉ cần prefill phần mới (~4k tokens/turn).
+- File trace mô phỏng 70 hội thoại song song/xen kẽ:
+  - `conv_id` từ 0 đến 14 (15 chains) có `in_warmup: true`, được dùng để pre-warmup hệ thống và không tính vào điểm ERS.
+  - `conv_id` từ 15 đến 69 (55 chains) có `in_warmup: false`, được tính điểm trực tiếp.
+- Mỗi chain có `turn_idx` từ 0 đến 5.
+- Trường `timestamp_ms` chỉ khác 0 ở `turn_idx: 0` của mỗi chain để chỉ định thời điểm hội thoại đó bắt đầu xuất hiện (arrival time). Ở các turn sau, `timestamp_ms` bằng 0 và request kế tiếp sẽ được gửi đi sau khi nhận được phản hồi của turn trước đó cộng thêm thời gian nghĩ của User `think_ms: 3000`.
 
 ---
 
-## 2. Phân tích Công thức Điểm (Reverse-Engineering)
+## 2. Phân tích Công thức Điểm ERS & Ràng buộc Latency mới
 
-### Công thức tổng quát
+### Công thức ERS
 
-```
-Score = 100 x ERS x f(Delta)
-ERS = (1/120) x SUM(S_request_i)
-S_request = w x s_ttft + (1-w) x s_tpot
-```
+$$ERS = \frac{1}{N} \sum_{i=1}^{N} S_{request, i}$$
+Với $N = 330$ requests được chấm điểm.
 
-### Kết luận rút ra từ thực nghiệm
+$$S_{request} = 0.5 \cdot s_{ttft} + 0.5 \cdot s_{tpot}$$
 
-- **TPOT 51ms (baseline)**: Đang ở vùng tiệm cận giới hạn dưới của cách tính điểm (ERS gần như không nhận được điểm TPOT).
-- **TTFT**: Đóng vai trò quyết định điểm số hiện tại. Toàn bộ 18.99 điểm của baseline (STT 21) đến từ điểm TTFT của 85 requests pass SLO.
-- **Để bứt phá (70+ điểm)**:
-  1. Bắt buộc phải đưa TPOT xuống dưới 35ms (mục tiêu lý tưởng là < 30ms).
-  2. Đồng thời duy trì TTFT thấp để nâng tỷ lệ `passed_slo` lên > 100/120 requests.
+$$s_{ttft} = \left[ \text{clamp}\left( \frac{400 - TTFT}{400 - 10}, 0, 1 \right) \right]^2 = \left[ \text{clamp}\left( \frac{400 - TTFT}{390}, 0, 1 \right) \right]^2$$
+
+$$s_{tpot} = \left[ \text{clamp}\left( \frac{10 - TPOT_{mean}}{10 - 1}, 0, 1 \right) \right]^2 = \left[ \text{clamp}\left( \frac{10 - TPOT_{mean}}{9}, 0, 1 \right) \right]^2$$
+
+### Biên Latency mới cho LFM2.5
+
+Do mô hình **LFM2.5-1.2B-Instruct** thuộc lớp Liquid Foundation Model (có độ phức tạp hằng số đối với context memory/KV-like state), tốc độ sinh (generation speed) của nó nhanh hơn các mô hình Transformer rất nhiều. Vì vậy, BTC đã siết chặt giới hạn:
+
+- **TTFT**:
+  - **Floor ($F_{ttft}$): 10 ms** (Độ trễ $\le 10ms$ sẽ nhận điểm tối đa 1.0).
+  - **Ceiling ($C_{ttft}$): 400 ms** (Độ trễ $\ge 400ms$ sẽ nhận 0 điểm).
+- **TPOT**:
+  - **Floor ($F_{tpot}$): 1 ms** (Độ trễ $\le 1ms$ sẽ nhận điểm tối đa 1.0).
+  - **Ceiling ($C_{tpot}$): 10 ms** (Độ trễ $\ge 10ms$ sẽ nhận 0 điểm).
+
+### Chiến lược bứt phá ERS cho LFM
+
+1. **Ép TPOT $\le 10ms$**: Bất kỳ request nào có TPOT $\ge 10ms$ sẽ nhận điểm TPOT bằng 0. Để ăn điểm ERS cao, TPOT Median buộc phải kéo xuống dưới 10ms, lý tưởng nhất là $\le 5ms$ (tiến gần 1ms).
+2. **Kéo TTFT $\le 400ms$**: TTFT phải nhỏ hơn 400ms để bắt đầu nhận điểm.
+3. **Mô hình Recurrent/SSM**:
+   - LFM không sử dụng ma trận Attention chuẩn của Transformer, mà nén context thành một trạng thái recurrent cố định. Do đó, chi phí prefill và decode không tăng tuyến tính theo context length dài (4k tokens).
+   - vLLM hỗ trợ các kernel tính toán SSM cực nhanh. Chúng ta cần tìm hiểu xem vLLM lượng tử hóa mô hình này như thế nào và cách tối ưu hóa số lượng luồng xử lý (CPU Threads, GPU memory) để giữ cho TTFT < 400ms và TPOT < 10ms dưới traffic Poisson gồm 70 hội thoại đồng thời.
