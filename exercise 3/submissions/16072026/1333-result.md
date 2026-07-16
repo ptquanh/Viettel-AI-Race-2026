@@ -5,29 +5,34 @@
 
 ## Chỉ số đo được
 
-| Chỉ số          |   Giá trị    | Ý nghĩa                                             |
-| :-------------- | :----------: | :-------------------------------------------------- |
-| `final_score`   |  **13.88**   | Điểm số cuối cùng                                   |
-| `ers`           |  **13.88**   | Điểm số hiệu năng (Effective Request Score)         |
-| `erc`           |   **0.7**    | Tỷ lệ hoàn thành hiệu quả (Effective Request Ratio) |
-| `penalty`       |    **1**     | Hệ số phạt (1 = Không bị phạt)                      |
-| `passed_slo`    |    **84**    | Số lượng request đạt chuẩn SLO                      |
-| `total_count`   |   **120**    | Tổng số request benchmark                           |
-| `failed_count`  |    **0**     | Số lượng request thất bại                           |
-| `warmup_count`  |    **0**     | Số lượng request warmup                             |
-| `accuracy_drop` |    **0%**    | Độ sụt giảm độ chính xác                            |
-| `tbt_median_ms` |  **58 ms**   | Median Time Between Tokens (TPOT)                   |
-| `ttft_p50_ms`   |  **742 ms**  | Time To First Token (P50)                           |
-| `ttft_p95_ms`   | **10271 ms** | Time To First Token (P95)                           |
+| Chỉ số          |  Giá trị   | Ý nghĩa                                               |
+| :-------------- | :--------: | :---------------------------------------------------- |
+| `final_score`   | **42.91**  | Điểm số cuối cùng                                     |
+| `ers`           | **42.91**  | Điểm số hiệu năng (Effective Request Score)           |
+| `f_delta`       |   **1**    | Hệ số phạt chất lượng (1 = Không phạt)                |
+| `penalty`       |   **1**    | Hệ số phạt chung (1 = Không bị phạt)                  |
+| `total_count`   |  **330**   | Tổng số request benchmark được chấm điểm              |
+| `warmup_count`  |   **90**   | Số lượng request khởi động (Warmup - không tính điểm) |
+| `failed_count`  |   **0**    | Số lượng request thất bại                             |
+| `accuracy_drop` |   **0%**   | Độ sụt giảm độ chính xác                              |
+| `tbt_median_ms` |  **5 ms**  | Median Time Between Tokens (TPOT)                     |
+| `ttft_p50_ms`   | **103 ms** | Time To First Token (P50)                             |
+| `ttft_p95_ms`   | **151 ms** | Time To First Token (P95)                             |
 
 ## Phân tích kết quả
 
 1. **Phân tích hiệu năng hệ thống**:
-   - **Mâu thuẫn chỉ số**: Kết quả trả về từ Grader báo cáo `total_count: 120` và `tbt_median_ms: 58 ms`. Đây chính là các thông số đặc trưng 100% của mô hình Qwen3.5-2B và trace cũ. Trong khi đó, đề bài mới của BTC có trace 420 requests (330 requests tính điểm) và mô hình LFM2.5-1.2B có tốc độ TPOT ước tính chỉ ~1-3ms.
-   - **Nguyên nhân cốt lõi**: Grader Backend của BTC **chưa được cấu hình lại** cho Vòng 2. Hệ thống chấm vẫn đang mount thư mục chứa weights của mô hình **Qwen3.5-2B** vào đường dẫn `/model` của container, đồng thời chạy file trace-round1 cũ.
-   - **Cơ chế hoạt động**: vLLM của chúng ta đã load thành công weights ở `/model` (thực chất là weights Qwen3.5) và đặt tên định danh API là `LFM2.5-1.2B-Instruct` theo tham số `--served-model-name`. Khi Grader gửi request gọi tên mô hình này, vLLM trả về câu trả lời bình thường nhưng với tốc độ sinh và độ trễ của mô hình Qwen3.5 cũ.
-   - Điểm số **13.88** thấp hơn mốc baseline cũ (15.26) một chút do concurrency bị bóp xuống 48 kết hợp với các jitter ngẫu nhiên của CPU host chấm bài.
+   - **Xác nhận Grader mới**: Các chỉ số `total_count: 330` và `warmup_count: 90` khớp hoàn toàn với cấu trúc trace Poisson mới. Điểm số **42.91** là kết quả thực tế đầu tiên chạy trên mô hình **LFM2.5-1.2B-Instruct**.
+   - **TTFT xuất sắc**: TTFT P50 đạt **103ms** và P95 đạt **151ms**, đều nằm sâu dưới ngưỡng trần **400ms** (Ceiling). Điều này chứng minh Prefix Caching hoạt động cực kỳ hoàn hảo cho các turn sau của hội thoại (gần như cache hit 100%), và mức concurrency 48 hoàn toàn hấp thụ được các đợt burst Poisson mà không bị nghẽn hàng đợi (P95 TTFT chỉ lệch 48ms so với P50).
+   - **TPOT cực nhanh nhưng còn dư địa tối ưu**: TPOT Median đạt **5ms**, nằm dưới mốc trần 10ms (giúp ăn điểm thành phần TPOT). Tuy nhiên, theo công thức ERS thế lũy thừa $\gamma=2$:
+     - Với TPOT = 5ms, điểm thành phần $s_{tpot} = \left(\frac{10 - 5}{9}\right)^2 \approx 0.31$ (chỉ ăn được 31% điểm TPOT tối đa).
+     - Nếu đưa TPOT xuống **3ms**, điểm thành phần $s_{tpot}$ sẽ tăng vọt lên $\approx 0.60$ (tăng gấp đôi điểm TPOT, đẩy tổng điểm lên **~58.00**).
+     - Nếu đưa TPOT xuống **2ms**, $s_{tpot} \approx 0.79$, tổng điểm ERS sẽ bứt phá lên **~67.00**.
 
-2. **Kết luận**:
-   - Grader Backend của BTC chưa được cập nhật chính thức sang model LFM2.5 và trace Poisson mới.
-   - Chúng ta cần tạm dừng toàn bộ các submission tiếp theo để tránh lãng phí lượt nộp hàng ngày, chờ cho tới khi BTC hoàn tất việc đổi model weights và trace trên server.
+2. **Cổ chai hiện tại và hướng tối ưu**:
+   - Do model LFM2.5-1.2B rất nhỏ và VRAM cực kỳ dư dả, thời gian tính toán của GPU cho mỗi token là cực nhỏ (< 1ms). Cổ chai 5ms TPOT chủ yếu đến từ **CPU scheduling overhead** (vòng lặp điều phối của vLLM bằng Python trên 3 core CPU bị giới hạn).
+   - Việc chạy concurrency lớn (`max_num_seqs=48`) làm vLLM tốn nhiều CPU time để duyệt và quản lý các active sequences ở mỗi bước decode.
+   - Do hàng đợi hiện tại đang dư dả (P95 TTFT chỉ 151ms), chúng ta có thể **giảm mạnh concurrency** xuống mức `Seqs=32` hoặc `Seqs=24` để giảm tải tối đa cho CPU, từ đó kéo TPOT xuống mức 2ms - 3ms mà không lo ngại tăng TTFT vượt quá ngưỡng 400ms.
+
+3. **Kết luận**:
+   - **Slot 4 (Seqs=32)** là bước đi tiếp theo hoàn hảo để hiện thực hóa việc tối ưu TPOT.
