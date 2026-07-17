@@ -36,6 +36,8 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 26  | `submissions/17072026/1506` | FP8 + OMP=2 + Chunk=4096 + gpu=0.98 + KV FP8 | **56.50** |  **55.91**   |  -  |     -      |   76ms   |  114ms   | 4ms  |    0%    |    1    |   0 / 90    | Do bị ảnh hưởng bởi cờ gpu=0.98, việc thêm KV Cache FP8 không làm thay đổi đáng kể hiệu năng so với Slot 8 (55.94).             |
 | 27  | `submissions/17072026/1754` | FP8 + OMP=2 + Chunk=2048 + gpu=0.98 + KV FP8 | **55.50** |  **55.40**   |  -  |     -      |   79ms   |  119ms   | 4ms  |    0%    |    1    |   0 / 90    | KV Cache FP8 giúp tăng nhẹ điểm số so với Slot 9 (55.03) nhưng trễ TTFT P95 vẫn ở mức cao do cấu hình Chunk=2048 kém tối ưu.    |
 | 28  | `submissions/17072026/1812` | FP8 Base + KV FP8                            | **55.50** |  **55.02**   |  -  |     -      |   81ms   |  115ms   | 4ms  |    0%    |    1    |   0 / 90    | Lượng tử hóa KV Cache đơn biến trên nền Base hầu như không có cải thiện so với mốc FP8 Base gốc không có KV FP8 (55.04).        |
+| 29  | `submissions/17072026/1844` | FP8 + OMP=2 + Chunk=4096 + KV FP8            | **56.50** |  **56.22**   |  -  |     -      |   75ms   |  107ms   | 4ms  |    0%    |    1    |   0 / 90    | KV Cache FP8 gây suy giảm hiệu năng nhẹ từ 56.79 (Slot 4) về 56.22 do phát sinh overhead casting khi GPU tính toán đã bão hòa.  |
+| 30  | `submissions/17072026/1901` | FP8 + OMP=1 + Chunk=4096                     | **55.50** |  **55.02**   |  -  |     -      |   81ms   |  118ms   | 4ms  |    0%    |    1    |   0 / 90    | Luồng CPU OMP=1 quá ít làm nghẽn cổ chai lập lịch tính toán trên CPU, kéo TTFT P95 tăng lên 118ms và giảm điểm.                 |
 
 ---
 
