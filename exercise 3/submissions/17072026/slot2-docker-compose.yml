@@ -19,7 +19,9 @@ services:
       - --quantization=fp8
       - --no-enable-log-requests
       - --disable-log-stats
-      - --max-num-seqs=48
+      - --max-num-seqs=32
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=4096
     ports:
       - "8000:8000"
     shm_size: "2g"

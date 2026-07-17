@@ -19,7 +19,7 @@ services:
       - --quantization=fp8
       - --no-enable-log-requests
       - --disable-log-stats
-      - --max-num-seqs=24
+      - --max-num-seqs=16
     ports:
       - "8000:8000"
     shm_size: "2g"

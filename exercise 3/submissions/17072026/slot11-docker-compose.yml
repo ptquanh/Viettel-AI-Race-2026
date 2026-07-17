@@ -2,7 +2,7 @@ services:
   model:
     image: vllm/vllm-openai:v0.22.1
     environment:
-      - OMP_NUM_THREADS=3
+      - OMP_NUM_THREADS=2
     entrypoint:
       - python3
       - -m
@@ -19,7 +19,9 @@ services:
       - --quantization=fp8
       - --no-enable-log-requests
       - --disable-log-stats
-      - --max-num-seqs=32
+      - --max-num-seqs=16
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=4096
     ports:
       - "8000:8000"
     shm_size: "2g"
