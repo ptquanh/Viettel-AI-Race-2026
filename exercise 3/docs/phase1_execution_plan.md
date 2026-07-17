@@ -131,9 +131,20 @@ Adapting Ghost Strategy infrastructure cho model mới:
 _Mục tiêu: 75-90+ điểm_
 
 1. **Speculative Decoding với LFM2.5-350M Draft Model**
-   - Custom image chứa cả target (chỉ đường dẫn `/model` gốc) + draft model LFM2.5-350M đóng gói sẵn trong image (load qua `--speculative-model=/draft_model`).
-   - Tiềm năng 2-3x decode speedup → TPOT 1-2ms.
-   - Rủi ro: LFM2.5 hybrid arch có thể không hỗ trợ spec dec hoặc overhead cao trên 3 core CPU.
+   - **Mục tiêu**: Đạt TPOT ≤ 1.5ms bằng speculative decoding với LFM2.5-350M.
+   - **Cách thức**: Đóng gói draft model LFM2.5-350M sẵn trong custom Docker image (lưu tại `/draft_model`) để không phải tải online lúc startup. Cờ khởi chạy sẽ giữ nguyên `--model=/model` gốc và thêm cấu hình speculative:
+     ```yaml
+     command:
+       - --model=/model
+       - --speculative-model=/draft_model
+       - --num-speculative-tokens=5
+       - --speculative-draft-tensor-parallel-size=1
+       - --quantization=fp8
+     ```
+   - **Lý do cần nghiên cứu kỹ**:
+     - Phải kiểm tra offline khả năng tương thích của kiến trúc hybrid recurrent của LFM2.5 đối với cơ chế speculative decoding của vLLM v0.22.1.
+     - Speculative decoding chạy draft model trên CPU 3 cores có thể gây overhead CPU lớn. Cần tối ưu hóa số lượng CPU threads phân bổ cho draft model.
+     - Tiềm năng: Đạt 2-3x decode speedup, đưa TPOT về dải 1.5ms.
 
 2. **Custom Triton Kernels cho Recurrent Layers**
    - Viết kernel tối ưu cho gated short-convolution blocks.

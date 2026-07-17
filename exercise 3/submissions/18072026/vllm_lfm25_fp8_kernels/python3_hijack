@@ -1,0 +1,73 @@
+#!/bin/bash
+ARGS="$*"
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity Phase 2] Custom Kernel Injector + Warmup Edition for LFM2.5"
+    
+    # Export PYTHONPATH so sitecustomize.py gets loaded
+    export PYTHONPATH="/patch:$PYTHONPATH"
+    export VLLM_LOGGING_LEVEL=WARNING
+    export OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}
+
+    # Đọc cấu hình động từ env vars
+    MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-32}
+    QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
+    KV_CACHE_DTYPE=${VLLM_KV_CACHE_DTYPE:-auto}
+    WARMUP_ENABLED=${VLLM_WARMUP:-1}
+    MAX_NUM_BATCHED_TOKENS=${VLLM_MAX_NUM_BATCHED_TOKENS:-4096}
+    ENABLE_CHUNKED_PREFILL=${VLLM_ENABLE_CHUNKED_PREFILL:-1}
+    
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server"
+         "--model" "/model"
+         "--served-model-name" "LFM2.5-1.2B-Instruct"
+         "--host" "0.0.0.0" "--port" "8000"
+         "--max-model-len" "32768"
+         "--gpu-memory-utilization" "0.95"
+         "--tensor-parallel-size" "1"
+         "--enable-prefix-caching"
+         "--max-num-seqs" "$MAX_NUM_SEQS"
+         "--no-enable-log-requests"
+         "--disable-log-stats")
+
+    if [ "$KV_CACHE_DTYPE" != "auto" ]; then
+        CMD+=("--kv-cache-dtype" "$KV_CACHE_DTYPE")
+    fi
+
+    if [ "$QUANTIZATION" != "none" ]; then
+        CMD+=("--quantization" "$QUANTIZATION")
+    fi
+
+    if [ "$ENABLE_CHUNKED_PREFILL" = "1" ]; then
+        CMD+=("--enable-chunked-prefill" "--max-num-batched-tokens" "$MAX_NUM_BATCHED_TOKENS")
+    fi
+
+    echo "[Antigravity Phase 2] Executing: ${CMD[*]}"
+
+    # Chạy server ở chế độ background để thực hiện warmup
+    "${CMD[@]}" &
+    SERVER_PID=$!
+
+    if [ "$WARMUP_ENABLED" = "1" ]; then
+        echo "[Antigravity Phase 2] Waiting for server to start warmup..."
+        
+        # Poll healthcheck tối đa 120s
+        for i in $(seq 1 120); do
+            if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+                echo "[Antigravity Phase 2] Server ready! Starting compilation warmup..."
+                break
+            fi
+            sleep 1
+        done
+        
+        # Gửi dummy request để kích hoạt JIT compilation của custom kernels và cache
+        curl -s http://localhost:8000/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -d '{"model": "LFM2.5-1.2B-Instruct", "messages": [{"role": "user", "content": "hello"}], "max_tokens": 1, "temperature": 0}' > /dev/null 2>&1
+            
+        echo "[Antigravity Phase 2] Warmup request sent successfully!"
+    fi
+
+    # Đợi tiến trình server chạy chính
+    wait $SERVER_PID
+else
+    exec "/usr/bin/python3_real" "$@"
+fi
