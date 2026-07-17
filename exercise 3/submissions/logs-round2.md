@@ -32,6 +32,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 22  | `submissions/17072026/1332` | FP8 + OMP=2 + Chunk=2048            | **56.50** |  **55.44**   |  -  |     -      |   78ms   |  118ms   | 4ms  |    0%    |    1    |   0 / 90    | Chunk=2048 tăng overhead lập lịch CPU so với mốc Chunk=4096 (Slot 4: 56.79), làm tăng trễ TTFT P95 lên 118ms.                   |
 | 23  | `submissions/17072026/1346` | FP8 + OMP=2 + Chunk=4096 + gpu=0.98 | **56.50** |  **55.94**   |  -  |     -      |   75ms   |  113ms   | 4ms  |    0%    |    1    |   0 / 90    | Đẩy VRAM lên 98% tăng overhead quản lý CUDA/vLLM, khiến TTFT P95 tăng lên 113ms và giảm điểm nhẹ so với mốc VRAM 95% (Slot 4).  |
 | 24  | `submissions/17072026/1359` | FP8 + OMP=2 + Chunk=2048 + gpu=0.98 | **55.50** |  **55.03**   |  -  |     -      |   80ms   |  114ms   | 4ms  |    0%    |    1    |   0 / 90    | Tương tự Slot 8, VRAM 98% làm suy giảm nhẹ điểm số trên cả nhánh Chunk=2048 (giảm từ 55.44 của Slot 7 về 55.03).                |
+| 25  | `submissions/17072026/1428` | FP8 + OMP=2 + Chunk=2048 + KV FP8   | **56.50** |  **55.51**   |  -  |     -      |   78ms   |  113ms   | 4ms  |    0%    |    1    |   0 / 90    | Lượng tử hóa KV Cache FP8 giảm trễ băng thông VRAM, kéo trễ TTFT P95 giảm nhẹ từ 118ms về 113ms (tăng nhẹ điểm ERS lên 55.51).  |
 
 ---
 
