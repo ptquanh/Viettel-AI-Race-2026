@@ -109,14 +109,14 @@ Kết hợp **song song** hai hướng:
 
 Adapting Ghost Strategy infrastructure cho model mới:
 
-| Bước | Công việc                                          | Thời gian | Tái sử dụng từ R1      |
-| :--: | :------------------------------------------------- | :-------: | :--------------------- |
-|  1   | Adapt hijack script v11 cho LFM2.5                 |   2-3h    | ✅ Ghost v11 scripts   |
-|  2   | Build custom image `ptquanh/sandbox-runtime:lfm25` |   1-2h    | ✅ Dockerfile pipeline |
-|  3   | Online Quantization & Kernel tuning (FP8/INT8 KV)  |   2-4h    | ⚠️ Mới (LFM2.5 arch)   |
-|  4   | Custom FP8 KV Cache cho attention layers           |   1-2h    | ✅ FP8 KV kernels      |
-|  5   | Warmup strategy cho LFM2.5                         |    1h     | ✅ Warmup infra        |
-|  6   | Submit & Test (15 slots/ngày)                      |  Ongoing  | ✅ Compose templates   |
+| Bước | Công việc                                                              | Thời gian | Tái sử dụng từ R1      |
+| :--: | :--------------------------------------------------------------------- | :-------: | :--------------------- |
+|  1   | Adapt hijack script v11 cho LFM2.5                                     |   2-3h    | ✅ Ghost v11 scripts   |
+|  2   | Build custom image `ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1` |   1-2h    | ✅ Dockerfile pipeline |
+|  3   | Online Quantization & Kernel tuning (FP8/INT8 KV)                      |   2-4h    | ⚠️ Mới (LFM2.5 arch)   |
+|  4   | Custom FP8 KV Cache cho attention layers                               |   1-2h    | ✅ FP8 KV kernels      |
+|  5   | Warmup strategy cho LFM2.5                                             |    1h     | ✅ Warmup infra        |
+|  6   | Submit & Test (15 slots/ngày)                                          |  Ongoing  | ✅ Compose templates   |
 
 **Tổng thời gian ước tính**: 1-2 ngày (nhờ tái sử dụng ~70% hạ tầng Round 1).
 
