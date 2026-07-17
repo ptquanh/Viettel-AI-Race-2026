@@ -23,6 +23,8 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 13  | `submissions/16072026/2159` | Seqs=32 + MaxLen=16K (Slot 13) | **60.0+** | **43.03** |  -  |     -      |   99ms   |  155ms   | 5ms  |    0%    |    1    |   0 / 90    | Giảm max-model-len xuống 16K chưa đủ tác động sâu sắc đến block allocator của vLLM scheduler.                                   |
 | 14  | `submissions/16072026/2209` | Seqs=32 + MaxLen=8K (Slot 14)  | **60.0+** | **43.62** |  -  |     -      |   97ms   |  151ms   | 5ms  |    0%    |    1    |   0 / 90    | MaxLen=8K thu gọn KV Cache manager, giúp TTFT P50 giảm nhẹ về 97ms, điểm ERS đạt 43.62.                                         |
 | 15  | `submissions/16072026/2210` | Seqs=32 + Quant FP8 (Slot 15)  | **85.0+** | **55.04** |  -  |     -      |   79ms   |  115ms   | 4ms  |    0%    |    1    |   0 / 90    | ĐỘT PHÁ KỶ LỤC 55.04. FP8 online giúp TPOT phá mốc 5ms xuống 4ms, TTFT P50/P95 giảm cực sâu còn 79ms/115ms.                     |
+| 16  | `submissions/17072026/0844` | FP8 Base + OMP=2               | **56.00** | **56.07** |  -  |     -      |   78ms   |  107ms   | 4ms  |    0%    |    1    |   0 / 90    | Xác nhận OMP=2 tăng hiệu quả trên FP8. TTFT P95 cải thiện rõ rệt xuống 107ms.                                                   |
+| 17  | `submissions/17072026/0845` | FP8 Base + Chunk=4096          | **56.50** | **56.53** |  -  |     -      |   74ms   |  106ms   | 4ms  |    0%    |    1    |   0 / 90    | KỶ LỤC MỚI 56.53. Chunked Prefill cực tốt trên FP8, kéo TTFT P50/P95 xuống 74ms/106ms.                                          |
 
 ---
 
@@ -38,3 +40,5 @@ Dưới đây là tiến trình ghi nhận các mốc điểm kỷ lục mới t
 | **#4** | **5**  | **44.63** | `submissions/16072026/2118` | Seqs=32 + Chunk=2048           |   96ms   | 5ms  | Chunked Prefill giúp triệt tiêu prefill interference, hạ TTFT P95 còn 139ms. |
 | **#5** | **8**  | **45.08** | `submissions/16072026/2133` | Seqs=32 + Chunk=4096           |   91ms   | 5ms  | Sweet-spot chunk size 4096 tối ưu hóa số lượng chunk prefill trên hàng đợi.  |
 | **#6** | **15** | **55.04** | `submissions/16072026/2210` | Seqs=32 + FP8 Quantization     |   79ms   | 4ms  | Bẻ gãy mốc TPOT 5ms xuống 4ms, TTFT P95 xuống 115ms nhờ lượng tử hóa FP8.    |
+| **#7** | **16** | **56.07** | `submissions/17072026/0844` | FP8 Base + OMP=2               |   78ms   | 4ms  | Kỷ lục mới 56.07 nhờ giảm context switching của OpenMP trên nền FP8.         |
+| **#8** | **17** | **56.53** | `submissions/17072026/0845` | FP8 + Chunk=4096               |   74ms   | 4ms  | Kỷ lục mới 56.53 nhờ Chunked prefill 4096 giảm thiểu nghẽn prefill trên FP8. |
