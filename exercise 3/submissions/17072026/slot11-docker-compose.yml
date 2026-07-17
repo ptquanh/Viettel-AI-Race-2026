@@ -12,11 +12,12 @@ services:
       - --served-model-name=LFM2.5-1.2B-Instruct
       - --host=0.0.0.0
       - --port=8000
-      - --max-model-len=8192
+      - --max-model-len=32768
       - --gpu-memory-utilization=0.98
       - --tensor-parallel-size=1
       - --enable-prefix-caching
       - --quantization=fp8
+      - --kv-cache-dtype=fp8
       - --no-enable-log-requests
       - --disable-log-stats
       - --max-num-seqs=32
