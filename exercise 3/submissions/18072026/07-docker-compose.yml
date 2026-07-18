@@ -22,6 +22,7 @@ services:
       - --enable-prefix-caching
       - --no-enable-log-requests
       - --disable-log-stats
+      - --compilation-config={"level":3}
       - --block-size=8
     ports:
       - "8000:8000"
