@@ -41,7 +41,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 31  | `submissions/18072026/0853`  | Custom Image Baseline (Warmup + Triton Kernel) | **57.0+** |  **59.51**   |  -  |     -      |   50ms   |   86ms   | 4ms  |    0%    |    1    |    6 / 0    | KỶ LỤC MỚI 59.51. Warmup JIT tối ưu hóa TTFT P50 cực tốt (50ms). Custom Kernel chạy ổn định và chính xác.                       |
 | 32  | `submissions/18072026/0857`  | Custom Image + compile level=3                 | **58.0+** |  **60.91**   |  -  |     -      |   45ms   |   70ms   | 4ms  |    0%    |    1    |    7 / 0    | KỶ LỤC MỚI 60.91. torch.compile level 3 tối ưu hóa TTFT P50/P95 cực tốt (45ms/70ms) nhờ giảm overhead scheduling.               |
 | 33  | `submissions/18072026/slot3` | Custom Image + compile level=2                 | **58.0+** |    _Chờ_     |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Đang chờ kết quả nộp. Thử nghiệm tối ưu hóa compile level 2 trên nền Custom Image.                                              |
-| 34  | `submissions/18072026/slot4` | Custom Image + enforce-eager                   | **56.0+** |    _Chờ_     |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Đang chờ kết quả nộp. Tắt CUDA Graphs để xem baseline thuần Eager trên Custom Image.                                            |
+| 34  | `submissions/18072026/0939`  | Custom Image + enforce-eager                   | **56.0+** |  **57.06**   |  -  |     -      |   62ms   |   89ms   | 4ms  |    0%    |    1    |    5 / 0    | Tắt CUDA Graphs làm tăng mạnh TTFT P50 lên 62ms và giảm điểm còn 57.06, khẳng định vai trò cực kỳ quan trọng của CUDA Graphs.   |
 
 ---
 
