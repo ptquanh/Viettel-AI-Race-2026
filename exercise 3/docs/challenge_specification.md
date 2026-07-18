@@ -136,3 +136,47 @@ services:
               count: 1
               capabilities: [gpu]
 ```
+
+---
+
+## 7. 📈 Đặc tả Workload Trace thực tế (Cập nhật 18/07/2026)
+
+workload chấm điểm của BTC được cấu hình dưới dạng multi-turn với context tăng dần và độ dài đầu ra được cố định, mô tả chi tiết trong [grading-workload-spec.json](exercise 3/input/grading-workload-spec.json):
+
+```json
+{
+  "workload": "vLLM multi-turn (shared prefix + growing context, output length pinned)",
+  "num_conversations": 70,
+  "user_turns_per_conversation": 6,
+  "total_requests": 420,
+  "shared_system_prefix_tokens": 1000,
+  "per_conversation_prefix_tokens": 1000,
+  "new_user_tokens_per_turn": 150,
+  "output_tokens_per_turn_pinned": 300,
+  "arrival": "Poisson, seed 42"
+}
+```
+
+### Ý nghĩa chi tiết các tham số:
+
+- **`num_conversations` (70)**: Số hội thoại độc lập chạy đồng thời.
+- **`user_turns_per_conversation` (6)**: Số lượt hỏi của user trên mỗi hội thoại.
+- **`total_requests` (420)**: Tổng số request gửi đến server ($70 \times 6 = 420$).
+- **`shared_system_prefix_tokens` (1000)**: System prompt dùng chung cho tất cả các hội thoại (thích hợp tối ưu hóa bằng prefix caching).
+- **`per_conversation_prefix_tokens` (1000)**: Ngữ cảnh riêng cho từng hội thoại (bổ sung input cho turn 1 của từng hội thoại).
+- **`new_user_tokens_per_turn` (150)**: Số lượng token prompt mới của user tại mỗi turn (ở turn 1 có thêm 2 khối prefix 1000 + 1000 tokens).
+- **`output_tokens_per_turn_pinned` (300)**: Số lượng token output cố định tại mỗi turn.
+- **`arrival` (Poisson, seed 42)**: Phân phối nhịp đến của các requests mô phỏng traffic thực tế.
+
+### Phân tích độ dài ngữ cảnh lũy tiến (Turn 1 $\rightarrow$ Turn 6):
+
+Tại mỗi turn $k$ trong hội thoại, độ dài prompt đầu vào tăng dần do cộng dồn lịch sử hội thoại trước đó:
+
+- **Turn 1**: $1000 \text{ (shared)} + 1000 \text{ (conv prefix)} + 150 \text{ (prompt 1)} = \mathbf{2150 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+- **Turn 2**: $2150 \text{ (Turn 1 context)} + 300 \text{ (Turn 1 output)} + 150 \text{ (prompt 2)} = \mathbf{2600 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+- **Turn 3**: $2600 + 300 + 150 = \mathbf{3050 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+- **Turn 4**: $3050 + 300 + 150 = \mathbf{3500 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+- **Turn 5**: $3500 + 300 + 150 = \mathbf{3950 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+- **Turn 6**: $3950 + 300 + 150 = \mathbf{4400 \text{ tokens}}$. Sinh thêm $300 \text{ tokens}$ output.
+
+$\rightarrow$ **Chiều dài context tối đa (Max Context Length) của bất kỳ request nào trong trace là $4700 \text{ tokens}$**. Điều này cho phép thí sinh giới hạn `--max-model-len=8192` (thay vì $32768$ mặc định) giúp giải phóng VRAM cực lớn và đẩy nhanh tốc độ warmup CUDA Graph.
