@@ -23,9 +23,6 @@ services:
       - --no-enable-log-requests
       - --disable-log-stats
       - --compilation-config={"level":3}
-      - --speculative-model=[ngram]
-      - --ngram-prompt-lookup-max=4
-      - --num-speculative-tokens=3
     ports:
       - "8000:8000"
     shm_size: "2g"
