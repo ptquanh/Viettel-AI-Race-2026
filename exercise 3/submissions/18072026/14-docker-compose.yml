@@ -5,7 +5,7 @@ services:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
-      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_MAX_NUM_SEQS=24
       - VLLM_QUANTIZATION=fp8
     entrypoint:
       - python3
@@ -22,7 +22,6 @@ services:
       - --enable-prefix-caching
       - --no-enable-log-requests
       - --disable-log-stats
-      - --compilation-config={"level":2}
     ports:
       - "8000:8000"
     shm_size: "2g"

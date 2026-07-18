@@ -22,7 +22,9 @@ services:
       - --enable-prefix-caching
       - --no-enable-log-requests
       - --disable-log-stats
-      - --compilation-config={"level":2}
+      - --speculative-model=[ngram]
+      - --ngram-prompt-lookup-max=3
+      - --num-speculative-tokens=2
     ports:
       - "8000:8000"
     shm_size: "2g"

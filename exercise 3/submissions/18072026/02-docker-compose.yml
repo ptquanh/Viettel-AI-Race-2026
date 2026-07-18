@@ -6,8 +6,6 @@ services:
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
-      - VLLM_ENABLE_CHUNKED_PREFILL=1
-      - VLLM_MAX_NUM_BATCHED_TOKENS=4096
       - VLLM_QUANTIZATION=fp8
     entrypoint:
       - python3
