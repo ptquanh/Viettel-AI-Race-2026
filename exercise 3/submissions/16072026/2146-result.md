@@ -7,17 +7,22 @@
 
 | Chỉ số          |  Giá trị   | Ý nghĩa                                               |
 | :-------------- | :--------: | :---------------------------------------------------- |
-| `final_score`   | **44.54**  | Điểm số cuối cùng                                     |
-| `ers`           | **44.54**  | Điểm số hiệu năng (Effective Request Score)           |
+| `final_score`   | **47.29**  | Điểm số cuối cùng                                     |
+| `ers`           | **47.29**  | Điểm số hiệu năng (Effective Request Score)           |
 | `f_delta`       |   **1**    | Hệ số phạt chất lượng (1 = Không phạt)                |
 | `penalty`       |   **1**    | Hệ số phạt chung (1 = Không bị phạt)                  |
-| `total_count`   |  **330**   | Tổng số request benchmark được chấm điểm              |
-| `warmup_count`  |   **90**   | Số lượng request khởi động (Warmup - không tính điểm) |
-| `failed_count`  |   **0**    | Số lượng request thất bại                             |
+| `total_count`   |  **420**   | Tổng số request benchmark được chấm điểm              |
+| `warmup_count`  |   **0**   | Số lượng request khởi động (Warmup - không tính điểm) |
+| `failed_count`  |   **7**    | Số lượng request thất bại                             |
 | `accuracy_drop` |   **0%**   | Độ sụt giảm độ chính xác                              |
-| `tbt_median_ms` |  **5 ms**  | Median Time Between Tokens (TPOT)                     |
-| `ttft_p50_ms`   |  **95 ms** | Time To First Token (P50)                             |
-| `ttft_p95_ms`   | **144 ms** | Time To First Token (P95)                             |
+| `tbt_median_ms` |  **6 ms**  | Median Time Between Tokens (TPOT)                     |
+| `ttft_p50_ms`   |  **60 ms** | Time To First Token (P50)                             |
+| `ttft_p95_ms`   | **93 ms** | Time To First Token (P95)                             |
+
+
+
+> [!NOTE]
+> Kết quả này đã được BTC tự động chấm lại. Các chỉ số đo được trong bảng dưới đây đã được cập nhật theo kết quả mới nhất.
 
 ## Phân tích kết quả
 

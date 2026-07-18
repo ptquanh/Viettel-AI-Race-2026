@@ -7,17 +7,22 @@
 
 | Chỉ số          |  Giá trị   | Ý nghĩa                                               |
 | :-------------- | :--------: | :---------------------------------------------------- |
-| `final_score`   | **55.04**  | Điểm số cuối cùng                                     |
-| `ers`           | **55.04**  | Điểm số hiệu năng (Effective Request Score)           |
+| `final_score`   | **58.28**  | Điểm số cuối cùng                                     |
+| `ers`           | **58.28**  | Điểm số hiệu năng (Effective Request Score)           |
 | `f_delta`       |   **1**    | Hệ số phạt chất lượng (1 = Không phạt)                |
 | `penalty`       |   **1**    | Hệ số phạt chung (1 = Không bị phạt)                  |
-| `total_count`   |  **330**   | Tổng số request benchmark được chấm điểm              |
-| `warmup_count`  |   **90**   | Số lượng request khởi động (Warmup - không tính điểm) |
-| `failed_count`  |   **0**    | Số lượng request thất bại                             |
+| `total_count`   |  **420**   | Tổng số request benchmark được chấm điểm              |
+| `warmup_count`  |   **0**   | Số lượng request khởi động (Warmup - không tính điểm) |
+| `failed_count`  |   **6**    | Số lượng request thất bại                             |
 | `accuracy_drop` |   **0%**   | Độ sụt giảm độ chính xác                              |
 | `tbt_median_ms` |  **4 ms**  | Median Time Between Tokens (TPOT)                     |
-| `ttft_p50_ms`   |  **79 ms** | Time To First Token (P50)                             |
-| `ttft_p95_ms`   | **115 ms** | Time To First Token (P95)                             |
+| `ttft_p50_ms`   |  **59 ms** | Time To First Token (P50)                             |
+| `ttft_p95_ms`   | **81 ms** | Time To First Token (P95)                             |
+
+
+
+> [!NOTE]
+> Kết quả này đã được BTC tự động chấm lại. Các chỉ số đo được trong bảng dưới đây đã được cập nhật theo kết quả mới nhất.
 
 ## Phân tích kết quả
 
