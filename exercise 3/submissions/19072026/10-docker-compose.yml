@@ -1,0 +1,41 @@
+# Slot 10: Speculative Decoding — Draft LFM-350M, Spec_Tokens=6 (aggressive)
+# TODO: Thay [Best Seqs] và [Best Len] sau khi có kết quả Slots 1-3
+# Chốt Best Spec_Tokens sau slot này
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    environment:
+      - OMP_NUM_THREADS=2
+      - VLLM_WARMUP=1
+      - VLLM_CUSTOM_KERNEL=1
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_QUANTIZATION=fp8
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=32768
+      - --gpu-memory-utilization=0.95
+      - --tensor-parallel-size=1
+      - --enable-prefix-caching
+      - --no-enable-log-requests
+      - --disable-log-stats
+      - --compilation-config={"level":3}
+      - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
+      - --num-speculative-tokens=6
+      - --speculative-disable-mqa-scorer
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
