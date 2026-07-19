@@ -1,29 +1,21 @@
-# Slot 14: Dự phòng 3 — Re-run hoặc tinh chỉnh tham số
-# Sẽ cập nhật cấu hình dựa trên kết quả thực tế từ các slots trước
+# Slot 14: Dự phòng 4 / Khắc phục sự cố
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
-      - VLLM_CUSTOM_KERNEL=1
       - VLLM_WARMUP=1
+      - VLLM_CUSTOM_KERNEL=1
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_MAX_MODEL_LEN=32768
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
     entrypoint:
       - python3
       - -m
       - vllm.entrypoints.openai.api_server
-    command:
-      - --model=/model
-      - --served-model-name=LFM2.5-1.2B-Instruct
-      - --host=0.0.0.0
-      - --port=8000
-      - --max-model-len=32768
-      - --gpu-memory-utilization=0.95
-      - --tensor-parallel-size=1
-      - --enable-prefix-caching
-      - --no-enable-log-requests
-      - --disable-log-stats
-      - --compilation-config={"level":3}
     ports:
       - "8000:8000"
     shm_size: "2g"
@@ -33,4 +25,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

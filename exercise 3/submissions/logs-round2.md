@@ -58,6 +58,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 48  | `submissions/19072026/0808` | Seqs=48 + MaxLen=32K                            | **61.5+** |  **55.85**   |  -  |     -      |   69ms   |   91ms   | 4ms  |    0%    |    1    |    7 / 0    | Tăng Seqs lên 48 làm tranh chấp GPU compute khiến TTFT P50 vọt lên 69ms, không giảm được lỗi (7 failed). Khẳng định Best Seqs = 32.   |
 | 49  | `submissions/19072026/1059` | Slot 4: Marlin INT4 + Seqs=32 + MaxLen=32K      | **61.5+** |  **59.81**   |  -  |     -      |   51ms   |   80ms   | 4ms  |    0%    |    1    |    6 / 0    | Cờ marlin bị v1 hijack bỏ qua, thực tế chạy FP8 Native dưới điều kiện host BTC có chút biến động làm TTFT P50 tăng lên 51ms.          |
 | 50  | `submissions/19072026/1119` | Slot 5: Compressed Tensors INT4 + Seqs=32       | **61.5+** |  **61.13**   |  -  |     -      |   46ms   |   72ms   | 4ms  |    0%    |    1    |    6 / 0    | 🔥 KỶ LỤC MỚI 61.13đ! Cờ compressed-tensors bị v1 hijack bỏ qua, thực tế chạy FP8 Native. Biến động host grader BTC cực ít nhiễu.     |
+| 51  | `submissions/19072026/1148` | Slot 6: Draft LFM-350M (`Spec_Tokens=3`)        |     -     |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 2 (Error): `--compilation-config` truyền JSON `{"level":3}` bị Pydantic từ chối. Đã sửa v2 image và sẵn sàng nộp lại.          |
 
 ---
 

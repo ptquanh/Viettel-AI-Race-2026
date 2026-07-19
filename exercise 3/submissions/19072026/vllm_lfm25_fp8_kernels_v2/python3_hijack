@@ -9,7 +9,10 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     export OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}
 
     # Đọc cấu hình động từ env vars
+    MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-32768}
     MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-32}
+    GPU_MEMORY_UTILIZATION=${VLLM_GPU_MEMORY_UTILIZATION:-0.95}
+    TENSOR_PARALLEL_SIZE=${VLLM_TENSOR_PARALLEL_SIZE:-1}
     QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
     KV_CACHE_DTYPE=${VLLM_KV_CACHE_DTYPE:-auto}
     WARMUP_ENABLED=${VLLM_WARMUP:-1}
@@ -26,16 +29,16 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
          "--model" "/model"
          "--served-model-name" "LFM2.5-1.2B-Instruct"
          "--host" "0.0.0.0" "--port" "8000"
-         "--max-model-len" "32768"
-         "--gpu-memory-utilization" "0.95"
-         "--tensor-parallel-size" "1"
+         "--max-model-len" "$MAX_MODEL_LEN"
+         "--gpu-memory-utilization" "$GPU_MEMORY_UTILIZATION"
+         "--tensor-parallel-size" "$TENSOR_PARALLEL_SIZE"
          "--enable-prefix-caching"
          "--max-num-seqs" "$MAX_NUM_SEQS"
          "--no-enable-log-requests"
          "--disable-log-stats")
 
     if [ "$COMPILATION_LEVEL" != "0" ]; then
-        CMD+=("--compilation-config={\"level\":$COMPILATION_LEVEL}")
+        CMD+=("--compilation-config" "$COMPILATION_LEVEL")
     fi
 
     if [ "$KV_CACHE_DTYPE" != "auto" ]; then
@@ -57,6 +60,19 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     if [ "$ENABLE_CHUNKED_PREFILL" = "1" ]; then
         CMD+=("--enable-chunked-prefill" "--max-num-batched-tokens" "$MAX_NUM_BATCHED_TOKENS")
     fi
+
+    # Forward bất kỳ cờ CLI bổ sung nào được truyền trong command: của docker-compose
+    shift # Bỏ -m
+    shift # Bỏ vllm.entrypoints.openai.api_server
+    for arg in "$@"; do
+        case "$arg" in
+            --model*|--served-model-name*|--host*|--port*|--max-model-len*|--gpu-memory-utilization*|--tensor-parallel-size*|--enable-prefix-caching|--max-num-seqs*|--no-enable-log-requests|--disable-log-stats|--quantization*|--speculative-model*|--num-speculative-tokens*|--speculative-disable-mqa-scorer|--compilation-config*)
+                ;; # Bỏ qua các cờ tiêu chuẩn đã được tự động dựng ở trên
+            *)
+                CMD+=("$arg")
+                ;;
+        esac
+    done
 
     echo "[Antigravity Phase 2 v2] Executing: ${CMD[*]}"
 
