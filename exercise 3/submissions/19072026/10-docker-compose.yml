@@ -1,6 +1,5 @@
-# Slot 10: Speculative Decoding — Draft LFM-350M, Spec_Tokens=6 (aggressive)
-# TODO: Thay [Best Seqs] và [Best Len] sau khi có kết quả Slots 1-3
-# Chốt Best Spec_Tokens sau slot này
+# Slot 10: Dự phòng 1 / Advanced Quant-Spec Tuning
+# Dành riêng cho thử nghiệm nâng cao phát sinh từ kết quả Speculative
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
@@ -26,9 +25,6 @@ services:
       - --no-enable-log-requests
       - --disable-log-stats
       - --compilation-config={"level":3}
-      - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
-      - --num-speculative-tokens=6
-      - --speculative-disable-mqa-scorer
     ports:
       - "8000:8000"
     shm_size: "2g"

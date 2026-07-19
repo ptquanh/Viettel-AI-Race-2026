@@ -1,4 +1,4 @@
-# Slot 7: Speculative Decoding — Draft LFM-350M, Spec_Tokens=3
+# Slot 7: Speculative Decoding (Upper Bound) — Draft LFM-350M, Spec_Tokens=6
 # TODO: Thay [Best Seqs] và [Best Len] sau khi có kết quả Slots 1-3
 services:
   model:
@@ -26,7 +26,7 @@ services:
       - --disable-log-stats
       - --compilation-config={"level":3}
       - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
-      - --num-speculative-tokens=3
+      - --num-speculative-tokens=6
       - --speculative-disable-mqa-scorer
     ports:
       - "8000:8000"
