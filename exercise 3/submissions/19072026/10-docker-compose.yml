@@ -1,4 +1,4 @@
-# Slot 10: Re-test Marlin INT4 Quantization trên Image v2
+# Slot 10: Re-test Compressed Tensors INT4 Quantization trên Image v2 fixed
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -11,7 +11,7 @@ services:
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
-      - VLLM_QUANTIZATION=marlin
+      - VLLM_QUANTIZATION=compressed-tensors
     entrypoint:
       - python3
       - -m

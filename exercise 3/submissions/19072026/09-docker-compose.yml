@@ -1,4 +1,4 @@
-# Slot 9: Re-test Compressed Tensors INT4 Quantization trên Image v2
+# Slot 9: Re-test Speculative Decoding — Draft LFM-350M, Spec_Tokens=6 (Fixed CLI Image v2)
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -11,7 +11,9 @@ services:
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
-      - VLLM_QUANTIZATION=compressed-tensors
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
+      - VLLM_NUM_SPECULATIVE_TOKENS=6
     entrypoint:
       - python3
       - -m

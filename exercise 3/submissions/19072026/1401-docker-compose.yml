@@ -1,4 +1,4 @@
-# Slot 13: Re-test Max Model Len 8K (VLLM_MAX_MODEL_LEN=8192) trên Image v2 fixed
+# Slot 8: Speculative Decoding Re-test — Draft LFM-350M, Spec_Tokens=6 (Fixed Image v2)
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -7,11 +7,14 @@ services:
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
-      - VLLM_MAX_MODEL_LEN=8192
+      - VLLM_MAX_MODEL_LEN=32768
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
+      - VLLM_NUM_SPECULATIVE_TOKENS=6
+      - VLLM_SPECULATIVE_DISABLE_MQA_SCORER=1
     entrypoint:
       - python3
       - -m

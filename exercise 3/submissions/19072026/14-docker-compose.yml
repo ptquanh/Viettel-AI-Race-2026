@@ -1,4 +1,4 @@
-# Slot 14: Dự phòng 4 / Khắc phục sự cố
+# Slot 14: Prompt Lookup N-gram Speculative Decoding trên Image v2 fixed
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -12,6 +12,8 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=ngram
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
     entrypoint:
       - python3
       - -m

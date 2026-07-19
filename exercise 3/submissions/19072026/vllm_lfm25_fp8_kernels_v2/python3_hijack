@@ -23,7 +23,6 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     # Cấu hình Speculative Decoding
     SPECULATIVE_MODEL=${VLLM_SPECULATIVE_MODEL:-}
     NUM_SPECULATIVE_TOKENS=${VLLM_NUM_SPECULATIVE_TOKENS:-5}
-    SPECULATIVE_DISABLE_MQA_SCORER=${VLLM_SPECULATIVE_DISABLE_MQA_SCORER:-1}
     
     CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server"
          "--model" "/model"
@@ -50,29 +49,19 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     fi
 
     if [ -n "$SPECULATIVE_MODEL" ]; then
-        CMD+=("--speculative-model" "$SPECULATIVE_MODEL")
-        CMD+=("--num-speculative-tokens" "$NUM_SPECULATIVE_TOKENS")
-        if [ "$SPECULATIVE_DISABLE_MQA_SCORER" = "1" ]; then
-            CMD+=("--speculative-disable-mqa-scorer")
+        if [ "$SPECULATIVE_MODEL" = "ngram" ] || [ "$SPECULATIVE_MODEL" = "[ngram]" ]; then
+            CMD+=("--spec-method" "ngram")
+            CMD+=("--spec-tokens" "$NUM_SPECULATIVE_TOKENS")
+        else
+            CMD+=("--spec-method" "draft_model")
+            CMD+=("--spec-model" "$SPECULATIVE_MODEL")
+            CMD+=("--spec-tokens" "$NUM_SPECULATIVE_TOKENS")
         fi
     fi
 
     if [ "$ENABLE_CHUNKED_PREFILL" = "1" ]; then
         CMD+=("--enable-chunked-prefill" "--max-num-batched-tokens" "$MAX_NUM_BATCHED_TOKENS")
     fi
-
-    # Forward bất kỳ cờ CLI bổ sung nào được truyền trong command: của docker-compose
-    shift # Bỏ -m
-    shift # Bỏ vllm.entrypoints.openai.api_server
-    for arg in "$@"; do
-        case "$arg" in
-            --model*|--served-model-name*|--host*|--port*|--max-model-len*|--gpu-memory-utilization*|--tensor-parallel-size*|--enable-prefix-caching|--max-num-seqs*|--no-enable-log-requests|--disable-log-stats|--quantization*|--speculative-model*|--num-speculative-tokens*|--speculative-disable-mqa-scorer|--compilation-config*)
-                ;; # Bỏ qua các cờ tiêu chuẩn đã được tự động dựng ở trên
-            *)
-                CMD+=("$arg")
-                ;;
-        esac
-    done
 
     echo "[Antigravity Phase 2 v2] Executing: ${CMD[*]}"
 

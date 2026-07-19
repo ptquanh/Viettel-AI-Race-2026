@@ -1,4 +1,4 @@
-# Slot 15: Golden Combo ngày 19/07
+# Slot 15: Golden Combo Ngày 19/07 — Tích hợp các điểm mạnh nhất từ Slots 9-14
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
