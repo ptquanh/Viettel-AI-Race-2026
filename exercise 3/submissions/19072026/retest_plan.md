@@ -24,9 +24,9 @@ _Giai đoạn xác nhận độc lập từng giả thuyết trên nền Baselin
 
 |  Slot  | File Compose            | Cấu hình Re-test thực sự trên Image v2                                    | Giả thuyết kiểm chứng | Mục tiêu                                                           |
 | :----: | :---------------------- | :------------------------------------------------------------------------ | :-------------------: | :----------------------------------------------------------------- |
-| **6**  | `06-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3` + `Quant=fp8`                            |        **H1**         | Step 1 (Lower Bound Speculative Decoding).                         |
+| **6**  | `06-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3` + `Quant=fp8`                            |        **H1**         | Đã nộp 1148 (Fail). Nếu Slot 7 tốt, sẽ không re-test lại 6.        |
 | **7**  | `07-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6` + `Quant=fp8`                            |        **H1**         | Step 2 (Upper Bound Speculative Decoding).                         |
-| **8**  | `08-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=[Sweet Spot]` + `Quant=fp8`                 |        **H1**         | Step 3 (Sweet Spot Speculative Decoding).                          |
+| **8**  | `08-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=[Sweet Spot]` + `Quant=fp8`                 |        **H1**         | Step 3 (Sweet Spot dựa trên kết quả Slot 7: chọn 4, 5 hoặc 7).     |
 | **9**  | `09-docker-compose.yml` | **True Compressed Tensors INT4** (`VLLM_QUANTIZATION=compressed-tensors`) |        **H2**         | Đo đạc tác động thực sự của Compressed Tensors INT4 trên v2.       |
 | **10** | `10-docker-compose.yml` | **True Marlin INT4** (`VLLM_QUANTIZATION=marlin`)                         |        **H2**         | Đo đạc tác động thực sự của Marlin INT4 kernels trên v2.           |
 | **11** | `11-docker-compose.yml` | **True Max Model Len 16K** (`VLLM_MAX_MODEL_LEN=16384`)                   |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 16K tác động đến TTFT P50.  |
