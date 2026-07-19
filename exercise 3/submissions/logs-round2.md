@@ -65,6 +65,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 55  | `submissions/19072026/1558` | Image v2 FP8 Native Baseline                    | **61.5+** |  **60.75**   |  -  |     -      |   48ms   |   76ms   | 4ms  |    0%    |    1    |    4 / 0    | 🔥 Image v2 chạy thành công 100%! Giảm request lỗi xuống 4 (thấp nhất từ trước đến nay), khẳng định `mode: 3` cực kỳ ổn định. Baseline v2 vững chắc.  |
 | 56  | `submissions/19072026/2043` | Slot 11: Prompt Lookup N-gram Speculative       | **63.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Timeout (Error 2700s): Xung đột trực tiếp giữa `COMPILATION_LEVEL=3` (Dynamo JIT Graph) và N-gram token matching loop gây treo vĩnh viễn lúc Warmup.  |
 | 57  | `submissions/19072026/2101` | Slot 12: Chunked Prefill 4K + Image v2          | **62.5+** |  **59.21**   |  -  |     -      |   54ms   |   83ms   | 4ms  |    0%    |    1    |    7 / 0    | Chunked Prefill phá vỡ tính liên tục của lớp Recurrent LFM2.5, làm trễ TTFT P50 tăng lên 54ms và tăng lỗi lên 7. Khẳng định dùng Non-chunked prefill! |
+| 58  | `submissions/19072026/2131` | Slot 14: True Compressed Tensors INT4           | **62.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 1 (TypeError): Checkpoint `/model` của BTC thiếu compressed-tensors metadata trong `config.json`. Khẳng định FP8 Native là duy nhất tối ưu!    |
 
 ---
 
