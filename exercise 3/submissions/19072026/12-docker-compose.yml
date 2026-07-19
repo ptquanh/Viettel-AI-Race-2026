@@ -1,8 +1,7 @@
-# Slot 12: Dự phòng 1 — Re-run hoặc tinh chỉnh tham số
-# Sẽ cập nhật cấu hình dựa trên kết quả thực tế từ các slots trước
+# Slot 12: Dự phòng 1 / Advanced Quant-Spec Tuning
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
@@ -34,4 +33,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

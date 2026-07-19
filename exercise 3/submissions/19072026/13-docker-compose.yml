@@ -1,14 +1,16 @@
-# Slot 13: Dự phòng 2 — Re-run hoặc tinh chỉnh tham số
-# Sẽ cập nhật cấu hình dựa trên kết quả thực tế từ các slots trước
+# Slot 13: Combo Best Quant + Best Spec_Tokens
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
       - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_SPECULATIVE_DISABLE_MQA_SCORER=1
     entrypoint:
       - python3
       - -m
@@ -34,4 +36,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

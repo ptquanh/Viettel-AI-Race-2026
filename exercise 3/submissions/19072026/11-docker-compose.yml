@@ -1,15 +1,16 @@
-# Slot 11: Combo Quant + Speculative Decoding
-# TODO: Thay [Best Quant], [Best Spec_Tokens], [Best Seqs], [Best Len] sau khi có kết quả Slots 4-10
-# Kết hợp cấu hình lượng tử hóa tối ưu nhất và speculative decoding tối ưu nhất
+# Slot 11: Speculative Decoding Advanced Tuning — Draft LFM-350M
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
       - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_SPECULATIVE_DISABLE_MQA_SCORER=1
     entrypoint:
       - python3
       - -m
@@ -26,10 +27,6 @@ services:
       - --no-enable-log-requests
       - --disable-log-stats
       - --compilation-config={"level":3}
-      - --quantization=marlin
-      - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
-      - --num-speculative-tokens=3
-      - --speculative-disable-mqa-scorer
     ports:
       - "8000:8000"
     shm_size: "2g"
@@ -39,4 +36,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

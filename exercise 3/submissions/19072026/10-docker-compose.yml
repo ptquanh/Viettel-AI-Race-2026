@@ -1,14 +1,13 @@
-# Slot 10: Dự phòng 1 / Advanced Quant-Spec Tuning
-# Dành riêng cho thử nghiệm nâng cao phát sinh từ kết quả Speculative
+# Slot 10: Re-test Marlin INT4 Quantization trên Image v2 — Seqs=32, Len=32768
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
-      - VLLM_QUANTIZATION=fp8
+      - VLLM_QUANTIZATION=marlin
     entrypoint:
       - python3
       - -m
@@ -34,4 +33,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

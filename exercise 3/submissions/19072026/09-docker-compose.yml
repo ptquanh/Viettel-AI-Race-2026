@@ -1,14 +1,13 @@
-# Slot 9: Advanced Speculative / Scorer Tuning — Draft LFM-350M
-# Sẽ cập nhật cấu hình nâng cao dựa trên kết quả các slot Speculative trước
+# Slot 9: Re-test Compressed Tensors INT4 Quantization trên Image v2 — Seqs=32, Len=32768
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
-      - VLLM_QUANTIZATION=fp8
+      - VLLM_QUANTIZATION=compressed-tensors
     entrypoint:
       - python3
       - -m
@@ -25,8 +24,6 @@ services:
       - --no-enable-log-requests
       - --disable-log-stats
       - --compilation-config={"level":3}
-      - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
-      - --num-speculative-tokens=5
     ports:
       - "8000:8000"
     shm_size: "2g"
@@ -36,4 +33,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

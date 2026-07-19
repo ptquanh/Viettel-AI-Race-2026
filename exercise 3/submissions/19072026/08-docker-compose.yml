@@ -2,12 +2,14 @@
 # TODO: Thay [Sweet Spot] dựa trên kết quả Slot 6 (Spec=3) và Slot 7 (Spec=6). Thay [Best Seqs] và [Best Len] từ Slots 1-3.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
-      - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
-      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_WARMUP=1
+      - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_SPECULATIVE_DISABLE_MQA_SCORER=1
       - VLLM_QUANTIZATION=fp8
     entrypoint:
       - python3
@@ -25,9 +27,6 @@ services:
       - --no-enable-log-requests
       - --disable-log-stats
       - --compilation-config={"level":3}
-      - --speculative-model=LiquidAI/LFM2.5-350M-Instruct
-      - --num-speculative-tokens=4
-      - --speculative-disable-mqa-scorer
     ports:
       - "8000:8000"
     shm_size: "2g"

@@ -3,12 +3,11 @@
 # TODO: Cập nhật tất cả tham số tối ưu từ kết quả các slots trước
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
     environment:
       - OMP_NUM_THREADS=2
-      - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
-      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_WARMUP=1
       - VLLM_QUANTIZATION=fp8
     entrypoint:
       - python3
