@@ -1,5 +1,4 @@
-# Slot 5: Compressed Tensors INT4 Quantization — Seqs=[Best Seqs], Len=[Best Len]
-# TODO: Thay [Best Seqs] và [Best Len] sau khi có kết quả Slots 1-3
+# Slot 5: Compressed Tensors INT4 Quantization — Seqs=32, Len=32768 (Cấu hình tối ưu chốt từ Nhóm G1)
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
