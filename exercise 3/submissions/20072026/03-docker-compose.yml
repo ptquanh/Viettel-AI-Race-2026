@@ -1,0 +1,29 @@
+# Slot 3 (20/07): Concurrency Seqs=28
+# MỤC TIÊU: Fine-tune concurrency giữa 24 (hẹp, 58.67đ) và 32 (chuẩn, 61.13đ)
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
+    environment:
+      - OMP_NUM_THREADS=2
+      - VLLM_WARMUP=1
+      - VLLM_CUSTOM_KERNEL=1
+      - VLLM_MAX_NUM_SEQS=28
+      - VLLM_MAX_MODEL_LEN=32768
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_COMPILATION_LEVEL=3
+      - VLLM_QUANTIZATION=fp8
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
