@@ -22,18 +22,18 @@
 
 _Giai đoạn xác nhận độc lập từng giả thuyết trên nền Baseline FP8 Native 61.13đ (Compile L3 + Warmup v2)._
 
-|  Slot  | File Compose            | Cấu hình Re-test thực sự trên Image v2                                    | Giả thuyết kiểm chứng | Mục tiêu                                                           |
-| :----: | :---------------------- | :------------------------------------------------------------------------ | :-------------------: | :----------------------------------------------------------------- |
-| **6**  | `06-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3` + `Quant=fp8`                            |        **H1**         | Đã nộp 1148 (Fail). Nếu Slot 7 tốt, sẽ không re-test lại 6.        |
-| **7**  | `07-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6` + `Quant=fp8`                            |        **H1**         | Step 2 (Upper Bound Speculative Decoding).                         |
-| **8**  | `08-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=[Sweet Spot]` + `Quant=fp8`                 |        **H1**         | Step 3 (Sweet Spot dựa trên kết quả Slot 7: chọn 4, 5 hoặc 7).     |
-| **9**  | `09-docker-compose.yml` | **True Compressed Tensors INT4** (`VLLM_QUANTIZATION=compressed-tensors`) |        **H2**         | Đo đạc tác động thực sự của Compressed Tensors INT4 trên v2.       |
-| **10** | `10-docker-compose.yml` | **True Marlin INT4** (`VLLM_QUANTIZATION=marlin`)                         |        **H2**         | Đo đạc tác động thực sự của Marlin INT4 kernels trên v2.           |
-| **11** | `11-docker-compose.yml` | **True Max Model Len 16K** (`VLLM_MAX_MODEL_LEN=16384`)                   |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 16K tác động đến TTFT P50.  |
-| **12** | `12-docker-compose.yml` | **True Max Model Len 8K** (`VLLM_MAX_MODEL_LEN=8192`)                     |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 8K xem có hạ P50 về < 40ms. |
-| **13** | `13-docker-compose.yml` | **Prompt Lookup N-gram** (`VLLM_SPECULATIVE_MODEL=[ngram]`)               |        **H4**         | Đánh giá N-gram Speculative Decoding thực sự hoạt động trên v2.    |
-| **14** | `14-docker-compose.yml` | Dự phòng khắc phục sự cố / Fine-tuning                                    |           -           | Tinh chỉnh tham số phát sinh từ kết quả Slots 6-13.                |
-| **15** | `15-docker-compose.yml` | **Golden Combo Ngày 19/07** (Tích hợp Best từ Slots 6-13)                 |     **H1+H2+H3**      | Tích hợp Speculative + Quantization + MaxLen tối ưu nhất.          |
+|  Slot  | File Compose              | Cấu hình Re-test thực sự trên Image v2                                    | Giả thuyết kiểm chứng | Mục tiêu                                                           |
+| :----: | :------------------------ | :------------------------------------------------------------------------ | :-------------------: | :----------------------------------------------------------------- |
+| **6**  | `1148-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3`                                          |        **H1**         | **Fail 1148** (Lỗi Pydantic JSON level 3).                         |
+| **7**  | `1333-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6`                                          |        **H1**         | **Fail 1333** (Lỗi Pydantic int 3).                                |
+| **8**  | `08-docker-compose.yml`   | **Re-test Draft LFM-350M** + `Spec_Tokens=6` (Image v2 fixed `mode: 3`)   |        **H1**         | Đo đạc Speculative Decoding thực sự với `Spec_Tokens=6`.           |
+| **9**  | `09-docker-compose.yml`   | **True Compressed Tensors INT4** (`VLLM_QUANTIZATION=compressed-tensors`) |        **H2**         | Đo đạc tác động thực sự của Compressed Tensors INT4 trên v2.       |
+| **10** | `10-docker-compose.yml`   | **True Marlin INT4** (`VLLM_QUANTIZATION=marlin`)                         |        **H2**         | Đo đạc tác động thực sự của Marlin INT4 kernels trên v2.           |
+| **11** | `11-docker-compose.yml`   | **True Max Model Len 16K** (`VLLM_MAX_MODEL_LEN=16384`)                   |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 16K tác động đến TTFT P50.  |
+| **12** | `12-docker-compose.yml`   | **True Max Model Len 8K** (`VLLM_MAX_MODEL_LEN=8192`)                     |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 8K xem có hạ P50 về < 40ms. |
+| **13** | `13-docker-compose.yml`   | **Prompt Lookup N-gram** (`VLLM_SPECULATIVE_MODEL=[ngram]`)               |        **H4**         | Đánh giá N-gram Speculative Decoding thực sự hoạt động trên v2.    |
+| **14** | `14-docker-compose.yml`   | Dự phòng khắc phục sự cố / Fine-tuning                                    |           -           | Tinh chỉnh tham số phát sinh từ kết quả Slots 8-13.                |
+| **15** | `15-docker-compose.yml`   | **Golden Combo Ngày 19/07** (Tích hợp Best từ Slots 8-13)                 |     **H1+H2+H3**      | Tích hợp Speculative + Quantization + MaxLen tối ưu nhất.          |
 
 ---
 

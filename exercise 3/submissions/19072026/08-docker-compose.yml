@@ -1,4 +1,4 @@
-# Slot 8: Speculative Decoding (Sweet Spot) — Draft LFM-350M, Spec_Tokens=5
+# Slot 8: Speculative Decoding Re-test — Draft LFM-350M, Spec_Tokens=6 (Fixed Image v2)
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -13,7 +13,7 @@ services:
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
       - VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct
-      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_NUM_SPECULATIVE_TOKENS=6
       - VLLM_SPECULATIVE_DISABLE_MQA_SCORER=1
     entrypoint:
       - python3
