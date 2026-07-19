@@ -1,4 +1,4 @@
-# Slot 11: Re-test Marlin INT4 Quantization trên Image v2 fixed
+# Slot 11: Prompt Lookup N-gram Speculative Decoding (100% Offline) — Image v2
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -11,7 +11,9 @@ services:
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
-      - VLLM_QUANTIZATION=marlin
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=ngram
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
     entrypoint:
       - python3
       - -m

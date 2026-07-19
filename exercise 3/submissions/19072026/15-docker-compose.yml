@@ -1,4 +1,4 @@
-# Slot 15: Golden Combo Ngày 19/07 — Tích hợp các điểm mạnh nhất từ Slots 9-14
+# Slot 15: Ultimate Golden Combo Ngày 19/07 — Tích hợp các điểm mạnh nhất từ Slots 10-14
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -12,6 +12,10 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=ngram
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_ENABLE_CHUNKED_PREFILL=1
+      - VLLM_MAX_NUM_BATCHED_TOKENS=4096
     entrypoint:
       - python3
       - -m
