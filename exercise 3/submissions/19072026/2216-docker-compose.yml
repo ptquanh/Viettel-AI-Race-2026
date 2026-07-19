@@ -1,4 +1,4 @@
-# Slot 15: Ultimate Golden Baseline Ngày 19/07 — Image v2 FP8 Native Baseline (Compilation Level 3)
+# Slot 15: Retest Giả thuyết H5 — FP8 Native Baseline + KV Cache FP8 (fp8_e5m2) — Image v2
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
@@ -12,6 +12,7 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - VLLM_KV_CACHE_DTYPE=fp8_e5m2
     entrypoint:
       - python3
       - -m

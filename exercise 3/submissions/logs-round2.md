@@ -67,6 +67,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 57  | `submissions/19072026/2101` | Slot 12: Chunked Prefill 4K + Image v2          | **62.5+** |  **59.21**   |  -  |     -      |   54ms   |   83ms   | 4ms  |    0%    |    1    |    7 / 0    | Chunked Prefill phá vỡ tính liên tục của lớp Recurrent LFM2.5, làm trễ TTFT P50 tăng lên 54ms và tăng lỗi lên 7. Khẳng định dùng Non-chunked prefill! |
 | 58  | `submissions/19072026/2113` | Slot 13: Combo N-gram + Chunked Prefill 4K      | **64.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Timeout (Error 2700s): Xác nhận 100% cờ `N-gram` xung đột với `COMPILATION_LEVEL=3` làm treo tiến trình PyTorch Dynamo JIT lúc Warmup.                |
 | 59  | `submissions/19072026/2131` | Slot 14: True Compressed Tensors INT4           | **62.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 1 (TypeError): Checkpoint `/model` của BTC thiếu compressed-tensors metadata trong `config.json`. Khẳng định FP8 Native là duy nhất tối ưu!    |
+| 60  | `submissions/19072026/2216` | Slot 15: FP8 Base + KV Cache FP8 (e5m2)         | **61.5+** |  **56.52**   |  -  |     -      |   63ms   |   95ms   | 4ms  |    0%    |    1    |    5 / 0    | Overhead dequantization KV FP8 làm tăng TTFT P50 (63ms) trên mô hình 1.2B. Khẳng định dùng Default FP16 KV Cache (`VLLM_KV_CACHE_DTYPE=auto`)!        |
 
 ---
 

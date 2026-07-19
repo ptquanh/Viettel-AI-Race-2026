@@ -6,34 +6,34 @@
 
 ---
 
-## 🎯 5 GIẢ THUYẾT CẦN RE-TEST THỰC TẾ TRÊN IMAGE V2
+## 🎯 TRẠNG THÁI 5 GIẢ THUYẾT RE-TEST THỰC TẾ TRÊN IMAGE V2
 
-|  STT   | Giả thuyết / Hạng mục                | Cơ chế thực sự ở Image v2                                   | Mục tiêu kỳ vọng                                                                    |
-| :----: | :----------------------------------- | :---------------------------------------------------------- | :---------------------------------------------------------------------------------- |
-| **H1** | **GPU Speculative Decoding**         | `VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct`      | Giảm TPOT từ 4ms xuống dải **2.0 - 3.0ms** nhờ draft model 350M trên GPU.           |
-| **H2** | **True INT4 Online Quantization**    | `VLLM_QUANTIZATION=compressed-tensors` & `marlin`           | Giảm 50% Memory Bandwidth weight reads, bứt phá TPOT và giảm trễ TTFT.              |
-| **H3** | **True Max Model Length Reduction**  | `VLLM_MAX_MODEL_LEN=16384` & `8192`                         | Tiết kiệm VRAM cho KV Cache, tăng khả năng xử lý concurrency không bị trễ.          |
-| **H4** | **Prompt Lookup N-gram Speculative** | `VLLM_SPECULATIVE_MODEL=[ngram]`                            | Tận dụng lặp từ trong prompt để sinh token nhanh mà không mất overhead GPU compute. |
-| **H5** | **Chunked Prefill & KV Cache FP8**   | `VLLM_ENABLE_CHUNKED_PREFILL=1` + `VLLM_KV_CACHE_DTYPE=fp8` | Tối ưu hóa TTFT P95 cho câu lệnh dài và tăng gấp đôi KV Cache capacity.             |
+|  STT   | Giả thuyết / Hạng mục                | Cơ chế thực sự ở Image v2                                   | Kết quả kiểm chứng thực tế trên v2                                                                                                   |  Trạng thái   |
+| :----: | :----------------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- | :-----------: |
+| **H1** | **GPU Speculative Decoding**         | `VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct`      | **Fail STT 53 & 54**. Lỗi CLI & Timeout do thiếu draft model trong môi trường offline.                                               |  ❌ Thất bại  |
+| **H2** | **True INT4 Online Quantization**    | `VLLM_QUANTIZATION=compressed-tensors` & `marlin`           | **Fail STT 59 (2131)**. Checkpoint `/model` BTC thiếu compressed metadata. FP8 Native tối ưu 100%.                                   |  ❌ Thất bại  |
+| **H3** | **True Max Model Length Reduction**  | `VLLM_MAX_MODEL_LEN=16384` & `8192`                         | **Fail STT 46 (49.74đ)**. Kéo TTFT P50 vọt lên 79ms. Best Len = 32768 (32K).                                                         | ❌ Không chọn |
+| **H4** | **Prompt Lookup N-gram Speculative** | `VLLM_SPECULATIVE_MODEL=ngram`                              | **Fail STT 56 (2043) & STT 58 (2113)**. Timeout 2700s do xung đột JIT Dynamo Graph với N-gram.                                       |  ❌ Thất bại  |
+| **H5** | **Chunked Prefill & KV Cache FP8**   | `VLLM_ENABLE_CHUNKED_PREFILL=1` + `VLLM_KV_CACHE_DTYPE=fp8` | **Chunked 4K (59.21đ)**: Không tối ưu cho Recurrent LFM2.5.<br>**KV Cache FP8 (56.52đ)**: Overhead dequantization làm tăng TTFT P50. | ❌ Không chọn |
 
 ---
 
-## 🗓️ LỘ TRÌNH CHI TIẾT NGÀY 19/07 (TODAY - 10 SLOTS CÒN LẠI)
+## 🗓️ LỘ TRÌNH & KẾT QUẢ THỰC TẾ NGÀY 19/07 (SLOTS 6 - 15)
 
-_Giai đoạn xác nhận độc lập từng giả thuyết trên nền Baseline FP8 Native 61.13đ (Compile L3 + Warmup v2)._
+_Kết quả xác nhận thực tế của từng slot trên nền Image v2 (`ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2`)._
 
-|  Slot  | File Compose              | Cấu hình Re-test thực sự trên Image v2                                    | Giả thuyết kiểm chứng | Mục tiêu                                                           |
-| :----: | :------------------------ | :------------------------------------------------------------------------ | :-------------------: | :----------------------------------------------------------------- |
-| **6**  | `1148-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3`                                          |        **H1**         | **Fail 1148** (Lỗi Pydantic JSON level 3).                         |
-| **7**  | `1333-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6`                                          |        **H1**         | **Fail 1333** (Lỗi Pydantic int 3).                                |
-| **8**  | `08-docker-compose.yml`   | **Re-test Draft LFM-350M** + `Spec_Tokens=6` (Image v2 fixed `mode: 3`)   |        **H1**         | Đo đạc Speculative Decoding thực sự với `Spec_Tokens=6`.           |
-| **9**  | `09-docker-compose.yml`   | **True Compressed Tensors INT4** (`VLLM_QUANTIZATION=compressed-tensors`) |        **H2**         | Đo đạc tác động thực sự của Compressed Tensors INT4 trên v2.       |
-| **10** | `10-docker-compose.yml`   | **True Marlin INT4** (`VLLM_QUANTIZATION=marlin`)                         |        **H2**         | Đo đạc tác động thực sự của Marlin INT4 kernels trên v2.           |
-| **11** | `11-docker-compose.yml`   | **True Max Model Len 16K** (`VLLM_MAX_MODEL_LEN=16384`)                   |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 16K tác động đến TTFT P50.  |
-| **12** | `12-docker-compose.yml`   | **True Max Model Len 8K** (`VLLM_MAX_MODEL_LEN=8192`)                     |        **H3**         | Đo đạc thực sự việc giảm Max Len xuống 8K xem có hạ P50 về < 40ms. |
-| **13** | `13-docker-compose.yml`   | **Prompt Lookup N-gram** (`VLLM_SPECULATIVE_MODEL=[ngram]`)               |        **H4**         | Đánh giá N-gram Speculative Decoding thực sự hoạt động trên v2.    |
-| **14** | `14-docker-compose.yml`   | Dự phòng khắc phục sự cố / Fine-tuning                                    |           -           | Tinh chỉnh tham số phát sinh từ kết quả Slots 8-13.                |
-| **15** | `15-docker-compose.yml`   | **Golden Combo Ngày 19/07** (Tích hợp Best từ Slots 8-13)                 |     **H1+H2+H3**      | Tích hợp Speculative + Quantization + MaxLen tối ưu nhất.          |
+|  Slot  | Mã / File Compose         | Cấu hình Re-test thực sự trên Image v2                                      | Điểm số ERS | Trạng thái & Kết luận                                                                        |
+| :----: | :------------------------ | :-------------------------------------------------------------------------- | :---------: | :------------------------------------------------------------------------------------------- |
+| **6**  | `1148-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=3`                                            |  **Fail**   | Exited 2 (Lỗi Pydantic JSON level 3).                                                        |
+| **7**  | `1333-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6`                                            |  **Fail**   | Exited 2 (Lỗi Pydantic int 3).                                                               |
+| **8**  | `1401-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6` (Image v2 CLI fixed)                       |  **Fail**   | Exited 2 (Lỗi vLLM CLI flags dư positional args).                                            |
+| **9**  | `1411-docker-compose.yml` | Draft LFM-350M + `Spec_Tokens=6` (Offline HF download)                      |  **Fail**   | Timeout 2700s do không có mạng tải draft model 350M.                                         |
+| **10** | `1558-docker-compose.yml` | **Image v2 FP8 Native Baseline** (`Compilation Level 3`)                    |  **60.75**  | 🔥 **THÀNH CÔNG!** Request lỗi giảm xuống 4 (thấp nhất từ trước đến nay). Baseline chuẩn v2. |
+| **11** | `2043-docker-compose.yml` | **Prompt Lookup N-gram Speculative** (`VLLM_SPECULATIVE_MODEL=ngram`)       |  **Fail**   | Timeout 2700s do xung đột giữa `COMPILATION_LEVEL=3` và N-gram token loop.                   |
+| **12** | `2101-docker-compose.yml` | **Chunked Prefill 4K + FP8 Native** (`VLLM_ENABLE_CHUNKED_PREFILL=1`)       |  **59.21**  | TTFT P50 tăng lên 54ms do làm gãy tính liên tục Recurrent. Chốt Non-chunked prefill!         |
+| **13** | `2113-docker-compose.yml` | **Combo N-gram Speculative + Chunked Prefill 4K**                           |  **Fail**   | Timeout 2700s do cờ N-gram xung đột JIT Dynamo Graph.                                        |
+| **14** | `2131-docker-compose.yml` | **True Compressed Tensors INT4** (`VLLM_QUANTIZATION=compressed-tensors`)   |  **Fail**   | Exited 1 (TypeError do `/model` thiếu compressed metadata). FP8 Native tối ưu 100%.          |
+| **15** | `2216-docker-compose.yml` | **Giả thuyết H5: FP8 Base + KV Cache FP8 (`VLLM_KV_CACHE_DTYPE=fp8_e5m2`)** |  **56.52**  | Overhead dequantization làm tăng TTFT P50 (63ms). Khẳng định dùng Default FP16 KV Cache!     |
 
 ---
 
