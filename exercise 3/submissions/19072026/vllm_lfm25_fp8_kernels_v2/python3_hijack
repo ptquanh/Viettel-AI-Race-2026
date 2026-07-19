@@ -38,7 +38,7 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
          "--disable-log-stats")
 
     if [ "$COMPILATION_LEVEL" != "0" ]; then
-        CMD+=("--compilation-config" "$COMPILATION_LEVEL")
+        CMD+=("--compilation-config" "{\"mode\": $COMPILATION_LEVEL}")
     fi
 
     if [ "$KV_CACHE_DTYPE" != "auto" ]; then

@@ -1,4 +1,4 @@
-# Slot 7: Speculative Decoding (Upper Bound) — Draft LFM-350M, Spec_Tokens=6 (Fixed Image v2)
+# Slot 7 (1333 Error): Speculative Decoding (Upper Bound) — Draft LFM-350M, Spec_Tokens=6
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
