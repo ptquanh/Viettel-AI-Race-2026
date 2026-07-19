@@ -1,5 +1,4 @@
-# Slot 2: Seqs=24, Len=[Best Len] — Concurrency sweep (chờ kết quả Slot 1)
-# TODO: Thay [Best Len] bằng giá trị tối ưu nhất từ Slot 1 (16384 hoặc 32768)
+# Slot 2: Seqs=24, Len=32768 (Best Len đã chốt từ Slot 1) — Concurrency sweep 24
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v1
