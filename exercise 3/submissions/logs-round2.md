@@ -56,6 +56,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 46  | `submissions/19072026/0739` | Seqs=32 + MaxLen=16K                            | **61.5+** |  **49.74**   |  -  |     -      |   79ms   |  105ms   | 5ms  |    0%    |    1    |    7 / 0    | Len=16K bị suy giảm nghiêm trọng so với 32K (60.91): TTFT P50 tăng lên 79ms, TPOT tăng lên 5ms. Xác nhận Best Len = 32768 (32K).      |
 | 47  | `submissions/19072026/0750` | Seqs=24 + MaxLen=32K                            | **61.5+** |  **58.67**   |  -  |     -      |   58ms   |   84ms   | 4ms  |    0%    |    1    |    5 / 0    | Giảm Seqs về 24 làm trễ TTFT P50 vọt lên 58ms do hẹp hàng đợi, mặc dù giảm lỗi xuống 5. Xác nhận Best Seqs = 32.                      |
 | 48  | `submissions/19072026/0808` | Seqs=48 + MaxLen=32K                            | **61.5+** |  **55.85**   |  -  |     -      |   69ms   |   91ms   | 4ms  |    0%    |    1    |    7 / 0    | Tăng Seqs lên 48 làm tranh chấp GPU compute khiến TTFT P50 vọt lên 69ms, không giảm được lỗi (7 failed). Khẳng định Best Seqs = 32.   |
+| 49  | `submissions/19072026/1059` | Slot 4: Marlin INT4 + Seqs=32 + MaxLen=32K      | **61.5+** |  **59.81**   |  -  |     -      |   51ms   |   80ms   | 4ms  |    0%    |    1    |    6 / 0    | Marlin INT4 chạy rất mượt (59.81đ), giảm lỗi xuống 6 requests. Trễ dequantization làm tăng nhẹ TTFT P50 thêm 6ms so với FP8 Native.  |
 
 ---
 
