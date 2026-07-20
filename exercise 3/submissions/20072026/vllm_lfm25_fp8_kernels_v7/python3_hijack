@@ -1,0 +1,53 @@
+#!/bin/bash
+ARGS="$*"
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity Phase 2 v7] Lean Edition: Multi-Step Decode + Zero Warmup"
+    
+    export VLLM_LOGGING_LEVEL=WARNING
+    export OMP_NUM_THREADS=${OMP_NUM_THREADS:-2}
+
+    # Cấu hình cốt lõi
+    MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-32768}
+    MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-32}
+    GPU_MEMORY_UTILIZATION=${VLLM_GPU_MEMORY_UTILIZATION:-0.95}
+    TENSOR_PARALLEL_SIZE=${VLLM_TENSOR_PARALLEL_SIZE:-1}
+    QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
+    COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
+    
+    # Đòn bẩy mới: Multi-step Decode
+    NUM_SCHEDULER_STEPS=${VLLM_NUM_SCHEDULER_STEPS:-1}
+    
+    # Đòn bẩy mới: Attention Backend
+    ATTENTION_BACKEND=${VLLM_ATTENTION_BACKEND:-FLASHINFER}
+
+    # Bắt buộc đặt backend
+    export VLLM_ATTENTION_BACKEND=$ATTENTION_BACKEND
+    
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server"
+         "--model" "/model"
+         "--served-model-name" "LFM2.5-1.2B-Instruct"
+         "--host" "0.0.0.0" "--port" "8000"
+         "--max-model-len" "$MAX_MODEL_LEN"
+         "--gpu-memory-utilization" "$GPU_MEMORY_UTILIZATION"
+         "--tensor-parallel-size" "$TENSOR_PARALLEL_SIZE"
+         "--enable-prefix-caching"
+         "--max-num-seqs" "$MAX_NUM_SEQS"
+         "--no-enable-log-requests"
+         "--disable-log-stats"
+         "--num-scheduler-steps" "$NUM_SCHEDULER_STEPS")
+
+    if [ "$COMPILATION_LEVEL" != "0" ]; then
+        CMD+=("--compilation-config" "{\"mode\": $COMPILATION_LEVEL}")
+    fi
+
+    if [ "$QUANTIZATION" != "none" ]; then
+        CMD+=("--quantization" "$QUANTIZATION")
+    fi
+
+    echo "[Antigravity Phase 2 v7] Executing: ${CMD[*]}"
+    
+    # KHÔNG CÓ WARMUP, KHÔNG BACKGROUND, KHÔNG 503
+    exec "${CMD[@]}"
+else
+    exec "/usr/bin/python3_real" "$@"
+fi
