@@ -1,4 +1,4 @@
-# Slot 7 (20/07): Image v4.1 - Torch Max Autotune
+# Slot 7 (20/07) - 1313: Image v4.1 - Torch Max Autotune
 # MỤC TIÊU: Bật TORCHINDUCTOR_MAX_AUTOTUNE=1 và FX_GRAPH_CACHE=1 để ép PyTorch Inductor vắt kiệt hiệu năng phần cứng cho Tầng 3 (ép TPOT < 3ms).
 services:
   model:
