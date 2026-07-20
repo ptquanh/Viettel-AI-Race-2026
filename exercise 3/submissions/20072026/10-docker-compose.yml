@@ -1,0 +1,31 @@
+# Slot 10 (20/07): Offline Speculative Decoding v3 (Draft Model 350M nhúng sẵn, SpecTokens=5, Eager Level 0)
+# MỤC TIÊU: Đẩy số token speculative proposal từ 3 lên 5 để tối đa hóa decode speedup!
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v3
+    environment:
+      - OMP_NUM_THREADS=2
+      - VLLM_WARMUP=1
+      - VLLM_CUSTOM_KERNEL=1
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_MAX_MODEL_LEN=32768
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_COMPILATION_LEVEL=0
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_SPECULATIVE_MODEL=1
+      - VLLM_NUM_SPECULATIVE_TOKENS=5
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
