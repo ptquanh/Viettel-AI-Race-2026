@@ -1,18 +1,20 @@
-# Slot 4 (20/07): GPU Memory Utilization 0.97
-# MỤC TIÊU: Mở rộng KV Cache capacity nhẹ (0.95 chuẩn, 0.98 giảm điểm nhẹ)
+# Slot 09 (20/07): Image v5 - Custom Kernel + Max Autotune
+# MỤC TIÊU: Kết hợp Kernel Fusion và Max Autotune.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
       - VLLM_CUSTOM_KERNEL=1
       - VLLM_MAX_NUM_SEQS=32
       - VLLM_MAX_MODEL_LEN=32768
-      - VLLM_GPU_MEMORY_UTILIZATION=0.97
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - TORCHINDUCTOR_MAX_AUTOTUNE=1
+      - TORCHINDUCTOR_FX_GRAPH_CACHE=1
     entrypoint:
       - python3
       - -m

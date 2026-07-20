@@ -1,8 +1,8 @@
-# Slot 10 (20/07): Best Config Re-run
-# MỤC TIÊU: Chạy lại cấu hình tốt nhất vào khung giờ ít tải.
+# Slot 15 (20/07): ULTIMATE COMBO NGÀY 20/07
+# MỤC TIÊU: Bản tổng hợp tất cả kỹ thuật tốt nhất trong ngày.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
@@ -13,6 +13,8 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - TORCHINDUCTOR_MAX_AUTOTUNE=1
+      - TORCHINDUCTOR_FX_GRAPH_CACHE=1
     entrypoint:
       - python3
       - -m

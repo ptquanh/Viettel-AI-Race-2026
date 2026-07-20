@@ -1,8 +1,8 @@
-# Slot 10 (20/07): Best Config Re-run
-# MỤC TIÊU: Chạy lại cấu hình tốt nhất vào khung giờ ít tải.
+# Slot 08 (20/07): Image v5 - Custom Kernel Fusion
+# MỤC TIÊU: Tích hợp monkey patch Triton Kernel Fusion (gộp LayerNorm + Conv + SiLU). Ép TPOT < 3ms.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1

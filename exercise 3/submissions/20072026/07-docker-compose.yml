@@ -1,8 +1,8 @@
-# Slot 5 (20/07): Compilation Level 1
-# MỤC TIÊU: Test mức JIT compile trung gian (Level 0 tốt, Level 2 timeout, Level 3 tốt nhất)
+# Slot 7 (20/07): Image v4.1 - Torch Max Autotune
+# MỤC TIÊU: Bật TORCHINDUCTOR_MAX_AUTOTUNE=1 và FX_GRAPH_CACHE=1 để ép PyTorch Inductor vắt kiệt hiệu năng phần cứng cho Tầng 3 (ép TPOT < 3ms).
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v2
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
@@ -11,8 +11,10 @@ services:
       - VLLM_MAX_MODEL_LEN=32768
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
       - VLLM_TENSOR_PARALLEL_SIZE=1
-      - VLLM_COMPILATION_LEVEL=1
+      - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
+      - TORCHINDUCTOR_MAX_AUTOTUNE=1
+      - TORCHINDUCTOR_FX_GRAPH_CACHE=1
     entrypoint:
       - python3
       - -m

@@ -1,5 +1,5 @@
-# Slot 10 (20/07): Best Config Re-run
-# MỤC TIÊU: Chạy lại cấu hình tốt nhất vào khung giờ ít tải.
+# Slot 13 (20/07): Dự phòng
+# MỤC TIÊU: Dự phòng.
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4

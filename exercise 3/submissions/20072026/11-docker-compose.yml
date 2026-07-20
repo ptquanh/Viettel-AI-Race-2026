@@ -1,8 +1,8 @@
-# Slot 11 (20/07): Offline Speculative Decoding v3 (Draft Model 350M nhúng sẵn, SpecTokens=3, Compile Level 3)
-# MỤC TIÊU: Kết hợp JIT compilation Level 3 + Speculative draft model để tối ưu cả TTFT và TPOT!
+# Slot 11 (20/07): Best config re-run #1
+# MỤC TIÊU: Chạy lại config tốt nhất lúc BTC ít tải.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v3
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
@@ -13,8 +13,6 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
-      - VLLM_SPECULATIVE_MODEL=1
-      - VLLM_NUM_SPECULATIVE_TOKENS=3
     entrypoint:
       - python3
       - -m

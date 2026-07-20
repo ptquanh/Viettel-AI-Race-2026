@@ -1,5 +1,5 @@
-# Slot 10 (20/07): Best Config Re-run
-# MỤC TIÊU: Chạy lại cấu hình tốt nhất vào khung giờ ít tải.
+# Slot 12 (20/07): Best config re-run #2
+# MỤC TIÊU: Săn kỷ lục mới lúc BTC ít tải nhất.
 services:
   model:
     image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v4
