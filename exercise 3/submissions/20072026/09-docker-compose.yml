@@ -1,8 +1,8 @@
-# Slot 09 (20/07): Image v5 - Custom Kernel + Max Autotune
-# MỤC TIÊU: Kết hợp Kernel Fusion và Max Autotune.
+# Slot 09 (20/07): Image v5.1 - Deep Triton Kernel Fusion (RMSNorm + Conv1D + SiLU)
+# MỤC TIÊU: Gộp sâu 3 toán tử rời rạc per-layer thành 1 Triton Kernel duy nhất để triệt tiêu Kernel Launch Overhead, hạ TPOT < 3ms và bứt phá 70+ điểm.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5.1
     environment:
       - OMP_NUM_THREADS=2
       - VLLM_WARMUP=1
@@ -13,8 +13,6 @@ services:
       - VLLM_TENSOR_PARALLEL_SIZE=1
       - VLLM_COMPILATION_LEVEL=3
       - VLLM_QUANTIZATION=fp8
-      - TORCHINDUCTOR_MAX_AUTOTUNE=1
-      - TORCHINDUCTOR_FX_GRAPH_CACHE=1
     entrypoint:
       - python3
       - -m

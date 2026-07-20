@@ -1,4 +1,4 @@
-# Slot 08 (20/07): Image v5 - Custom Kernel Fusion
+# Slot 8 (20/07) - 1325: Image v5 - Custom Kernel Fusion
 # MỤC TIÊU: Tích hợp monkey patch Triton Kernel Fusion (gộp LayerNorm + Conv + SiLU). Ép TPOT < 3ms.
 services:
   model:

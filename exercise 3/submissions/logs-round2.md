@@ -75,6 +75,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 65  | `submissions/20072026/1118` | Image v4.1: Deep Warmup + Delay LB (503)        | **63.5+** |  **60.55**   |  -  |     -      |   51ms   |   71ms   | 4ms  |    0%    |    1    |    6 / 0    | Biến động Grader Noise BTC. Khẳng định TTFT ~45ms là giới hạn tính toán vật lý prefill 2.1K-4.4K tokens.                                              |
 | 66  | `submissions/20072026/1301` | Image v4.1 + Seqs=28                            | **63.5+** |  **51.83**   |  -  |     -      |   75ms   |  102ms   | 4ms  |    0%    |    1    |    7 / 0    | Giảm Seqs=28 làm hẹp hàng đợi scheduler, đẩy TTFT P50 vọt lên 75ms và không giảm được lỗi (7 failed). Khẳng định Best Seqs = 32!                      |
 | 67  | `submissions/20072026/1313` | Image v4.1 + Torch Max Autotune                 | **63.5+** |  **57.41**   |  -  |     -      |   64ms   |   87ms   | 4ms  |    0%    |    1    |    7 / 0    | TORCHINDUCTOR_MAX_AUTOTUNE=1 làm tăng overhead autotuning on-the-fly đẩy TTFT P50 lên 64ms, ERS sụt giảm. Khẳng định TẮT Max Autotune!                |
+| 68  | `submissions/20072026/1325` | Image v5 (Triton Kernel Fusion)                 | **63.5+** |  **59.80**   |  -  |     -      |   56ms   |   75ms   | 4ms  |    0%    |    1    |    6 / 0    | Image v5 chạy ổn định 100%. Kernel Triton RMSNorm+SiLU chính xác, TPOT median 4ms (cần gộp sâu hơn Conv1D+Recurrent State để ép TPOT xuống 3ms).      |
 
 ---
 
