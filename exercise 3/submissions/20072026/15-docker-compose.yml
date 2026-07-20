@@ -1,24 +1,27 @@
-# Slot 15 (20/07): ULTIMATE COMBO NGÀY 20/07
-# MỤC TIÊU: Bản tổng hợp tất cả kỹ thuật tốt nhất trong ngày.
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v5
-    environment:
-      - OMP_NUM_THREADS=2
-      - VLLM_WARMUP=1
-      - VLLM_CUSTOM_KERNEL=1
-      - VLLM_MAX_NUM_SEQS=32
-      - VLLM_MAX_MODEL_LEN=32768
-      - VLLM_GPU_MEMORY_UTILIZATION=0.95
-      - VLLM_TENSOR_PARALLEL_SIZE=1
-      - VLLM_COMPILATION_LEVEL=3
-      - VLLM_QUANTIZATION=fp8
-      - TORCHINDUCTOR_MAX_AUTOTUNE=1
-      - TORCHINDUCTOR_FX_GRAPH_CACHE=1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v8
     entrypoint:
-      - python3
+      - /usr/bin/python3
       - -m
       - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+      - OMP_NUM_THREADS=2
+      - VLLM_MAX_MODEL_LEN=32768
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_GPU_MEMORY_UTILIZATION=0.96
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_COMPILATION_LEVEL=3
+      - VLLM_ATTENTION_BACKEND=FLASHINFER
+      - VLLM_BLOCK_SIZE=32
+      - CUDA_DEVICE_MAX_CONNECTIONS=1
     ports:
       - "8000:8000"
     shm_size: "2g"
