@@ -75,7 +75,8 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         # Poll healthcheck tối đa 120s
         SERVER_READY=0
         for i in $(seq 1 120); do
-            if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/warmup_ready)
+            if [ "$HTTP_CODE" = "200" ]; then
                 echo "[Antigravity Phase 2 v2] Server ready! Starting compilation warmup..."
                 SERVER_READY=1
                 break
@@ -89,6 +90,8 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
             /usr/bin/python3_real /patch/deep_warmup.py
             
             echo "[Antigravity Phase 2 v4] Deep Warmup Execution Finished!"
+            touch /tmp/warmup_done
+            echo "[Antigravity Phase 2 v4] Readiness Probe unblocked!"
         else
             echo "[Antigravity Phase 2 v4] Server failed to become ready in 120s! Skipping warmup."
         fi
