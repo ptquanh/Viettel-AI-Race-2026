@@ -79,6 +79,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 69  | `submissions/20072026/1414` | Image v5.1 (Deep Triton Fusion RMSNorm+Conv1D+SiLU) | **63.5+** |  **54.13**   |  -  |     -      |   72ms   |   96ms   | 4ms  |    0%    |    1    |    7 / 0    | Deep Triton Kernel Fusion v5.1 gây overhead JIT dynamic shape làm TTFT P50 tăng lên 72ms, điểm ERS sụt giảm. Khuyên dùng Image v4.1 / v5!             |
 | 70  | `submissions/20072026/1509` | Image v7 Lean + Multi-Step Decode (`steps=8`)       | **65.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 2 (Error): vLLM v0.22.1 không nhận cờ `--num-scheduler-steps`. Đã gỡ bỏ cờ này và rebuild Image v7 Lean cho Slot 11!                           |
 | 71  | `submissions/20072026/1534` | Image v7 Lean (Zero Warmup) + `CUDA_MAX_CONN=1`     | **63.5+** |  **60.24**   |  -  |     -      |   53ms   |   76ms   | 4ms  |    0%    |    1    |    4 / 0    | Image v7 Lean chạy ổn định 100%. Giảm lỗi xuống còn 4 requests (thấp kỷ lục). Primer warmup tự nhiên hoạt động rất tốt!                               |
+| 72  | `submissions/20072026/1816` | Image v7 Lean + FlashInfer Backend                  | **63.5+** |  **60.52**   |  -  |     -      |   51ms   |   72ms   | 4ms  |    0%    |    1    |    5 / 0    | FlashInfer giúp giảm trễ đuôi TTFT P95 xuống 72ms (P50 51ms), điểm tăng lên 60.52đ. Khẳng định FlashInfer tốt hơn FlashAttention mặc định!            |
 
 ---
 

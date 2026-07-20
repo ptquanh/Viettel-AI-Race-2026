@@ -40,6 +40,11 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         CMD+=("--quantization" "$QUANTIZATION")
     fi
 
+    BLOCK_SIZE=${VLLM_BLOCK_SIZE:-16}
+    if [ "$BLOCK_SIZE" != "16" ]; then
+        CMD+=("--block-size" "$BLOCK_SIZE")
+    fi
+
     echo "[Antigravity Phase 2 v7] Executing: ${CMD[*]}"
     
     # KHÔNG CÓ WARMUP, KHÔNG BACKGROUND, KHÔNG 503
