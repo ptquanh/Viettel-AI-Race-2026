@@ -14,9 +14,6 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
     QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
     COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
     
-    # Đòn bẩy mới: Multi-step Decode
-    NUM_SCHEDULER_STEPS=${VLLM_NUM_SCHEDULER_STEPS:-1}
-    
     # Đòn bẩy mới: Attention Backend
     ATTENTION_BACKEND=${VLLM_ATTENTION_BACKEND:-FLASHINFER}
 
@@ -33,8 +30,7 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
          "--enable-prefix-caching"
          "--max-num-seqs" "$MAX_NUM_SEQS"
          "--no-enable-log-requests"
-         "--disable-log-stats"
-         "--num-scheduler-steps" "$NUM_SCHEDULER_STEPS")
+         "--disable-log-stats")
 
     if [ "$COMPILATION_LEVEL" != "0" ]; then
         CMD+=("--compilation-config" "{\"mode\": $COMPILATION_LEVEL}")

@@ -77,6 +77,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 67  | `submissions/20072026/1313` | Image v4.1 + Torch Max Autotune                     | **63.5+** |  **57.41**   |  -  |     -      |   64ms   |   87ms   | 4ms  |    0%    |    1    |    7 / 0    | TORCHINDUCTOR_MAX_AUTOTUNE=1 làm tăng overhead autotuning on-the-fly đẩy TTFT P50 lên 64ms, ERS sụt giảm. Khẳng định TẮT Max Autotune!                |
 | 68  | `submissions/20072026/1325` | Image v5 (Triton Kernel Fusion)                     | **63.5+** |  **59.80**   |  -  |     -      |   56ms   |   75ms   | 4ms  |    0%    |    1    |    6 / 0    | Image v5 chạy ổn định 100%. Kernel Triton RMSNorm+SiLU chính xác, TPOT median 4ms (cần gộp sâu hơn Conv1D+Recurrent State để ép TPOT xuống 3ms).      |
 | 69  | `submissions/20072026/1414` | Image v5.1 (Deep Triton Fusion RMSNorm+Conv1D+SiLU) | **63.5+** |  **54.13**   |  -  |     -      |   72ms   |   96ms   | 4ms  |    0%    |    1    |    7 / 0    | Deep Triton Kernel Fusion v5.1 gây overhead JIT dynamic shape làm TTFT P50 tăng lên 72ms, điểm ERS sụt giảm. Khuyên dùng Image v4.1 / v5!             |
+| 70  | `submissions/20072026/1509` | Image v7 Lean + Multi-Step Decode (`steps=8`)       | **65.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 2 (Error): vLLM v0.22.1 không nhận cờ `--num-scheduler-steps`. Đã gỡ bỏ cờ này và rebuild Image v7 Lean cho Slot 11!                           |
 
 ---
 
