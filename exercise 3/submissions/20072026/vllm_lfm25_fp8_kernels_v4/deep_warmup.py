@@ -20,9 +20,11 @@ def send_request(length):
     req = urllib.request.Request(URL, data=json.dumps(data).encode('utf-8'), headers=HEADERS)
     try:
         with urllib.request.urlopen(req) as response:
+            if response.status != 200:
+                raise Exception(f"HTTP Error: {response.status}")
             return response.read()
     except Exception as e:
-        return str(e)
+        raise e
 
 def warmup():
     print("[Antigravity Phase 2 v4] Starting Multi-turn Deep Warmup (Profile-Guided)...")

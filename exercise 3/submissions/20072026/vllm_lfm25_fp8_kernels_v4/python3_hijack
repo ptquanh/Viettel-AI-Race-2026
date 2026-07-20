@@ -73,19 +73,25 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         echo "[Antigravity Phase 2 v2] Waiting for server to start warmup..."
         
         # Poll healthcheck tối đa 120s
+        SERVER_READY=0
         for i in $(seq 1 120); do
             if curl -s http://localhost:8000/health > /dev/null 2>&1; then
                 echo "[Antigravity Phase 2 v2] Server ready! Starting compilation warmup..."
+                SERVER_READY=1
                 break
             fi
             sleep 1
         done
         
-        # Gửi multi-turn dummy requests để kích hoạt Deep JIT compilation của PyTorch Dynamo
-        echo "[Antigravity Phase 2 v4] Running Python Deep Warmup Script..."
-        /usr/bin/python3_real /patch/deep_warmup.py
-        
-        echo "[Antigravity Phase 2 v4] Deep Warmup Execution Finished!"
+        if [ "$SERVER_READY" = "1" ]; then
+            # Gửi multi-turn dummy requests để kích hoạt Deep JIT compilation của PyTorch Dynamo
+            echo "[Antigravity Phase 2 v4] Running Python Deep Warmup Script..."
+            /usr/bin/python3_real /patch/deep_warmup.py
+            
+            echo "[Antigravity Phase 2 v4] Deep Warmup Execution Finished!"
+        else
+            echo "[Antigravity Phase 2 v4] Server failed to become ready in 120s! Skipping warmup."
+        fi
     fi
 
     # Đợi tiến trình server chạy chính
