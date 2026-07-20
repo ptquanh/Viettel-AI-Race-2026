@@ -72,6 +72,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 62  | `submissions/20072026/0814` | Re-test MaxLen=16384 (16K) on Image v2          | **62.0+** |  **56.76**   |  -  |     -      |   67ms   |   95ms   | 4ms  |    0%    |    1    |    4 / 0    | Mốc 16K xáo trộn CUDA Graph stride buckets lớn nhất, đẩy TTFT P50 lên 67ms. Khẳng định 100% Best MaxLen = 32768 (32K)!                                |
 | 63  | `submissions/20072026/0833` | Offline Speculative Decoding v3 (Draft 350M)    | **70.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 1 (RuntimeError): Engine Core Init Failed. vLLM v0.22.1 chưa hỗ trợ spec decode verification giữa 2 mô hình Recurrent LFM2.5.                  |
 | 64  | `submissions/20072026/0917` | Image v4: Golden Base + Deep Warmup             | **62.0+** |  **61.11**   |  -  |     -      |   47ms   |   69ms   | 4ms  |    0%    |    1    |    5 / 0    | Deep Warmup lần đầu: TTFT P95 giảm xuống 69ms. Phát hiện LB gửi load song song với Warmup làm nghẽn JIT. Đã thêm cờ 503 delay trong v4.1!             |
+| 65  | `submissions/20072026/1118` | Image v4.1: Deep Warmup + Delay LB (503)        | **63.5+** |  **60.55**   |  -  |     -      |   51ms   |   71ms   | 4ms  |    0%    |    1    |    6 / 0    | Biến động Grader Noise BTC. Khẳng định TTFT ~45ms là giới hạn tính toán vật lý prefill 2.1K-4.4K tokens.                                              |
 
 ---
 
