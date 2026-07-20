@@ -1,4 +1,4 @@
-# Slot 6 (20/07): Image v4.1 - Deep Warmup + Seqs=28 (Queueing Optimization)
+# Slot 6 (20/07) - 1301: Image v4.1 - Deep Warmup + Seqs=28 (Queueing Optimization)
 # MỤC TIÊU: Giảm max_num_seqs từ 32 xuống 28 để giảm nhẹ độ tranh chấp hàng đợi (Queueing Contention), hạ trễ đợt Poisson burst 4.4K tokens, đưa số request Failed từ 5-6 về 0.
 services:
   model:

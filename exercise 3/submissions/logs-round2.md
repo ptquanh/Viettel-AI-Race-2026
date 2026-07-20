@@ -73,6 +73,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 63  | `submissions/20072026/0833` | Offline Speculative Decoding v3 (Draft 350M)    | **70.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 1 (RuntimeError): Engine Core Init Failed. vLLM v0.22.1 chưa hỗ trợ spec decode verification giữa 2 mô hình Recurrent LFM2.5.                  |
 | 64  | `submissions/20072026/0917` | Image v4: Golden Base + Deep Warmup             | **62.0+** |  **61.11**   |  -  |     -      |   47ms   |   69ms   | 4ms  |    0%    |    1    |    5 / 0    | Deep Warmup lần đầu: TTFT P95 giảm xuống 69ms. Phát hiện LB gửi load song song với Warmup làm nghẽn JIT. Đã thêm cờ 503 delay trong v4.1!             |
 | 65  | `submissions/20072026/1118` | Image v4.1: Deep Warmup + Delay LB (503)        | **63.5+** |  **60.55**   |  -  |     -      |   51ms   |   71ms   | 4ms  |    0%    |    1    |    6 / 0    | Biến động Grader Noise BTC. Khẳng định TTFT ~45ms là giới hạn tính toán vật lý prefill 2.1K-4.4K tokens.                                              |
+| 66  | `submissions/20072026/1301` | Image v4.1 + Seqs=28                            | **63.5+** |  **51.83**   |  -  |     -      |   75ms   |  102ms   | 4ms  |    0%    |    1    |    7 / 0    | Giảm Seqs=28 làm hẹp hàng đợi scheduler, đẩy TTFT P50 vọt lên 75ms và không giảm được lỗi (7 failed). Khẳng định Best Seqs = 32!                      |
 
 ---
 
