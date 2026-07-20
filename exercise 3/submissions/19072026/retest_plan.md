@@ -10,9 +10,9 @@
 
 |  STT   | Giả thuyết / Hạng mục                | Cơ chế thực sự ở Image v2                                   | Kết quả kiểm chứng thực tế trên v2                                                                                                   |  Trạng thái   |
 | :----: | :----------------------------------- | :---------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- | :-----------: |
-| **H1** | **GPU Speculative Decoding**         | `VLLM_SPECULATIVE_MODEL=LiquidAI/LFM2.5-350M-Instruct`      | **Fail STT 53 & 54**. Lỗi CLI & Timeout do thiếu draft model trong môi trường offline.                                               |  ❌ Thất bại  |
+| **H1** | **GPU Speculative Decoding**         | `VLLM_SPECULATIVE_MODEL=1` (/draft_model 350M offline)      | **Fail STT 63 (0833)**: `Engine core initialization failed`. vLLM v0.22.1 chưa hỗ trợ spec decode giữa 2 mô hình Recurrent LFM.      |  ❌ Thất bại  |
 | **H2** | **True INT4 Online Quantization**    | `VLLM_QUANTIZATION=compressed-tensors` & `marlin`           | **Fail STT 59 (2131)**. Checkpoint `/model` BTC thiếu compressed metadata. FP8 Native tối ưu 100%.                                   |  ❌ Thất bại  |
-| **H3** | **True Max Model Length Reduction**  | `VLLM_MAX_MODEL_LEN=16384` & `8192`                         | **Fail STT 46 (49.74đ)**. Kéo TTFT P50 vọt lên 79ms. Best Len = 32768 (32K).                                                         | ❌ Không chọn |
+| **H3** | **True Max Model Length Reduction**  | `VLLM_MAX_MODEL_LEN=16384` & `8192`                         | **Fail STT 61 (8K: 59.29đ) & STT 62 (16K: 56.76đ)**. Thu hẹp MaxLen phá vỡ CUDA Graph buckets. Best Len = 32768 (32K).               | ❌ Không chọn |
 | **H4** | **Prompt Lookup N-gram Speculative** | `VLLM_SPECULATIVE_MODEL=ngram`                              | **Fail STT 56 (2043) & STT 58 (2113)**. Timeout 2700s do xung đột JIT Dynamo Graph với N-gram.                                       |  ❌ Thất bại  |
 | **H5** | **Chunked Prefill & KV Cache FP8**   | `VLLM_ENABLE_CHUNKED_PREFILL=1` + `VLLM_KV_CACHE_DTYPE=fp8` | **Chunked 4K (59.21đ)**: Không tối ưu cho Recurrent LFM2.5.<br>**KV Cache FP8 (56.52đ)**: Overhead dequantization làm tăng TTFT P50. | ❌ Không chọn |
 

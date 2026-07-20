@@ -70,6 +70,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 60  | `submissions/19072026/2216` | FP8 Base + KV Cache FP8 (e5m2)                  | **61.5+** |  **56.52**   |  -  |     -      |   63ms   |   95ms   | 4ms  |    0%    |    1    |    5 / 0    | Overhead dequantization KV FP8 làm tăng TTFT P50 (63ms) trên mô hình 1.2B. Khẳng định dùng Default FP16 KV Cache (`VLLM_KV_CACHE_DTYPE=auto`)!        |
 | 61  | `submissions/20072026/0755` | Re-test MaxLen=8192 on Image v2                 | **62.0+** |  **59.29**   |  -  |     -      |   54ms   |   82ms   | 4ms  |    0%    |    1    |    4 / 0    | Thu hẹp MaxLen về 8K ngắt đoạn CUDA Graph buckets tối ưu trên vLLM, đẩy TTFT P50 lên 54ms dù chỉ 4 lỗi. Khẳng định Best MaxLen = 32768 (32K)!         |
 | 62  | `submissions/20072026/0814` | Re-test MaxLen=16384 (16K) on Image v2          | **62.0+** |  **56.76**   |  -  |     -      |   67ms   |   95ms   | 4ms  |    0%    |    1    |    4 / 0    | Mốc 16K xáo trộn CUDA Graph stride buckets lớn nhất, đẩy TTFT P50 lên 67ms. Khẳng định 100% Best MaxLen = 32768 (32K)!                                |
+| 63  | `submissions/20072026/0833` | Offline Speculative Decoding v3 (Draft 350M)    | **70.0+** |   **Fail**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | Exited 1 (RuntimeError): Engine Core Init Failed. vLLM v0.22.1 chưa hỗ trợ spec decode verification giữa 2 mô hình Recurrent LFM2.5.                  |
 
 ---
 
