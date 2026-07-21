@@ -96,6 +96,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 86  | `submissions/21072026/1619` | Image v9 + `FULL` + `GPU_MEM=0.94`                  | **63.5+** |  **60.37**   |  -  |     -      |   48ms   |   76ms   | 4ms  |    0%    |    1    |    7 / 0    | MICRO-TUNE VRAM: GPU_MEM=0.94 kéo TTFT P50 xuống 48ms (P95 76ms), đạt 60.37đ. Tuy nhiên hẹp VRAM làm tăng nhẹ Failed Count lên 7.                      |
 | 87  | `submissions/21072026/2050` | Image v9 + `FULL` + `GPU_MEM=0.96`                  | **63.5+** |  **59.45**   |  -  |     -      |   52ms   |   82ms   | 4ms  |    0%    |    1    |    7 / 0    | MICRO-TUNE VRAM: GPU_MEM=0.96 tăng nhẹ VRAM manager overhead, TTFT P50 tăng lên 52ms. Khẳng định mốc GPU_MEM=0.95 là chuẩn nhất.                       |
 | 88  | `submissions/21072026/2150` | Image v9 + `FULL` + `OMP=1` + `GPU_MEM=0.95`        | **63.5+** |  **59.68**   |  -  |     -      |   55ms   |   82ms   | 4ms  |    0%    |    1    |    4 / 0    | 🔥 KỶ LỤC CÂN BẰNG: OMP=1 + GPU_MEM=0.95 ép Failed count xuống 4 requests (thấp kỷ lục toàn giải), duy trì độ ổn định tuyệt đối cho container.         |
+| 89  | `submissions/21072026/2209` | Image v9 + `FULL` + `OMP=2` + `GPU_MEM=0.95`        | **63.5+** |  **58.28**   |  -  |     -      |   56ms   |   97ms   | 4ms  |    0%    |    1    |    5 / 0    | Chốt sổ ngày 21/07: TTFT P95 bị ảnh hưởng dội trễ khung 22:00 (97ms). Đã hoàn thành xuất sắc 15/15 slots thử nghiệm ngày 21/07!                        |
 
 ---
 
