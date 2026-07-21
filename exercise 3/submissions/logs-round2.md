@@ -91,6 +91,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 81  | `submissions/21072026/1018` | Image v9 + `FULL` + `sizes=[1..32]`                 | **63.5+** |  **58.86**   |  -  |     -      |   60ms   |   84ms   | 4ms  |    0%    |    1    |    5 / 0    | FULL mode + capture sizes [1..32] bị ảnh hưởng trễ TTFT (60ms) do biến động tải (grader noise) khung 10:18 sáng. Số lỗi duy trì 5 requests.           |
 | 82  | `submissions/21072026/1046` | Image v9 + `VLLM_CUDAGRAPH_NUM_OF_WARMUPS=3`        | **63.5+** |  **59.00**   |  -  |     -      |   55ms   |   90ms   | 4ms  |    0%    |    1    |    7 / 0    | MULTI-WARMUP CAPTURE: Warmup 3 lần ở mode mặc định đạt 59.00đ. Trễ TTFT P50 55ms, TTFT P95 90ms.                                                      |
 | 83  | `submissions/21072026/1434` | Image v9 + `FULL` + `warmups=3`                     | **63.5+** |  **58.30**   |  -  |     -      |   60ms   |   86ms   | 4ms  |    0%    |    1    |    5 / 0    | FULL mode + Warmup 3 lần bị ảnh hưởng trễ TTFT (60ms) do biến động tải hệ thống khung 14:34 chiều. Số lỗi giữ mức 5 requests.                         |
+| 84  | `submissions/21072026/1507` | Image v9 + `FULL` + `OMP_NUM_THREADS=3`             | **63.5+** |  **59.23**   |  -  |     -      |   54ms   |   83ms   | 4ms  |    0%    |    1    |    7 / 0    | FULL mode + OMP=3 kéo TTFT P50 giảm 6ms (từ 60ms xuống 54ms), kéo điểm lên 59.23đ. Tuy nhiên tranh chấp CPU làm tăng nhẹ Failed Count lên 7.           |
 
 ---
 
