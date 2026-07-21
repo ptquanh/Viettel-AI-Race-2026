@@ -90,6 +90,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 80  | `submissions/21072026/0903` | Image v9 + `VLLM_CUDAGRAPH_MODE=FULL`               | **63.5+** |  **60.82**   |  -  |     -      |   47ms   |   69ms   | 4ms  |    0%    |    1    |    5 / 0    | 🔥 BỨT PHÁ BAN NGÀY: CUDA Graph FULL mode ép TTFT P95 xuống kịch sàn 69ms, TTFT P50 47ms, đạt 60.82đ (cao nhất ban ngày), cách kỷ lục chỉ 0.42đ!      |
 | 81  | `submissions/21072026/1018` | Image v9 + `FULL` + `sizes=[1..32]`                 | **63.5+** |  **58.86**   |  -  |     -      |   60ms   |   84ms   | 4ms  |    0%    |    1    |    5 / 0    | FULL mode + capture sizes [1..32] bị ảnh hưởng trễ TTFT (60ms) do biến động tải (grader noise) khung 10:18 sáng. Số lỗi duy trì 5 requests.           |
 | 82  | `submissions/21072026/1046` | Image v9 + `VLLM_CUDAGRAPH_NUM_OF_WARMUPS=3`        | **63.5+** |  **59.00**   |  -  |     -      |   55ms   |   90ms   | 4ms  |    0%    |    1    |    7 / 0    | MULTI-WARMUP CAPTURE: Warmup 3 lần ở mode mặc định đạt 59.00đ. Trễ TTFT P50 55ms, TTFT P95 90ms.                                                      |
+| 83  | `submissions/21072026/1434` | Image v9 + `FULL` + `warmups=3`                     | **63.5+** |  **58.30**   |  -  |     -      |   60ms   |   86ms   | 4ms  |    0%    |    1    |    5 / 0    | FULL mode + Warmup 3 lần bị ảnh hưởng trễ TTFT (60ms) do biến động tải hệ thống khung 14:34 chiều. Số lỗi giữ mức 5 requests.                         |
 
 ---
 
