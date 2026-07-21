@@ -92,6 +92,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 82  | `submissions/21072026/1046` | Image v9 + `VLLM_CUDAGRAPH_NUM_OF_WARMUPS=3`        | **63.5+** |  **59.00**   |  -  |     -      |   55ms   |   90ms   | 4ms  |    0%    |    1    |    7 / 0    | MULTI-WARMUP CAPTURE: Warmup 3 lần ở mode mặc định đạt 59.00đ. Trễ TTFT P50 55ms, TTFT P95 90ms.                                                      |
 | 83  | `submissions/21072026/1434` | Image v9 + `FULL` + `warmups=3`                     | **63.5+** |  **58.30**   |  -  |     -      |   60ms   |   86ms   | 4ms  |    0%    |    1    |    5 / 0    | FULL mode + Warmup 3 lần bị ảnh hưởng trễ TTFT (60ms) do biến động tải hệ thống khung 14:34 chiều. Số lỗi giữ mức 5 requests.                         |
 | 84  | `submissions/21072026/1507` | Image v9 + `FULL` + `OMP_NUM_THREADS=3`             | **63.5+** |  **59.23**   |  -  |     -      |   54ms   |   83ms   | 4ms  |    0%    |    1    |    7 / 0    | FULL mode + OMP=3 kéo TTFT P50 giảm 6ms (từ 60ms xuống 54ms), kéo điểm lên 59.23đ. Tuy nhiên tranh chấp CPU làm tăng nhẹ Failed Count lên 7.           |
+| 85  | `submissions/21072026/1605` | Image v9 + `FULL` + `OMP_NUM_THREADS=1`             | **63.5+** |  **60.45**   |  -  |     -      |   50ms   |   77ms   | 4ms  |    0%    |    1    |    5 / 0    | 🔥 ĐỘT PHÁ MICRO-TUNE: OMP=1 loại bỏ context switching, ép TTFT P50 xuống 50ms (P95 77ms), điểm tăng vọt lên 60.45đ (thứ 2 ban ngày). Ứng viên Golden! |
 
 ---
 
