@@ -84,6 +84,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 74  | `submissions/20072026/2344` | FlashInfer + `block-size=32` + `GPU_MEM=0.96`       | **63.5+** |  **60.46**   |  -  |     -      |   51ms   |   74ms   | 4ms  |    0%    |    1    |    5 / 0    | Tăng GPU_MEM lên 0.96 làm tăng nhẹ overhead quản lý VRAM, TTFT P50 tăng lên 51ms. Khẳng định GPU_MEM=0.95 là mốc chuẩn nhất.                          |
 | 75  | `submissions/21072026/0000` | Image v8: Flash-Linear-Attention (FLA)              | **63.5+** |  **60.07**   |  -  |     -      |   51ms   |   79ms   | 4ms  |    0%    |    1    |    7 / 0    | Image v8 (FLA) + GPU_MEM=0.96 bị ảnh hưởng bởi Grader noise mốc 00:00 (nhiều đội nộp cùng lúc) + VRAM overhead. Khuyên dùng GPU_MEM=0.95!             |
 | 76  | `submissions/21072026/0813` | Image v9 Baseline đối chứng                         | **63.5+** |  **54.73**   |  -  |     -      |   71ms   |   96ms   | 4ms  |    0%    |    1    |    5 / 0    | Điểm ERS sụt giảm mạnh do host BTC bị quá tải tải buổi sáng (TTFT P50 vọt lên 71ms). Số lỗi vẫn là 5. Baseline đối chứng sạch.                        |
+| 77  | `submissions/21072026/0828` | Image v9 + `VLLM_CUDAGRAPH_MODE=FULL_DECODE_ONLY`   | **63.5+** |  **59.06**   |  -  |     -      |   56ms   |   82ms   | 4ms  |    0%    |    1    |    5 / 0    | ĐỘT PHÁ CẢI THIỆN: CUDA Graph decode-only giúp giảm mạnh TTFT P50 từ 71ms xuống 56ms và TTFT P95 từ 96ms xuống 82ms, kéo điểm lên 59.06đ.             |
 
 ---
 
