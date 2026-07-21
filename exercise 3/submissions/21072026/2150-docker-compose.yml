@@ -12,7 +12,7 @@ services:
       - --port=8000
     environment:
       - VLLM_LOGGING_LEVEL=WARNING
-      - OMP_NUM_THREADS=2
+      - OMP_NUM_THREADS=1
       - VLLM_MAX_MODEL_LEN=32768
       - VLLM_MAX_NUM_SEQS=32
       - VLLM_GPU_MEMORY_UTILIZATION=0.95
