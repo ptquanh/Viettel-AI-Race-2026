@@ -106,6 +106,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 96  | `submissions/22072026/1417` | Image v11.2 + SpeculativeConfig JSON                | **63.5+** |   **FAIL**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | 🔥 PHÁT HIỆN VÔ GIÁ: SpeculativeConfig(\*\*self.speculative_config) ĐÃ BUILD THÀNH CÔNG! Chỉ cần đổi key ngram_prompt_lookup_max -> prompt_lookup_max! |
 | 97  | `submissions/22072026/1430` | Image v11.3 + Speculative Config                    | **63.5+** |   **FAIL**   |  -  |     -      |    -     |    -     |  -   |    -     |    -    |      -      | ⚠️ PROBE ABORTED: Container pass 100%! N-gram Speculative đụng độ Recurrent State của LFM2.5 (0% probe match). Chuyển đòn bẩy sang INT4 + vLLM v0.25+. |
 | 98  | `submissions/22072026/1719` | Image v11 Modern Base Baseline (FP8 Dynamic)        | **63.5+** |  **57.75**   |  -  |     -      |   59ms   |   91ms   | 4ms  |    0%    |    1    |    5 / 0    | BASELINE VLLM MODERN ENGINE: Container v11 (vLLM v0.25+) pass 100%, TTFT P50 59ms, TTFT P95 91ms, TPOT 4ms. Chuẩn bị thử nghiệm BF16 ở Slot 10!        |
+| 99  | `submissions/22072026/2032` | Image v11 + BF16 Native (`VLLM_QUANTIZATION=none`)  | **63.5+** |  **46.83**   |  -  |     -      |   62ms   |   94ms   | 6ms  |    0%    |    1    |    6 / 0    | ❌ BF16 THẤT BẠI: BF16 làm dung lượng weights tăng 2x (2.4GB), gây nghẽn băng thông HBM kéo TPOT tăng từ 4ms lên 6ms! Bắt buộc phải dùng FP8.          |
 
 ---
 
