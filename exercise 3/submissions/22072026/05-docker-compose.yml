@@ -1,6 +1,6 @@
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v10
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v11
     entrypoint:
       - /usr/bin/python3
       - -m
@@ -25,7 +25,7 @@ services:
       - VLLM_CUDAGRAPH_MODE=FULL
       - VLLM_CUDAGRAPH_NUM_OF_WARMUPS=3
       - VLLM_SPECULATIVE_MODEL=[ngram]
-      - VLLM_NUM_SPECULATIVE_TOKENS=5
+      - VLLM_NUM_SPECULATIVE_TOKENS=3
       - VLLM_NGRAM_PROMPT_LOOKUP_MAX=4
       - VLLM_NGRAM_PROMPT_LOOKUP_MIN=1
     ports:
