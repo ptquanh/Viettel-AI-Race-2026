@@ -1,7 +1,7 @@
 #!/bin/bash
 ARGS="$*"
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
-    echo "[Antigravity Phase 2 v11.1] Modern vLLM Engine + Native Warmup + Correct Speculative Flags Edition"
+    echo "[Antigravity Phase 2 v11.3] Modern vLLM Engine + Native Warmup + Perfect Pydantic SpeculativeConfig Edition"
     
     export PYTHONPATH="/patch:$PYTHONPATH"
     export VLLM_LOGGING_LEVEL=WARNING
@@ -31,26 +31,18 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
          "--no-enable-log-requests"
          "--disable-log-stats")
 
-    # Speculative Decoding / Prompt Lookup Flags
+    # Speculative Decoding / Prompt Lookup Config via --spec-method & --speculative-config JSON
     SPECULATIVE_MODEL=${VLLM_SPECULATIVE_MODEL:-}
-    NUM_SPECULATIVE_TOKENS=${VLLM_NUM_SPECULATIVE_TOKENS:-}
-    NGRAM_LOOKUP_MAX=${VLLM_NGRAM_PROMPT_LOOKUP_MAX:-}
-    NGRAM_LOOKUP_MIN=${VLLM_NGRAM_PROMPT_LOOKUP_MIN:-}
+    NUM_SPECULATIVE_TOKENS=${VLLM_NUM_SPECULATIVE_TOKENS:-3}
+    NGRAM_LOOKUP_MAX=${VLLM_NGRAM_PROMPT_LOOKUP_MAX:-4}
+    NGRAM_LOOKUP_MIN=${VLLM_NGRAM_PROMPT_LOOKUP_MIN:-1}
 
-    if [ "$SPECULATIVE_MODEL" == "[ngram]" ] || [ "$SPECULATIVE_MODEL" == "ngram" ]; then
+    if [ "$SPECULATIVE_MODEL" == "[ngram]" ] || [ "$SPECULATIVE_MODEL" == "ngram" ] || [ -n "$SPECULATIVE_MODEL" ]; then
         CMD+=("--spec-method" "ngram")
-    elif [ -n "$SPECULATIVE_MODEL" ]; then
-        CMD+=("--spec-method" "$SPECULATIVE_MODEL")
-    fi
-
-    if [ -n "$NUM_SPECULATIVE_TOKENS" ]; then
-        CMD+=("--num-speculative-tokens" "$NUM_SPECULATIVE_TOKENS")
-    fi
-    if [ -n "$NGRAM_LOOKUP_MAX" ]; then
-        CMD+=("--ngram-prompt-lookup-max" "$NGRAM_LOOKUP_MAX")
-    fi
-    if [ -n "$NGRAM_LOOKUP_MIN" ]; then
-        CMD+=("--ngram-prompt-lookup-min" "$NGRAM_LOOKUP_MIN")
+        
+        # Pydantic Dataclass SpeculativeConfig exact keyword arguments
+        SPEC_JSON="{\"num_speculative_tokens\": $NUM_SPECULATIVE_TOKENS, \"prompt_lookup_max\": $NGRAM_LOOKUP_MAX, \"prompt_lookup_min\": $NGRAM_LOOKUP_MIN}"
+        CMD+=("--speculative-config" "$SPEC_JSON")
     fi
 
     COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
@@ -86,7 +78,7 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         CMD+=("--block-size" "$BLOCK_SIZE")
     fi
 
-    echo "[Antigravity Phase 2 v11.1] Executing Server: ${CMD[*]}"
+    echo "[Antigravity Phase 2 v11.3] Executing Server: ${CMD[*]}"
     exec "${CMD[@]}"
 else
     exec "/usr/bin/python3_real" "$@"
