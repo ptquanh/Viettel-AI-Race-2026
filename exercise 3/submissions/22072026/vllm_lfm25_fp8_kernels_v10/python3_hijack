@@ -1,7 +1,7 @@
 #!/bin/bash
 ARGS="$*"
 if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
-    echo "[Antigravity Phase 2 v10.1] Native Python Zero-Penalty Startup Warmup Edition"
+    echo "[Antigravity Phase 2 v10.2] Native Python Zero-Penalty Startup Warmup + Speculative Forwarding Edition"
     
     export PYTHONPATH="/patch:$PYTHONPATH"
     export VLLM_LOGGING_LEVEL=WARNING
@@ -30,6 +30,32 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
          "--max-num-seqs" "$MAX_NUM_SEQS"
          "--no-enable-log-requests"
          "--disable-log-stats")
+
+    # Environment variables support for Speculative Decoding
+    SPECULATIVE_MODEL=${VLLM_SPECULATIVE_MODEL:-}
+    NUM_SPECULATIVE_TOKENS=${VLLM_NUM_SPECULATIVE_TOKENS:-}
+    NGRAM_LOOKUP_MAX=${VLLM_NGRAM_PROMPT_LOOKUP_MAX:-}
+    NGRAM_LOOKUP_MIN=${VLLM_NGRAM_PROMPT_LOOKUP_MIN:-}
+
+    if [ -n "$SPECULATIVE_MODEL" ]; then
+        CMD+=("--speculative-model" "$SPECULATIVE_MODEL")
+    fi
+    if [ -n "$NUM_SPECULATIVE_TOKENS" ]; then
+        CMD+=("--num-speculative-tokens" "$NUM_SPECULATIVE_TOKENS")
+    fi
+    if [ -n "$NGRAM_LOOKUP_MAX" ]; then
+        CMD+=("--ngram-prompt-lookup-max" "$NGRAM_LOOKUP_MAX")
+    fi
+    if [ -n "$NGRAM_LOOKUP_MIN" ]; then
+        CMD+=("--ngram-prompt-lookup-min" "$NGRAM_LOOKUP_MIN")
+    fi
+
+    # Direct CLI argument forwarding for any --speculative-* or --ngram-* parameters passed in command:
+    for arg in "$@"; do
+        if [[ "$arg" == --speculative-* ]] || [[ "$arg" == --ngram-* ]]; then
+            CMD+=("$arg")
+        fi
+    done
 
     COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
     CG_MODE=${VLLM_CUDAGRAPH_MODE:-FULL}
@@ -64,7 +90,7 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         CMD+=("--block-size" "$BLOCK_SIZE")
     fi
 
-    echo "[Antigravity Phase 2 v10.1] Executing Native Server: ${CMD[*]}"
+    echo "[Antigravity Phase 2 v10.2] Executing Native Server with args: ${CMD[*]}"
     exec "${CMD[@]}"
 else
     exec "/usr/bin/python3_real" "$@"
