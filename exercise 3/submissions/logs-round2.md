@@ -99,6 +99,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 89  | `submissions/21072026/2209` | Image v9 + `FULL` + `OMP=2` + `GPU_MEM=0.95`        | **63.5+** |  **58.28**   |  -  |     -      |   56ms   |   97ms   | 4ms  |    0%    |    1    |    5 / 0    | Chốt sổ ngày 21/07: TTFT P95 bị ảnh hưởng dội trễ khung 22:00 (97ms). Đã hoàn thành xuất sắc 15/15 slots thử nghiệm ngày 21/07!                        |
 | 90  | `submissions/22072026/0902` | Image v10 Baseline (Zero-Penalty Warmup via socat)  | **63.5+** |  **51.40**   |  -  |     -      |   95ms   |  118ms   | 4ms  |    0%    |    1    |    7 / 0    | THỬ NGHIỆM SOCAT: socat user-space TCP proxying tạo overhead 45ms per request (TTFT P50 vọt lên 95ms). Cần chuyển sang Warmup Python nội bộ.           |
 | 91  | `submissions/22072026/0933` | Image v10.1 (Native Python Warmup) + `OMP=1`        | **63.5+** |  **60.72**   |  -  |     -      |   48ms   |   68ms   | 4ms  |    0%    |    1    |    5 / 0    | 🔥 ĐỘT PHÁ NATIVE WARMUP: Loại bỏ socat, Native Python warmup ép TTFT P95 kịch sàn 68ms (KỶ LỤC MỚI TOÀN GIẢI!), TTFT P50 48ms, điểm nhảy vọt 60.72đ!  |
+| 92  | `submissions/22072026/0950` | Image v10.1 + Native Warmup 5 rounds                | **63.5+** |  **59.42**   |  -  |     -      |   57ms   |   82ms   | 4ms  |    0%    |    1    |    4 / 0    | 🔥 CÂN BẰNG KỶ LỤC ÍT LỖI NHẤT: Warmup 5 rounds giúp container hoạt động siêu ổn định, ép số lỗi xuống kịch sàn 4 requests (bằng mốc STT 88).          |
 
 ---
 
