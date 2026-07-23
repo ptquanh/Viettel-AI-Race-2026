@@ -1,6 +1,6 @@
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v11
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v12.1
     entrypoint:
       - /usr/bin/python3
       - -m
@@ -25,6 +25,9 @@ services:
       - VLLM_CUDAGRAPH_MODE=FULL
       - VLLM_CUDAGRAPH_CAPTURE_SIZES=[1,2,4,8,16,32]
       - VLLM_CUDAGRAPH_NUM_OF_WARMUPS=5
+      # Kích hoạt Speculative Decoding - Draft LFM
+      - VLLM_SPECULATIVE_MODEL=/draft_model
+      - VLLM_NUM_SPECULATIVE_TOKENS=2
     ports:
       - "8000:8000"
     shm_size: "2g"

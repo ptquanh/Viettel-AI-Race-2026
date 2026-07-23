@@ -1,0 +1,40 @@
+services:
+  model:
+    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v12
+    entrypoint:
+      - /usr/bin/python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+      - OMP_NUM_THREADS=1
+      - VLLM_MAX_MODEL_LEN=8192
+      - VLLM_MAX_NUM_SEQS=32
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_COMPILATION_LEVEL=3
+      - VLLM_ATTENTION_BACKEND=FLASHINFER
+      - VLLM_BLOCK_SIZE=32
+      - CUDA_DEVICE_MAX_CONNECTIONS=1
+      - VLLM_CUDAGRAPH_MODE=FULL
+      - VLLM_CUDAGRAPH_CAPTURE_SIZES=[1,2,4,8,16,32]
+      - VLLM_CUDAGRAPH_NUM_OF_WARMUPS=5
+      # Kích hoạt Speculative Decoding - Draft LFM
+      - VLLM_SPECULATIVE_MODEL=/draft_model
+      - VLLM_NUM_SPECULATIVE_TOKENS=2
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
