@@ -1,0 +1,9 @@
+- dataset:
+    id: TIGER-Lab/MMLU-Pro
+    task_id: mmlu_pro
+  value: 20.01
+  date: '2026-03-31'
+  source:
+    url: https://huggingface.co/LiquidAI/LFM2.5-350M
+    name: Model Card
+    user: SaylorTwift

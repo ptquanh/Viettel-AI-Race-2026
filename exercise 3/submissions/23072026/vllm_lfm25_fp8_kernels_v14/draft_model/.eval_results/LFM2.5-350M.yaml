@@ -1,0 +1,9 @@
+- dataset:
+    id: LiquidAI/ifstruct-v1.0
+    task_id: ifstruct_v1
+  value: 44.90
+  date: "2026-06-30"
+  source:
+    url: https://www.liquid.ai/blog/ifstruct-v1.0
+    name: "Liquid AI — IFStruct v1.0 blog"
+  notes: "+ IFStruct RL"

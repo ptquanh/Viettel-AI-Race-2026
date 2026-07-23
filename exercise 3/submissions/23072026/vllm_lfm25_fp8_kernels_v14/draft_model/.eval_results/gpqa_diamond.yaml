@@ -1,0 +1,9 @@
+- dataset:
+    id: Idavidrein/gpqa
+    task_id: diamond
+  value: 30.64
+  date: '2026-03-31'
+  source:
+    url: https://huggingface.co/LiquidAI/LFM2.5-350M
+    name: Model Card
+    user: SaylorTwift
