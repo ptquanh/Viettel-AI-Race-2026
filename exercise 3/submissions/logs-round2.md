@@ -122,6 +122,7 @@ Bảng ghi nhận điểm số của các đợt chạy thử nghiệm cấu hì
 | 112 | `submissions/23072026/2232` | Image v14 (Fused ShortConv Triton Kernel)           | **63.5+** |  **58.41**   |  -  |     -      |   59ms   |   79ms   | 4ms  |    0%    |    1    |    5 / 0    | 🔥 FUSED TRITON KERNEL (Slot 11): Siêu Kernel `fused_short_conv` chạy PASS 100%, 0% Acc drop, TTFT P95 79ms. Khẳng định Kernel Fusion mù hoàn toàn đúng đắn.          |
 | 113 | `submissions/24072026/0839` | Image v14 + `VLLM_QUANTIZATION=bitsandbytes` (INT4) | **63.5+** |  **29.71**   |  -  |     -      |   94ms   |  132ms   | 14ms |    0%    |    1    |    9 / 0    | ❌ BITSANDBYTES INT4 OVERHEAD (Slot 01 24/07): Runtime dequantization trên CUDA cores quá chậm, đẩy TPOT vọt lên 14ms (ERS sụt giảm xuống 29.71đ). Hủy các slot INT4. |
 | 114 | `submissions/24072026/0925` | Image v14 FP8 + FlashInfer + MaxLen 8K + OMP=1      | **63.5+** |  **59.99**   |  -  |     -      |   54ms   |   75ms   | 4ms  |    0%    |    1    |    4 / 0    | 🔥 BỨT PHÁ BASELINE MỚI (Slot 02 24/07): Merge Fused Kernel v14 với best CLI config kéo TTFT P50 xuống 54ms (P95 75ms), Failed giảm còn 4/420. Đạt 59.99đ ban ngày!   |
+| 115 | `submissions/24072026/1013` | Image v14 FP8 + `VLLM_COMPILATION_LEVEL=2`          | **63.5+** |  **54.81**   |  -  |     -      |   65ms   |   93ms   | 4ms  |    0%    |    1    |    6 / 0    | ❌ LEVEL 2 GIẢM ĐIỂM (Slot 03 24/07): Tắt CUDA Graph compile làm tăng TTFT P50 vọt lên 65ms (+11ms). Khẳng định `COMPILATION_LEVEL=3` là bắt buộc.                    |
 
 ---
 
