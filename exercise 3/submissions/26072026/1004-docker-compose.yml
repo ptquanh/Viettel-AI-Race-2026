@@ -1,6 +1,7 @@
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-fp8-kernels-v14
+    # Sau khi build xong image, push lên docker hub bằng tag này:
+    image: ptquanh/sandbox-runtime:vllm-lfm25-cpp-kernel-v16
     entrypoint:
       - /usr/bin/python3
       - -m
@@ -13,6 +14,7 @@ services:
     environment:
       - VLLM_LOGGING_LEVEL=WARNING
       - OMP_NUM_THREADS=1
+      # Cấu hình Champion gốc (đã đạt 62.67đ) để đối chứng với Custom C++ Kernel
       - VLLM_MAX_MODEL_LEN=8192
       - VLLM_MAX_NUM_SEQS=32
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
