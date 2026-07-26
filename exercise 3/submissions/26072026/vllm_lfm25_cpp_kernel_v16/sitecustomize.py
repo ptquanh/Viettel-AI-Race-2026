@@ -1,17 +1,8 @@
 import os
 import sys
 import asyncio
-import torch
 
-print("[Antigravity Phase 3 v16] Modern vLLM Engine + Native Zero-Penalty Startup Warmup + C++ CUDA KERNEL Initialized", file=sys.stderr)
-
-try:
-    # Load custom C++ CUDA extension
-    # Thư viện .so sẽ được cài đặt vào môi trường Python qua setup.py (import lfm_custom_ops)
-    import lfm_custom_ops
-    print("[Antigravity Phase 3 v16] C++ CUDA Custom Kernel 'lfm_custom_ops' loaded successfully!", file=sys.stderr)
-except Exception as e:
-    print(f"[Antigravity Phase 3 v16] Failed to load C++ CUDA Custom Kernel: {e}", file=sys.stderr)
+print("[Antigravity Phase 3 v16.2] Modern vLLM Engine + Native Zero-Penalty Startup Warmup + C++ CUDA KERNEL Initialized", file=sys.stderr)
 
 try:
     from vllm.model_executor.layers.mamba.short_conv import ShortConv
@@ -22,6 +13,10 @@ try:
         try:
             from vllm.forward_context import get_forward_context
             from vllm.model_executor.layers.mamba.mamba_utils import is_conv_state_dim_first
+            import torch
+            
+            # Khởi tạo lazy lfm_custom_ops tại đây để không làm vỡ multiprocessing spawn
+            import lfm_custom_ops
             
             forward_context = get_forward_context()
             attn_metadata_raw = forward_context.attn_metadata
@@ -65,13 +60,13 @@ try:
         except Exception as patch_e:
             # Fallback nếu kernel của chúng ta bị lỗi runtime
             import sys
-            print(f"[Antigravity v16] C++ CUDA Fused Kernel Failed: {patch_e}, fallback to orig!", file=sys.stderr)
+            print(f"[Antigravity v16.2] C++ CUDA Fused Kernel Failed: {patch_e}, fallback to orig!", file=sys.stderr)
             return _orig_forward_cuda(self, hidden_states, output)
 
     ShortConv.forward_cuda = _patched_forward_cuda
-    print("[Antigravity Phase 3 v16] Successfully patched ShortConv.forward_cuda with C++ CUDA FUSED KERNEL!", file=sys.stderr)
+    print("[Antigravity Phase 3 v16.2] Successfully patched ShortConv.forward_cuda with C++ CUDA FUSED KERNEL!", file=sys.stderr)
 except Exception as e:
-    print(f"[Antigravity Phase 3 v16] Error patching ShortConv: {e}", file=sys.stderr)
+    print(f"[Antigravity Phase 3 v16.2] Error patching ShortConv: {e}", file=sys.stderr)
 
 try:
     from vllm.engine.async_llm_engine import AsyncLLMEngine
