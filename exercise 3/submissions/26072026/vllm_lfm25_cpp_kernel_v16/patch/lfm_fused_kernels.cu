@@ -81,6 +81,11 @@ torch::Tensor fused_lfm_short_conv_update(
     torch::Tensor bias,
     torch::Tensor state_indices
 ) {
+    // Thao tác an toàn: Kiểm tra nếu bất kỳ tensor nào chưa định nghĩa (dạng Undefined/None từ PyBind11)
+    if (!bcx.defined() || !state.defined() || !weights.defined() || !bias.defined() || !state_indices.defined()) {
+        throw std::invalid_argument("One or more input tensors to fused_lfm_short_conv_update are undefined/None");
+    }
+
     if (bcx.size(0) == 0) {
         return torch::empty({0, weights.size(0)}, bcx.options());
     }

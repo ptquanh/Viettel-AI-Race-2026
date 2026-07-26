@@ -47,6 +47,10 @@ try:
             
             state_indices = attn_metadata.state_indices_tensor_d
             
+            # An toàn: Kiểm tra nếu state_indices hoặc conv_state bị None (thường gặp lúc Profiling/Warmup)
+            if state_indices is None or conv_state is None or self.conv.bias is None:
+                return _orig_forward_cuda(self, hidden_states, output)
+            
             # GỌI FUSED KERNEL C++ CUDA SIÊU TỐC THAY VÌ TRITON
             y = lfm_custom_ops.fused_lfm_short_conv_update(
                 BCx[:num_decodes],
