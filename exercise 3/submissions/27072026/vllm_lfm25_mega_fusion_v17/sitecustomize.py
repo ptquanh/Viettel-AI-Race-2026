@@ -1,0 +1,124 @@
+import os
+import sys
+import asyncio
+
+print("[Antigravity Phase 4 v17.1] Mega Fusion Engine + Fixed CUDA Kernel Initialized", file=sys.stderr)
+
+_cached_custom_ops = None
+
+try:
+    from vllm.model_executor.layers.mamba.short_conv import ShortConv
+
+    _orig_forward_cuda = ShortConv.forward_cuda
+
+    def _patched_forward_cuda(self, hidden_states, output):
+        global _cached_custom_ops
+        try:
+            from vllm.forward_context import get_forward_context
+            from vllm.model_executor.layers.mamba.mamba_utils import is_conv_state_dim_first
+            import torch
+
+            # Fast cached import
+            if _cached_custom_ops is None:
+                import lfm_custom_ops
+                _cached_custom_ops = lfm_custom_ops
+
+            forward_context = get_forward_context()
+            attn_metadata_raw = forward_context.attn_metadata
+
+            if attn_metadata_raw is None:
+                return _orig_forward_cuda(self, hidden_states, output)
+
+            attn_metadata = attn_metadata_raw[self.prefix]
+
+            num_prefills = attn_metadata.num_prefills
+            num_decodes = attn_metadata.num_decode_tokens
+
+            # Chỉ kích hoạt Fused Kernel khi hoàn toàn là Decode
+            if num_prefills > 0 or num_decodes == 0:
+                return _orig_forward_cuda(self, hidden_states, output)
+
+            conv_state = (
+                self.kv_cache[0]
+                if is_conv_state_dim_first()
+                else self.kv_cache[0].transpose(-1, -2)
+            )
+
+            state_indices = attn_metadata.state_indices_tensor_d
+
+            # An toàn: Kiểm tra nếu state_indices hoặc conv_state bị None
+            if state_indices is None or conv_state is None:
+                return _orig_forward_cuda(self, hidden_states, output)
+
+            BCx, _ = self.in_proj(hidden_states)
+
+            # Caching weight view
+            if not hasattr(self, "_cached_conv_weight"):
+                self._cached_conv_weight = self.conv.weight.view(
+                    self.conv.weight.size(0), self.conv.weight.size(2)
+                )
+
+            # Truyền bias an toàn: Nếu self.conv.bias là None, truyền torch.Tensor() (Undefined Tensor)
+            conv_bias = self.conv.bias if self.conv.bias is not None else torch.Tensor()
+
+            # GỌI FUSED KERNEL VECTORIZED C++ CUDA SIÊU TỐC
+            y = _cached_custom_ops.fused_lfm_short_conv_update(
+                BCx[:num_decodes],
+                conv_state,
+                self._cached_conv_weight,
+                conv_bias,
+                state_indices
+            )
+
+            output[:num_decodes], _ = self.out_proj(y)
+        except Exception as patch_e:
+            import sys
+            print(f"[Antigravity v17.1] Vectorized Fused Kernel Fallback: {patch_e}", file=sys.stderr)
+            return _orig_forward_cuda(self, hidden_states, output)
+
+    ShortConv.forward_cuda = _patched_forward_cuda
+    print("[Antigravity Phase 4 v17.1] Successfully installed High-Performance Vectorized C++ CUDA Kernel!", file=sys.stderr)
+except Exception as e:
+    print(f"[Antigravity Phase 4 v17.1] Error patching ShortConv: {e}", file=sys.stderr)
+
+try:
+    from vllm.engine.async_llm_engine import AsyncLLMEngine
+    from vllm.inputs import TextPrompt
+    from vllm.sampling_params import SamplingParams
+
+    _orig_from_engine_args = AsyncLLMEngine.from_engine_args
+
+    @classmethod
+    def _patched_from_engine_args(cls, engine_args, **kwargs):
+        engine = _orig_from_engine_args(engine_args, **kwargs)
+        print("[Antigravity Phase 4 v17.1] Modern Engine initialized! Executing Native Zero-Penalty JIT Warmup...", file=sys.stderr)
+
+        async def _run_native_warmup():
+            try:
+                prompt = TextPrompt(prompt="Xin chào, hãy kích hoạt CUDA Graphs và FlashInfer memory pool ngay lập tức.")
+                params = SamplingParams(max_tokens=16, temperature=0.0)
+                warmup_rounds = int(os.getenv("VLLM_CUDAGRAPH_NUM_OF_WARMUPS", "10"))
+                for i in range(warmup_rounds):
+                    results_generator = engine.generate(prompt, params, request_id=f"native_warmup_v17_{i}")
+                    async for _ in results_generator:
+                        pass
+                print(f"[Antigravity Phase 4 v17.1] Native Zero-Penalty Warmup COMPLETE ({warmup_rounds} rounds)!", file=sys.stderr)
+            except Exception as w_err:
+                print(f"[Antigravity Phase 4 v17.1] Native Warmup Warning (non-fatal): {w_err}", file=sys.stderr)
+
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_run_native_warmup())
+            else:
+                loop.run_until_complete(_run_native_warmup())
+        except Exception as l_err:
+            print(f"[Antigravity Phase 4 v17.1] Asyncio Loop execution note: {l_err}", file=sys.stderr)
+
+        return engine
+
+    AsyncLLMEngine.from_engine_args = _patched_from_engine_args
+    print("[Antigravity Phase 4 v17.1] Successfully installed AsyncLLMEngine native warmup patch!", file=sys.stderr)
+
+except Exception as hook_err:
+    print(f"[Antigravity Phase 4 v17.1] Native Warmup Hook Error: {hook_err}", file=sys.stderr)
