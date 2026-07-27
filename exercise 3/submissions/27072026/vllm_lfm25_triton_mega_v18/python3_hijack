@@ -50,11 +50,8 @@ if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
         fi
     fi
 
-    # Multi-Step Scheduling
+    # Multi-Step Scheduling (Handled safely via sitecustomize.py EngineArgs patch)
     NUM_SCHEDULER_STEPS=${VLLM_NUM_SCHEDULER_STEPS:-}
-    if [ -n "$NUM_SCHEDULER_STEPS" ]; then
-        CMD+=("--num-scheduler-steps" "$NUM_SCHEDULER_STEPS")
-    fi
 
     # CUDA Graph
     COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
