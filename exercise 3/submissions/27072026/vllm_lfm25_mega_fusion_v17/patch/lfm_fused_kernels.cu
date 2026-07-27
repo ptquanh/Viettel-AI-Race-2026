@@ -5,13 +5,13 @@
 #include <cuda_bf16.h>
 #include <stdexcept>
 
-template <typename scalar_t>
-__global__ void fused_short_conv_update_vectorized_kernel(
-    const scalar_t* __restrict__ bcx,
-    scalar_t* __restrict__ state,
-    const scalar_t* __restrict__ weights,
-    const scalar_t* __restrict__ bias,
-    scalar_t* __restrict__ y,
+template <typename bcx_t, typename state_t>
+__global__ void fused_short_conv_update_dual_dtype_kernel(
+    const bcx_t* __restrict__ bcx,
+    state_t* __restrict__ state,
+    const bcx_t* __restrict__ weights,
+    const bcx_t* __restrict__ bias,
+    bcx_t* __restrict__ y,
     const int32_t* __restrict__ state_indices,
     const int num_tokens,
     const int dim,
@@ -31,13 +31,13 @@ __global__ void fused_short_conv_update_vectorized_kernel(
 
         // Bounds check to prevent CUDA illegal memory access
         if (state_idx < 0 || state_idx >= num_blocks) {
-            *(y + pid_tok * stride_y_tok + pid_dim * stride_y_dim) = static_cast<scalar_t>(0.0f);
+            *(y + pid_tok * stride_y_tok + pid_dim * stride_y_dim) = static_cast<bcx_t>(0.0f);
             return;
         }
 
-        const scalar_t* b_ptr = bcx + pid_tok * stride_bcx_tok + pid_dim * stride_bcx_dim;
-        const scalar_t* c_ptr = bcx + pid_tok * stride_bcx_tok + (dim + pid_dim) * stride_bcx_dim;
-        const scalar_t* x_ptr = bcx + pid_tok * stride_bcx_tok + (2 * dim + pid_dim) * stride_bcx_dim;
+        const bcx_t* b_ptr = bcx + pid_tok * stride_bcx_tok + pid_dim * stride_bcx_dim;
+        const bcx_t* c_ptr = bcx + pid_tok * stride_bcx_tok + (dim + pid_dim) * stride_bcx_dim;
+        const bcx_t* x_ptr = bcx + pid_tok * stride_bcx_tok + (2 * dim + pid_dim) * stride_bcx_dim;
 
         float b = static_cast<float>(*b_ptr);
         float c = static_cast<float>(*c_ptr);
@@ -45,22 +45,23 @@ __global__ void fused_short_conv_update_vectorized_kernel(
 
         float bx = b * x;
 
-        scalar_t* state_base = state + state_idx * stride_state_blk + pid_dim * stride_state_dim;
-        const scalar_t* weights_base = weights + pid_dim * stride_weights_dim;
+        // Correct pointer offset based on state_t element size (Float32 or Half/BFloat16)
+        state_t* state_base = state + state_idx * stride_state_blk + pid_dim * stride_state_dim;
+        const bcx_t* weights_base = weights + pid_dim * stride_weights_dim;
 
         float dot_acc = 0.0f;
 
         if (L_cache > 0) {
             #pragma unroll
             for (int i = 0; i < L_cache - 1; ++i) {
-                scalar_t val = *(state_base + (i + 1) * stride_state_l);
-                *(state_base + i * stride_state_l) = val; // shift
+                state_t val = *(state_base + (i + 1) * stride_state_l);
+                *(state_base + i * stride_state_l) = val; // shift in state_t precision
 
                 float w = static_cast<float>(*(weights_base + i * stride_weights_l));
                 dot_acc += static_cast<float>(val) * w;
             }
 
-            *(state_base + (L_cache - 1) * stride_state_l) = static_cast<scalar_t>(bx);
+            *(state_base + (L_cache - 1) * stride_state_l) = static_cast<state_t>(bx);
 
             float w_last = static_cast<float>(*(weights_base + (L_cache - 1) * stride_weights_l));
             dot_acc += bx * w_last;
@@ -72,7 +73,7 @@ __global__ void fused_short_conv_update_vectorized_kernel(
 
         float out = c * dot_acc;
 
-        *(y + pid_tok * stride_y_tok + pid_dim * stride_y_dim) = static_cast<scalar_t>(out);
+        *(y + pid_tok * stride_y_tok + pid_dim * stride_y_dim) = static_cast<bcx_t>(out);
     }
 }
 
@@ -109,21 +110,26 @@ torch::Tensor fused_lfm_short_conv_update(
     const void* bias_ptr = has_valid_bias ? bias.data_ptr() : nullptr;
     int bias_stride = has_valid_bias ? bias.stride(0) : 0;
 
-    AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, bcx.scalar_type(), "fused_short_conv_update_kernel", ([&] {
-        fused_short_conv_update_vectorized_kernel<scalar_t><<<grid, threads>>>(
-            bcx.data_ptr<scalar_t>(),
-            state.data_ptr<scalar_t>(),
-            weights.data_ptr<scalar_t>(),
-            static_cast<const scalar_t*>(bias_ptr),
-            y.data_ptr<scalar_t>(),
-            state_indices_32.data_ptr<int32_t>(),
-            num_tokens, dim, L_cache, num_blocks,
-            bcx.stride(0), bcx.stride(1),
-            state.stride(0), state.stride(1), state.stride(2),
-            weights.stride(0), weights.stride(1),
-            y.stride(0), y.stride(1),
-            bias_stride
-        );
+    // DUAL-TYPE DISPATCH: Handle bcx dtype (BFloat16/Half) and state dtype (Float32/BFloat16) independently!
+    AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, bcx.scalar_type(), "bcx_dispatch", ([&] {
+        using bcx_t = scalar_t;
+        AT_DISPATCH_FLOATING_TYPES_AND2(at::ScalarType::Half, at::ScalarType::BFloat16, state.scalar_type(), "state_dispatch", ([&] {
+            using state_t = scalar_t;
+            fused_short_conv_update_dual_dtype_kernel<bcx_t, state_t><<<grid, threads>>>(
+                bcx.data_ptr<bcx_t>(),
+                state.data_ptr<state_t>(),
+                weights.data_ptr<bcx_t>(),
+                static_cast<const bcx_t*>(bias_ptr),
+                y.data_ptr<bcx_t>(),
+                state_indices_32.data_ptr<int32_t>(),
+                num_tokens, dim, L_cache, num_blocks,
+                bcx.stride(0), bcx.stride(1),
+                state.stride(0), state.stride(1), state.stride(2),
+                weights.stride(0), weights.stride(1),
+                y.stride(0), y.stride(1),
+                bias_stride
+            );
+        }));
     }));
 
     cudaError_t err = cudaGetLastError();
@@ -135,5 +141,5 @@ torch::Tensor fused_lfm_short_conv_update(
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-    m.def("fused_lfm_short_conv_update", &fused_lfm_short_conv_update, "Vectorized Fused LFM Short Conv Update (CUDA)");
+    m.def("fused_lfm_short_conv_update", &fused_lfm_short_conv_update, "Dual-Type Vectorized Fused LFM Short Conv Update (CUDA)");
 }
