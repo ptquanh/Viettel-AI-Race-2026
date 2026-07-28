@@ -188,7 +188,10 @@ def repack_for_marlin(w_packed, K, N):
     # Marlin expects weights in [K//pack_factor, N] layout (transposed from our [N, K//8])
     w_packed_t = w_packed.t().contiguous()  # [K//8, N]
     
-    perm = torch.arange(K, dtype=torch.int32, device=w_packed.device)
+    # CRITICAL BUG FIX: If act_order is False, perm MUST be an empty tensor.
+    # Passing torch.arange(K) tricks the C++ kernel into thinking act_order=True,
+    # causing an immediate memory violation (Segmentation Fault) in gptq_marlin_repack!
+    perm = torch.empty(0, dtype=torch.int32, device=w_packed.device)
     
     w_marlin = vllm_ops.gptq_marlin_repack(
         w_packed_t, perm, K, N, 4  # num_bits=4
@@ -462,9 +465,12 @@ def quantize_layer_to_int4(layer, group_size=128):
         except Exception as e:
             print(f"[Antigravity v21.0] Marlin repack failed for layer: {e}", file=sys.stderr)
     
-    # Free original FP8 weight to save VRAM
-    # We keep a small reference to avoid errors
+    # Free original FP16 weight to save VRAM (Crucial to avoid OOM)
+    # We replace it with an empty tensor so PyTorch garbage collector can free the memory!
     original_size_mb = weight.data.numel() * weight.data.element_size() / (1024 * 1024)
+    layer.weight.data = torch.empty(0, dtype=weight.dtype, device=weight.device)
+    layer.weight.is_mocked_empty = True
+    
     int4_size_mb = w_packed.numel() * 4 / (1024 * 1024)  # INT32
     saved_mb = original_size_mb - int4_size_mb - scales.numel() * 2 / (1024 * 1024)
     
