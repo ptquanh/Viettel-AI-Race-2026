@@ -87,10 +87,23 @@ try:
 
     def _apply_eager_hooks(TargetClass):
         hooked = False
+        
+        def _safe_quantize(self_obj):
+            try:
+                model_obj = getattr(self_obj, "model", None)
+                if model_obj is None and hasattr(self_obj, "model_executor"):
+                    model_obj = getattr(self_obj.model_executor, "model", None)
+                if model_obj is not None:
+                    quantize_all_layers(model_obj)
+                else:
+                    print("[Antigravity v21.0] Warning: Could not find model object in runner for Eager Quantization.", file=sys.stderr)
+            except Exception as e:
+                print(f"[Antigravity v21.0] Eager Quantization Exception: {e}", file=sys.stderr)
+
         if hasattr(TargetClass, "profile_run"):
             _orig_profile_run = TargetClass.profile_run
             def _patched_profile_run(self, *args, **kwargs):
-                quantize_all_layers(self.model)
+                _safe_quantize(self)
                 return _orig_profile_run(self, *args, **kwargs)
             TargetClass.profile_run = _patched_profile_run
             print(f"[Antigravity v21.0] Hooked {TargetClass.__name__}.profile_run for Eager Quantization", file=sys.stderr)
@@ -99,11 +112,12 @@ try:
         if hasattr(TargetClass, "capture_model"):
             _orig_capture_model = TargetClass.capture_model
             def _patched_capture_model(self, *args, **kwargs):
-                quantize_all_layers(self.model)
+                _safe_quantize(self)
                 return _orig_capture_model(self, *args, **kwargs)
             TargetClass.capture_model = _patched_capture_model
             print(f"[Antigravity v21.0] Hooked {TargetClass.__name__}.capture_model for Eager Quantization", file=sys.stderr)
             hooked = True
+            
         return hooked
 
     # Try hooking ModelRunner, if it fails try Worker

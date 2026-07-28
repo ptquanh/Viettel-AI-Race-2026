@@ -1,0 +1,42 @@
+services:
+  model:
+    build:
+      context: ./vllm_lfm25_int4_v21
+    image: ptquanh/sandbox-runtime:vllm-lfm25-int4-marlin-v21.2
+    entrypoint:
+      - /usr/bin/python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+    environment:
+      - VLLM_LOGGING_LEVEL=WARNING
+      - OMP_NUM_THREADS=1
+      - VLLM_MAX_MODEL_LEN=32768
+      - VLLM_MAX_NUM_SEQS=32
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - VLLM_GPU_MEMORY_UTILIZATION=0.95
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      # Lưu ý: Bỏ VLLM_QUANTIZATION=fp8 vì ta dùng Online Quantization sang INT4 qua sitecustomize
+      # Bỏ VLLM_COMPILATION_LEVEL=3 vì nó xung đột với Custom Triton Kernels và PyTorch Mock
+      - VLLM_ATTENTION_BACKEND=FLASHINFER
+      - VLLM_BLOCK_SIZE=32
+      - CUDA_DEVICE_MAX_CONNECTIONS=1
+      - VLLM_CUDAGRAPH_MODE=FULL
+      - VLLM_CUDAGRAPH_CAPTURE_SIZES=[1,2,4,8,16,32]
+      - VLLM_CUDAGRAPH_NUM_OF_WARMUPS=10
+      - VLLM_WORKER_MULTIPROC_METHOD=spawn
+
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
