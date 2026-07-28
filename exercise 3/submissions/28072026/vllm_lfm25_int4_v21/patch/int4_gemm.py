@@ -465,11 +465,9 @@ def quantize_layer_to_int4(layer, group_size=128):
         except Exception as e:
             print(f"[Antigravity v21.0] Marlin repack failed for layer: {e}", file=sys.stderr)
     
-    # Free original FP16 weight to save VRAM (Crucial to avoid OOM)
-    # We replace it with an empty tensor so PyTorch garbage collector can free the memory!
+    # Keep original weight tensor data intact to ensure C++ kernel shape validation succeeds in vLLM V1.
     original_size_mb = weight.data.numel() * weight.data.element_size() / (1024 * 1024)
-    layer.weight.data = torch.empty(0, dtype=weight.dtype, device=weight.device)
-    layer.weight.is_mocked_empty = True
+    layer.weight.is_mocked_empty = False
     
     int4_size_mb = w_packed.numel() * 4 / (1024 * 1024)  # INT32
     saved_mb = original_size_mb - int4_size_mb - scales.numel() * 2 / (1024 * 1024)

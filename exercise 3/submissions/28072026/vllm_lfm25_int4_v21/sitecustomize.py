@@ -19,7 +19,7 @@ def apply_linear_patches(module):
                     from patch.int4_gemm import int4_linear_forward
                     _real_linear = F.linear
                     def _mock_linear(inp, weight, bias=None):
-                        if getattr(weight, "is_mocked_empty", False) or weight is getattr(self, "weight", None):
+                        if weight is getattr(self, "weight", None) or getattr(weight, "is_mocked_empty", False):
                             return int4_linear_forward(inp, self, bias)
                         return _real_linear(inp, weight, bias)
                     
@@ -30,7 +30,7 @@ def apply_linear_patches(module):
                     _real_bi = getattr(bi, "linear_batch_invariant", None)
                     if _real_bi is not None:
                         def _mock_bi(inp, weight, bias=None):
-                            if getattr(weight, "is_mocked_empty", False) or weight is getattr(self, "weight", None):
+                            if weight is getattr(self, "weight", None) or getattr(weight, "is_mocked_empty", False):
                                 return int4_linear_forward(inp, self, bias)
                             return _real_bi(inp, weight, bias)
                         bi.linear_batch_invariant = _mock_bi
