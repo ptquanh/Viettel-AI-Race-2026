@@ -24,10 +24,23 @@ def apply_linear_patches(module):
                         return _real_linear(inp, weight, bias)
                     
                     F.linear = _mock_linear
+                    
+                    # Also patch batch invariant linear if enabled
+                    import vllm.model_executor.layers.batch_invariant as bi
+                    _real_bi = getattr(bi, "linear_batch_invariant", None)
+                    if _real_bi is not None:
+                        def _mock_bi(inp, weight, bias=None):
+                            if getattr(weight, "is_mocked_empty", False) or weight is getattr(self, "weight", None):
+                                return int4_linear_forward(inp, self, bias)
+                            return _real_bi(inp, weight, bias)
+                        bi.linear_batch_invariant = _mock_bi
+                        
                     try:
                         return orig_fwd(self, *args, **kwargs)
                     finally:
                         F.linear = _real_linear
+                        if _real_bi is not None:
+                            bi.linear_batch_invariant = _real_bi
                 else:
                     if not torch.cuda.is_current_stream_capturing():
                         try:
