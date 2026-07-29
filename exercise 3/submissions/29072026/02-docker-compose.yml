@@ -10,6 +10,7 @@ services:
       - --served-model-name=LFM2.5-1.2B-Instruct
       - --host=0.0.0.0
       - --port=8000
+      - --no-disable-cascade-attn
     environment:
       - VLLM_LOGGING_LEVEL=WARNING
       - OMP_NUM_THREADS=1
