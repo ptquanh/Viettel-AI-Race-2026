@@ -1,0 +1,93 @@
+#!/bin/bash
+ARGS="$*"
+if [[ "$ARGS" == *"vllm.entrypoints.openai.api_server"* ]]; then
+    echo "[Antigravity Phase 6 v23.1] FP8 + Tokenizer Patch + Chunked Prefill & Async Scheduling"
+    
+    export PYTHONPATH="/patch:$PYTHONPATH"
+    export VLLM_LOGGING_LEVEL=WARNING
+    export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
+
+    # Core
+    MAX_MODEL_LEN=${VLLM_MAX_MODEL_LEN:-32768}
+    MAX_NUM_SEQS=${VLLM_MAX_NUM_SEQS:-32}
+    GPU_MEMORY_UTILIZATION=${VLLM_GPU_MEMORY_UTILIZATION:-0.95}
+    TENSOR_PARALLEL_SIZE=${VLLM_TENSOR_PARALLEL_SIZE:-1}
+    QUANTIZATION=${VLLM_QUANTIZATION:-fp8}
+    
+    # Attention
+    ATTENTION_BACKEND=${VLLM_ATTENTION_BACKEND:-FLASHINFER}
+    export VLLM_ATTENTION_BACKEND=$ATTENTION_BACKEND
+    
+    CMD=("/usr/bin/python3_real" "-m" "vllm.entrypoints.openai.api_server"
+         "--model" "/model"
+         "--served-model-name" "LFM2.5-1.2B-Instruct"
+         "--host" "0.0.0.0" "--port" "8000"
+         "--max-model-len" "$MAX_MODEL_LEN"
+         "--gpu-memory-utilization" "$GPU_MEMORY_UTILIZATION"
+         "--tensor-parallel-size" "$TENSOR_PARALLEL_SIZE"
+         "--enable-prefix-caching"
+         "--max-num-seqs" "$MAX_NUM_SEQS"
+         "--enable-chunked-prefill"
+         "--max-num-batched-tokens" "1024"
+         "--async-scheduling"
+         "--performance-mode" "interactivity"
+         "--prefix-caching-hash-algo" "xxhash"
+         "--no-enable-log-requests"
+         "--disable-log-stats")
+
+    # Speculative Decoding
+    SPECULATIVE_MODEL=${VLLM_SPECULATIVE_MODEL:-}
+    NUM_SPECULATIVE_TOKENS=${VLLM_NUM_SPECULATIVE_TOKENS:-}
+    
+    if [ -n "$SPECULATIVE_MODEL" ]; then
+        if [ "$SPECULATIVE_MODEL" == "ngram" ] || [ "$SPECULATIVE_MODEL" == "[ngram]" ]; then
+            CMD+=("--spec-method" "ngram")
+            NGRAM_LOOKUP_MAX=${VLLM_NGRAM_PROMPT_LOOKUP_MAX:-4}
+            NGRAM_LOOKUP_MIN=${VLLM_NGRAM_PROMPT_LOOKUP_MIN:-1}
+            SPEC_JSON="{\"num_speculative_tokens\": ${NUM_SPECULATIVE_TOKENS:-3}, \"prompt_lookup_max\": $NGRAM_LOOKUP_MAX, \"prompt_lookup_min\": $NGRAM_LOOKUP_MIN}"
+            CMD+=("--speculative-config" "$SPEC_JSON")
+        else
+            CMD+=("--spec-model" "$SPECULATIVE_MODEL")
+            if [ -n "$NUM_SPECULATIVE_TOKENS" ]; then
+                CMD+=("--spec-tokens" "$NUM_SPECULATIVE_TOKENS")
+            fi
+            # The v2 block manager is now the default and the flag has been removed.
+        fi
+    fi
+
+    # Multi-Step Scheduling (Handled safely via sitecustomize.py EngineArgs patch)
+    NUM_SCHEDULER_STEPS=${VLLM_NUM_SCHEDULER_STEPS:-}
+
+    # CUDA Graph
+    COMPILATION_LEVEL=${VLLM_COMPILATION_LEVEL:-3}
+    CG_MODE=${VLLM_CUDAGRAPH_MODE:-}
+    CG_SIZES=${VLLM_CUDAGRAPH_CAPTURE_SIZES:-}
+    CG_WARMUPS=${VLLM_CUDAGRAPH_NUM_OF_WARMUPS:-3}
+    
+    if [ "$COMPILATION_LEVEL" != "0" ] && [ -n "$CG_MODE" ]; then
+        JSON_CFG="{\"mode\": $COMPILATION_LEVEL"
+        JSON_CFG="$JSON_CFG, \"cudagraph_mode\": \"$CG_MODE\""
+        if [ -n "$CG_SIZES" ]; then
+            JSON_CFG="$JSON_CFG, \"cudagraph_capture_sizes\": $CG_SIZES"
+        fi
+        if [ -n "$CG_WARMUPS" ]; then
+            JSON_CFG="$JSON_CFG, \"cudagraph_num_of_warmups\": $CG_WARMUPS"
+        fi
+        JSON_CFG="$JSON_CFG}"
+        CMD+=("--compilation-config" "$JSON_CFG")
+    fi
+
+    if [ "$QUANTIZATION" != "none" ]; then
+        CMD+=("--quantization" "$QUANTIZATION")
+    fi
+
+    BLOCK_SIZE=${VLLM_BLOCK_SIZE:-32}
+    if [ "$BLOCK_SIZE" != "16" ]; then
+        CMD+=("--block-size" "$BLOCK_SIZE")
+    fi
+
+    echo "[Antigravity Phase 6 v23.1] Executing Server: ${CMD[*]}"
+    exec "${CMD[@]}"
+else
+    exec "/usr/bin/python3_real" "$@"
+fi
