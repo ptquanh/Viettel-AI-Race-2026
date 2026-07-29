@@ -1,6 +1,6 @@
 services:
   model:
-    image: ptquanh/sandbox-runtime:vllm-lfm25-cutlass-fp8-v23.1
+    image: ptquanh/sandbox-runtime:vllm-lfm25-cutlass-fp8-v23.2
     entrypoint:
       - python3
       - -m
