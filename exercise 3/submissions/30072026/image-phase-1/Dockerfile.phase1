@@ -1,0 +1,8 @@
+# Sử dụng base image là kỷ lục Humming W4
+FROM docker.io/taze05/lfm25-h200-ers@sha256:2f1c6a6e529508932a7db35994f605696fabb6500af3019a49dea9fa148553e9
+
+# Copy script patch vào container
+COPY phase1_patch.py /tmp/phase1_patch.py
+
+# Chạy script để patch vLLM source code
+RUN python3 /tmp/phase1_patch.py
