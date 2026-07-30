@@ -1,6 +1,6 @@
 # 🚀 [Bài 3] LLM Inference Optimization Challenge - Specification
 
-Tài liệu này tổng hợp toàn bộ thông tin chính thức từ Ban Tổ Chức (BTC) về yêu cầu, môi trường, cơ chế tính điểm và quy định của cuộc thi sau khi cập nhật mô hình mục tiêu và các chỉ số đo lường mới.
+Tài liệu này tổng hợp toàn bộ thông tin chính thức từ Ban Tổ Chức (BTC) về yêu cầu, môi trường, cơ chế tính điểm và quy định của cuộc thi.
 
 ---
 
@@ -26,55 +26,64 @@ Mỗi lượt nộp bài sẽ được chấm điểm tự động trên hạ t�
 
 ---
 
-## 3. 📊 Cơ chế tính điểm (Scoring System)
+## 3. Workload Trace & Cách tính điểm
 
-Điểm số cuối cùng của mỗi đội được tính bằng cách kết hợp hiệu năng xử lý request (ERS) với hình phạt sụt giảm chất lượng (Accuracy drop):
+### 3.1 Nguồn dữ liệu
 
-$$Score = 100 \times ERS \times f(\Delta)$$
+BTC sử dụng bộ dữ liệu mô phỏng luồng request thực tế trong môi trường LLM serving quy mô lớn, chọn lọc để đại diện cho các pattern traffic phổ biến. Cấu trúc trace:
 
-### A. ERS (Effective Request Score)
+- **Multi-turn:** mỗi hội thoại gồm nhiều lượt; lượt kế tiếp chỉ gửi sau khi lượt trước hoàn tất kèm khoảng "think" mô phỏng thời gian người dùng, giữ nguyên tính nhân-quả của hội thoại thật.
+- **Giới hạn độ dài:** mỗi prompt bị giới hạn độ dài context input và số token output, phản ánh tải prefill/decode thực tế trên slice được cấp.
+- **Bản công khai vs bản chấm:** thí sinh nhận bản trace đã lược text (chỉ arrival + số token in/out mỗi lượt); BTC giữ bản đầy đủ và chỉ gửi prompt thật tới endpoint lúc chấm - chống pre-bake/học tủ theo nội dung.
 
-ERS là điểm số trung bình của $N$ requests ($N = 330$ requests được chấm điểm sau 15 hội thoại primer khởi động không tính điểm) trong file trace dữ liệu:
+### 3.2 ERS (Effective Request Score)
+
+ERS là chỉ số đánh giá hiệu năng xử lý request thông qua cơ chế chấm điểm liên tục, tối ưu đồng thời TTFT và TPOT. Điểm ERS của hệ thống là trung bình cộng điểm của tất cả $N$ requests trong file trace:
 
 $$ERS = \frac{1}{N} \sum_{i=1}^{N} S_{request, i} \in [0, 1]$$
 
-Điểm số của từng request ($S_{request}$) được tính như sau:
+Điểm của từng request ($S_{request}$) được tính như sau:
 
 $$
 S_{request} = \begin{cases}
-0 & \text{nếu lỗi / timeout / trả về 0 token} \\
+0 & \text{nếu lỗi, timeout, hoặc trả về 0 token} \\
 w \cdot s_{ttft} + (1 - w) \cdot s_{tpot} & \text{nếu xử lý thành công}
 \end{cases}
 $$
 
-Trong đó:
+Trong đó, điểm thành phần độ trễ $s_{ttft}$ và $s_{tpot}$ được nội suy giữa ngưỡng lý tưởng (Floor - $F$) và ngưỡng giới hạn (Ceiling - $C$):
 
-$$s_{ttft} = (x_{ttft})^\gamma = \left[ \text{clamp}\left( \frac{C_{ttft} - TTFT}{C_{ttft} - F_{ttft}}, 0, 1 \right) \right]^\gamma$$
+$$s_{ttft} = \left[ \text{clamp}\left( \frac{C_{ttft} - TTFT}{C_{ttft} - F_{ttft}}, 0, 1 \right) \right]^\gamma$$
 
-$$s_{tpot} = (x_{tpot})^\gamma = \left[ \text{clamp}\left( \frac{C_{tpot} - TPOT_{mean}}{C_{tpot} - F_{tpot}}, 0, 1 \right) \right]^\gamma$$
+$$s_{tpot} = \left[ \text{clamp}\left( \frac{C_{tpot} - TPOT}{C_{tpot} - F_{tpot}}, 0, 1 \right) \right]^\gamma$$
 
-**Tham số cấu hình mới:**
+Giải thích các tham số cấu hình:
 
-| Ký hiệu    | Ý nghĩa           | Giá trị |
-| :--------- | :---------------- | :------ |
-| $F_{ttft}$ | Floor của TTFT    | 10 ms   |
-| $C_{ttft}$ | Ceiling của TTFT  | 400 ms  |
-| $F_{tpot}$ | Floor của TPOT    | 1 ms    |
-| $C_{tpot}$ | Ceiling của TPOT  | 10 ms   |
-| $\gamma$   | Hệ số lũy thừa    | 2       |
-| $w$        | Trọng số của TTFT | 0.5     |
+- $F_{ttft}$, $F_{tpot}$: Cận dưới (Floor) - độ trễ đạt mức này hoặc thấp hơn sẽ nhận điểm tối đa ($s=1$).
+- $C_{ttft}$, $C_{tpot}$: Cận trên (Ceiling) - độ trễ chạm mức này hoặc cao hơn sẽ bị tính $0$ điểm ($s=0$).
+- $w$: Trọng số ưu tiên của TTFT ($0 < w < 1$).
+- $\gamma$: Hệ số lũy thừa ($\gamma \ge 1$) quy định độ dốc của hàm phạt (penalty curve).
+- Hàm $\text{clamp}(x, 0, 1)$: Giới hạn giá trị của $x$ luôn nằm trong đoạn $[0, 1]$.
 
-_Với kiến trúc recurrent đặc thù của LFM, các chỉ số Floor/Ceiling latency đã được siết chặt tối đa (TTFT Floor 10ms, TPOT Floor 1ms) để phản ánh tốc độ xử lý siêu nhanh của mô hình._
+_(Tham khảo bảng cấu hình thực tế cập nhật gần nhất: $F_{ttft}=10ms, C*{ttft}=400ms, F*{tpot}=1ms, C*{tpot}=10ms, \gamma=2, w=0.5$)*
 
-### B. Accuracy Gate (GPQA Diamond - Hậu kiểm sau vòng online)
+### 3.3 Accuracy Gate
 
-Không chấm GPQA trên từng lượt nộp online. Sau khi vòng online kết thúc, đội thi chọn thủ công tối đa 5 submissions tốt nhất để BTC hậu kiểm và chạy GPQA full.
+Không chấm accuracy theo từng lượt nộp trong vòng online. Leaderboard online phản ánh chủ yếu ERS (điểm độ trễ) và mang tính tham khảo cho đến khi Accuracy Gate hoàn tất.
 
-Độ sụt giảm chất lượng ($\Delta$) so với baseline BF16 (mặc định baseline đạt 0.4):
+Quy trình sau khi kết thúc vòng online:
 
-$$\Delta = \text{baseline\_accuracy} - \text{GPQA\_accuracy\_của\_đội}$$
+1. **Đội chọn submissions:** Mỗi đội chọn thủ công tối đa 5 bài submissions tốt nhất (image/digest đã nộp trong vòng online; không được đổi image sau khi chọn).
+2. **Hậu kiểm tính hợp lệ (BTC):** BTC kiểm tra phương án có tuân thủ Rule & Anti-Cheating / tinh thần production hay không (image pin, hành vi serving, dấu hiệu gian lận, v.v.). Bài không hợp lệ bị loại khỏi vòng accuracy / có thể void.
+3. **Chấm GPQA Diamond full:** Với mỗi submission còn hợp lệ, BTC dựng lại endpoint OpenAI-compatible và chạy lm-evaluation-harness (lm_eval) trên bộ GPQA do BTC công bố (baseline reference BF16; filter strict-match).
 
-Hàm phạt $f(\Delta)$ được định nghĩa như sau:
+Hàm suy giảm độ chính xác $\Delta$ (accuracy drop) được tính như sau:
+
+$$\Delta = Accuracy_{baseline} - Accuracy_{submission}$$
+
+(Trong đó, $Accuracy_{baseline}$ là accuracy tham chiếu của mô hình gốc chạy bằng trọng số BF16 do BTC công bố; $Accuracy_{submission}$ là accuracy bài nộp của đội.)
+
+Dựa trên $\Delta$, hệ thống áp dụng hàm phạt $f(\Delta)$ - piecewise linear, đầu ra thuộc $[0, 1]$:
 
 $$
 f(\Delta) = \begin{cases}
@@ -84,29 +93,83 @@ f(\Delta) = \begin{cases}
 \end{cases}
 $$
 
----
+Với mỗi submission được chọn: $Score_i = 100 \times ERS_i \times f(\Delta_i)$. Điểm chính thức của đội là Score tốt nhất trong các bài còn hợp lệ sau hậu kiểm + GPQA (trừ khi BTC công bố quy tắc gộp khác).
 
-## 4. 🛠️ Phạm vi tối ưu được phép
+### 3.4. Công thức tính điểm tổng
 
-Thí sinh được khuyến khích sử dụng các kỹ thuật sau trên vLLM:
+Điểm số cuối cùng kết hợp hiệu năng phục vụ (ERS từ vòng online) với hình phạt sụt giảm chất lượng sau Accuracy Gate:
 
-- **Quantization:** Các kỹ thuật Online Quantization.
-- **KV Cache & Memory:** Tối đa hóa lượng request xử lý đồng thời bằng Paged Attention; KV cache quantization (FP8, INT8); Prefix caching và Semantic caching; Offloading xuống CPU/NVMe.
-- **Serving & Scheduling:** Ứng dụng Dynamic/Continuous batching; Speculative decoding; Memory-aware scheduling.
-- **System & Runtime:** Viết custom CUDA/Triton kernels; Tích hợp Fused attention kernels (FlashAttention, FlashInfer); Tối ưu hóa memory layout và CUDA Graphs.
+$$Score = 100 \times ERS \times f(\Delta)$$
 
----
-
-## 5. 🚫 Quy định chống gian lận (Anti-Cheating)
-
-- ❌ Nghiêm cấm pre-bake, hardcode kết quả, cơ chế dual-path hoặc lách luật (gaming) phương pháp đo lường.
-- ❌ Không thực hiện cuộc gọi mạng ra ngoài (External Network Calls) từ inference server.
-- ❌ Không can thiệp trái phép vào tokenizer hoặc weights của mô hình.
-- ❌ Không tráo đổi Docker image sau khi đã chốt nộp bài.
+Score trên chỉ được chốt sau khi đội đã chọn tối đa 5 submissions và BTC hoàn tất hậu kiểm + GPQA Diamond full.
 
 ---
 
-## 6. File `docker-compose.yml` mẫu của BTC cho LFM2.5
+## 4. Mô hình sử dụng
+
+Mô hình cụ thể do BTC chỉ định và công bố theo từng vòng. _(Hiện tại là LiquidAI/LFM2.5-1.2B-Instruct)_
+
+---
+
+## 5. Phương pháp tối ưu được phép
+
+Thí sinh được toàn quyền tự do lựa chọn và kết hợp các phương pháp tối ưu, miễn không vi phạm quy định của cuộc thi. Các hướng tiếp cận được khuyến khích bao gồm:
+
+- **KV Cache Optimization:** KV cache quantization (FP8, INT8), KV cache offloading (CPU/NVMe), prefix caching, semantic caching, Paged Attention, memory-aware scheduling.
+- **Serving & Scheduling Optimization:** Dynamic/continuous batching, speculative decoding, disaggregated prefill/decode serving.
+- **System-Level Optimization:** Custom CUDA / Triton kernels, fused attention kernels (FlashAttention, FlashInfer...), NCCL communication optimization, CUDA Graphs, memory layout optimization.
+- **Runtime & Compiler Optimization:** Sử dụng vLLM.
+
+---
+
+## 6. Môi trường đánh giá chuẩn hóa
+
+- **Hạ tầng phần cứng:** NVIDIA H200 GPU
+- **Hệ điều hành:** Ubuntu 24.04 LTS
+- **GPU Driver:** NVIDIA driver 590.x (hỗ trợ CUDA 13.x)
+
+---
+
+## 7. Rule & Anti-Cheating
+
+Nguyên tắc cốt lõi: Giải pháp phải tối ưu hệ thống phục vụ trung thực, sẵn sàng triển khai cho người dùng thực tế. Mọi thủ thuật đánh lừa hệ thống đo lường hoặc chỉ hoạt động trên tập workload chấm thi đều bị xem là vi phạm nghiêm trọng.
+
+### 7.1. Không gian tối ưu
+
+❌ **Hành vi nghiêm cấm**
+
+- **Pre-bake / Hardcode:** Tính sẵn đáp án thay vì suy luận thực tại thời điểm phục vụ.
+- **Dual-path:** Rẽ nhánh hành vi xử lý giữa lúc đo độ trễ và lúc kiểm tra chất lượng.
+- **Gaming metrics:** Đệm rỗng, cắt ngắn chuỗi sinh trái phép để né cổng hậu kiểm.
+- **Can thiệp hạ tầng:** Gọi mạng ngoài, sửa tokenizer/weights, làm bẩn tài nguyên.
+- **Bất trung thực quy trình:** Tráo image sau khi nộp, lộ dữ liệu.
+
+### 7.2. Quy trình Hậu kiểm
+
+Điểm số tự động trên hệ thống chưa phải là kết quả chốt cuối cùng.
+
+- Ban tổ chức định kỳ hoặc đột xuất rà soát thủ công image, cấu hình, log và luồng serving.
+- Bài nộp phát hiện gian lận sẽ bị hủy (void) kết quả hoặc điều chỉnh xếp hạng trực tiếp.
+- Mọi quyết định xử lý đều được thông báo minh bạch qua email kèm lý do tóm tắt.
+
+### 7.3. Phân định vùng sát điểm
+
+Đối với các đội nằm trong vùng nhiễu đo lường ($\le 1–3$ điểm), thứ hạng sẽ được phân định tuần tự theo:
+
+1. Mức độ suy giảm độ chính xác thấp hơn.
+2. Chỉ số độ trễ p95 TTFT thấp hơn.
+3. Tốc độ sinh văn bản cao hơn.
+4. Thời điểm nộp bài hợp lệ sớm hơn.
+
+### 7.4. Re-grade & Chế tài xử lý
+
+- **Chấm lại:** Ban tổ chức có quyền chạy độc lập nhiều lần trên đúng bản Docker image đã chốt để lấy điểm trung vị. Các đội trong top đầu sẽ được ưu tiên rà soát.
+- **Xử lý vi phạm:** Tùy mức độ, cá nhân hoặc đội thi có thể bị thu hồi điểm hoặc loại hoàn toàn khỏi giải đấu.
+- **Quyền khiếu nại:** Hệ thống tiếp nhận phản hồi trong vòng 24 giờ kể từ thời điểm nhận email thông báo hoặc công bố kết quả hạng mục thi.
+
+---
+
+## Phụ lục 1: File `docker-compose.yml` mẫu của BTC cho LFM2.5
 
 ```yaml
 services:
@@ -137,11 +200,9 @@ services:
               capabilities: [gpu]
 ```
 
----
+## Phụ lục 2: Đặc tả Workload Trace thực tế (Cập nhật 18/07/2026)
 
-## 7. 📈 Đặc tả Workload Trace thực tế (Cập nhật 18/07/2026)
-
-workload chấm điểm của BTC được cấu hình dưới dạng multi-turn với context tăng dần và độ dài đầu ra được cố định, mô tả chi tiết trong [grading-workload-spec.json](exercise 3/input/grading-workload-spec.json):
+Workload chấm điểm của BTC được cấu hình dưới dạng multi-turn với context tăng dần và độ dài đầu ra được cố định, mô tả chi tiết trong `grading-workload-spec.json`:
 
 ```json
 {
