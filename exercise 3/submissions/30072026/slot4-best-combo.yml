@@ -1,0 +1,76 @@
+# SLOT 4: BEST COMBO (Phase 3 + N-gram GPU) (Target: 75-80 ERS)
+# Kết hợp 3 yếu tố mạnh nhất:
+# 1. Image phase3 đã build (Patch decode-priority scheduler cap=256)
+# 2. Base d739 (TTFT P95=66ms)
+# 3. N-gram GPU Speculative Decoding
+services:
+  model:
+    image: docker.io/ptquanh/sandbox-runtime:phase3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=32768
+      - --tensor-parallel-size=1
+      - --gpu-memory-utilization=0.95
+      - --dtype=float16
+      - --quantization=online_int4
+      - --kv-cache-dtype=fp8
+      - --mamba-cache-dtype=float16
+      - --enable-prefix-caching
+      - --mamba-cache-mode=align
+      - --block-size=16
+      - --mamba-block-size=16
+      - --prefix-match-unit=16
+      - --prefix-caching-hash-algo=xxhash
+      - --no-disable-cascade-attn
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=1024
+      - --max-num-seqs=256
+      - --async-scheduling
+      - --optimization-level=3
+      - --performance-mode=interactivity
+      - --spec-method=ngram_gpu
+      - --spec-tokens=3
+      - --disable-log-stats
+      - --disable-uvicorn-access-log
+    environment:
+      DECODE_PREFILL_CAP: "256"
+      BTS_ONLINE_HUMMING_BLOCKS: "1"
+      BTS_ONLINE_HUMMING_LM_HEAD: "1"
+      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
+      VLLM_HUMMING_USE_F16_ACCUM: "1"
+      VLLM_USE_V2_MODEL_RUNNER: "0"
+      VLLM_USE_FASTOKENS: "1"
+      BTS_ONLINE_INT4_GROUP_SIZE: "128"
+      BTS_ONLINE_INT4_BACKEND: marlin
+      BTS_ONLINE_INT4_LM_HEAD: "1"
+      BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

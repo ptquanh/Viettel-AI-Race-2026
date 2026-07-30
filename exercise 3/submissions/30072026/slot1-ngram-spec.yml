@@ -1,0 +1,66 @@
+# SLOT 1: N-GRAM GPU SPECULATIVE DECODING (Target: 75+ ERS)
+# Ý tưởng: Dùng n-gram matching trên GPU để dự đoán trước 3 tokens → halve TPOT
+# Base: Kỷ lục 0851 (sha256:2f1c, 68.38 ERS) + thêm --spec-method=ngram_gpu
+# Không cần draft model!
+services:
+  model:
+    image: docker.io/taze05/lfm25-h200-ers@sha256:2f1c6a6e529508932a7db35994f605696fabb6500af3019a49dea9fa148553e9
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=32768
+      - --tensor-parallel-size=1
+      - --gpu-memory-utilization=0.95
+      - --dtype=bfloat16
+      - --quantization=fp8
+      - --kv-cache-dtype=bfloat16
+      - --mamba-cache-dtype=bfloat16
+      - --enable-prefix-caching
+      - --mamba-cache-mode=align
+      - --block-size=16
+      - --mamba-block-size=16
+      - --prefix-match-unit=16
+      - --prefix-caching-hash-algo=xxhash
+      - --no-disable-cascade-attn
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=1024
+      - --max-num-seqs=256
+      - --async-scheduling
+      - --optimization-level=3
+      - --performance-mode=interactivity
+      - --spec-method=ngram_gpu
+      - --spec-tokens=3
+      - --disable-log-stats
+      - --disable-uvicorn-access-log
+    environment:
+      DO_NOT_TRACK: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUNBUFFERED: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      VLLM_USE_FASTOKENS: "1"
+      VLLM_USE_V2_MODEL_RUNNER: "0"
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -1,5 +1,5 @@
-# High-upside W4A16 candidate: Hopper FP16 accumulation throughout Humming,
-# with a BF16 attention result only where FA3 requires it for FP8 Q/K/V.
+# Slot 1711: r26-humming-f16accum-fa3 (Teammate's new image sha256:d739)
+# Score: 67.3200 ERS (TTFT P95 = 66ms - Record low tail latency!)
 services:
   model:
     image: docker.io/taze05/lfm25-h200-ers@sha256:d73916a08bbe36cfff6414cb59a5c4de01e4582070d7f1261fafb921cec0f3a6
@@ -67,4 +67,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]

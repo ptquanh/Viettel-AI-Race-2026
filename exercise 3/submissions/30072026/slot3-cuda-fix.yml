@@ -1,12 +1,10 @@
-# Phase 3 PERFECTED: DECODE_PREFILL_CAP = 256 (Target: 69+ ERS)
-# Rationale:
-#   - We revert BACK to the exact config of Slot 1630 (which scored 68.20 ERS)
-#   - We are using the successfully pushed ptquanh/sandbox-runtime:phase3 (which is based on dc9e)
-#   - The ONLY change vs 1630 is increasing DECODE_PREFILL_CAP from 128 to 256
-#   - This will eliminate the 9 timeouts that cost us ~0.8 ERS points in slot 1630
+# SLOT 3: CUDA GRAPH FULL MODE FIX (Target: 70+ ERS)
+# Cố gắng fix lỗi Pydantic của teammate (Slot 1740) bằng cách bỏ "level": 3 khỏi JSON.
+# Base: Kỷ lục trễ đuôi (sha256:d739, TTFT P95=66ms)
+# Sử dụng CUDA graph FULL mode để capture toàn bộ prefill + decode
 services:
   model:
-    image: docker.io/ptquanh/sandbox-runtime:phase3
+    image: docker.io/taze05/lfm25-h200-ers@sha256:d73916a08bbe36cfff6414cb59a5c4de01e4582070d7f1261fafb921cec0f3a6
     entrypoint:
       - python3
       - -m
@@ -36,33 +34,24 @@ services:
       - --async-scheduling
       - --optimization-level=3
       - --performance-mode=interactivity
+      - --compilation-config={"cudagraph_mode":"FULL","max_cudagraph_capture_size":1024,"cudagraph_capture_sizes":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,40,48,56,64,72,80,88,96,104,112,120,128,160,192,224,256,320,384,448,512,576,640,704,768,832,896,960,1024]}
       - --disable-log-stats
       - --disable-uvicorn-access-log
     environment:
-      # === PHASE 3 DECODE PRIORITY ===
-      # Increased from 128 (slot 1630) to 256 to stop the 9 requests from timing out
-      DECODE_PREFILL_CAP: "256"
-      
-      # === Quantization config (Exactly as 1630) ===
+      VLLM_HUMMING_USE_F16_ACCUM: "1"
       BTS_ONLINE_HUMMING_BLOCKS: "1"
-      BTS_ONLINE_INT4_BACKEND: marlin
+      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
       BTS_ONLINE_INT4_GROUP_SIZE: "128"
+      BTS_ONLINE_INT4_BACKEND: marlin
       BTS_ONLINE_INT4_LM_HEAD: "1"
       BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
-      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
-      
-      # === Engine config (Exactly as 1630) ===
-      VLLM_USE_V2_MODEL_RUNNER: "0"
+      VLLM_USE_V2_MODEL_RUNNER: "1"
       VLLM_USE_FASTOKENS: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
       VLLM_NO_USAGE_STATS: "1"
       DO_NOT_TRACK: "1"
-      
-      # === Offline ===
-      HF_HUB_OFFLINE: "1"
-      HF_DATASETS_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
-      
-      # === Thread pinning ===
       TOKENIZERS_PARALLELISM: "false"
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"

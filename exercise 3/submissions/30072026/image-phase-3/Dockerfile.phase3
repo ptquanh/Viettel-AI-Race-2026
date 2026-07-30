@@ -1,8 +1,5 @@
-# Phase 3 Champion: Decode-Priority Scheduler Patch built on TOP of ALL-TIME RECORD IMAGE (sha256:2f1c)
-# Record sha256:2f1c features:
-#   - Best Channel-wise INT4 Humming quantization
-#   - Best TTFT P95: 67ms (vs 73ms in sha256:dc9e)
-FROM docker.io/taze05/lfm25-h200-ers@sha256:2f1c6a6e529508932a7db35994f605696fabb6500af3019a49dea9fa148553e9
+# Phase 3 Ultimate Candidate: Built on top of sha256:d739 (TTFT P95 = 66ms Record Image)
+FROM docker.io/taze05/lfm25-h200-ers@sha256:d73916a08bbe36cfff6414cb59a5c4de01e4582070d7f1261fafb921cec0f3a6
 
 # Copy and apply scheduler patch
 COPY phase3_patch.py /tmp/phase3_patch.py

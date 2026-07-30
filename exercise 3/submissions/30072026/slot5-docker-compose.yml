@@ -1,6 +1,8 @@
-# KỶ LỤC PHASE 3 TRÊN ĐÚNG BASE CHAMPION 0851 (68.38 ERS)
-# - Trả lại nguyên vẹn config gốc của 0851 (Không thêm bất kỳ flag INT4 nào)
-# - Chỉ thêm DECODE_PREFILL_CAP=256 để áp dụng patch
+# PHASE 3 + F16ACCUM (Target: 70.0+ ERS Record)
+# Combo:
+#   1. Base Image: sha256:d739 (TTFT P95 = 66ms Record Low Tail Latency!)
+#   2. VLLM_HUMMING_USE_F16_ACCUM=1
+#   3. Phase 3 Decode-Priority Scheduler Patch (DECODE_PREFILL_CAP=256)
 services:
   model:
     image: docker.io/ptquanh/sandbox-runtime:phase3
@@ -16,10 +18,10 @@ services:
       - --max-model-len=32768
       - --tensor-parallel-size=1
       - --gpu-memory-utilization=0.95
-      - --dtype=bfloat16
-      - --quantization=fp8
-      - --kv-cache-dtype=bfloat16
-      - --mamba-cache-dtype=bfloat16
+      - --dtype=float16
+      - --quantization=online_int4
+      - --kv-cache-dtype=fp8
+      - --mamba-cache-dtype=float16
       - --enable-prefix-caching
       - --mamba-cache-mode=align
       - --block-size=16
@@ -36,24 +38,32 @@ services:
       - --disable-log-stats
       - --disable-uvicorn-access-log
     environment:
-      # === PHASE 3 SCHEDULER DECODE PRIORITY ===
+      # === PHASE 3 DECODE PRIORITY ===
       DECODE_PREFILL_CAP: "256"
       
-      # === CÁC FLAG BẮT BUỘC (GIỮ NGUYÊN NHƯ 0851 CHAMPION) ===
-      DO_NOT_TRACK: "1"
-      HF_DATASETS_OFFLINE: "1"
+      # === EXACT MATCH WITH 1711 CHAMPION CANDIDATE ===
+      BTS_ONLINE_HUMMING_BLOCKS: "1"
+      BTS_ONLINE_HUMMING_LM_HEAD: "1"
+      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
+      VLLM_HUMMING_USE_F16_ACCUM: "1"
+      VLLM_USE_V2_MODEL_RUNNER: "0"
+      VLLM_USE_FASTOKENS: "1"
+      BTS_ONLINE_INT4_GROUP_SIZE: "128"
+      BTS_ONLINE_INT4_BACKEND: marlin
+      BTS_ONLINE_INT4_LM_HEAD: "1"
+      BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
       HF_HUB_OFFLINE: "1"
-      MKL_NUM_THREADS: "1"
-      NUMEXPR_NUM_THREADS: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+      TOKENIZERS_PARALLELISM: "false"
       OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
       PYTHONHASHSEED: "0"
       PYTHONUNBUFFERED: "1"
-      TOKENIZERS_PARALLELISM: "false"
-      TRANSFORMERS_OFFLINE: "1"
-      VLLM_NO_USAGE_STATS: "1"
-      VLLM_USE_FASTOKENS: "1"
-      VLLM_USE_V2_MODEL_RUNNER: "0"
     ports:
       - "8000:8000"
     shm_size: "2g"
