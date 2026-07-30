@@ -1,7 +1,12 @@
+# Phase 3: v0.26.0 + Decode-Priority Scheduler Patch (Slot 1630)
+# Score: 68.2000 ERS (Massive jump from 66.51 ERS)
 services:
   model:
-    image: docker.io/ptquanh/sandbox-runtime:phase2
-    entrypoint: [ "python3", "-m", "vllm.entrypoints.openai.api_server" ]
+    image: docker.io/ptquanh/sandbox-runtime:phase3
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
     command:
       - --model=/model
       - --served-model-name=LFM2.5-1.2B-Instruct
@@ -30,30 +35,40 @@ services:
       - --disable-log-stats
       - --disable-uvicorn-access-log
     environment:
+      # === PHASE 3 DECODE PRIORITY ===
+      DECODE_PREFILL_CAP: "128"
+      # === Quantization config ===
       BTS_ONLINE_HUMMING_BLOCKS: "1"
-      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
       BTS_ONLINE_INT4_BACKEND: marlin
       BTS_ONLINE_INT4_GROUP_SIZE: "128"
       BTS_ONLINE_INT4_LM_HEAD: "1"
       BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
-      VLLM_USE_V2_MODEL_RUNNER: "1"
+      VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
+      # === Engine config ===
+      VLLM_USE_V2_MODEL_RUNNER: "0"
       VLLM_USE_FASTOKENS: "1"
-      VLLM_CUDAGRAPH_CAPTURE_SIZES: "1,2,3,4,5,6,7,8,10,12,14,16,20,24,28,32,40,48,56,64,70"
-      VLLM_USE_FUSED_DECODE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+      # === Offline ===
       HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      # === Thread pinning ===
       TOKENIZERS_PARALLELISM: "false"
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       OPENBLAS_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUNBUFFERED: "1"
     ports:
       - "8000:8000"
     shm_size: "2g"
+    stop_grace_period: 30s
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
