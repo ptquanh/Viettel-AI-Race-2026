@@ -1,7 +1,8 @@
-# CONFIG P1: Phase 1 (CUDA Graph Optimization Image) + 32K Context + GPU_MEM=0.95
+# FP16 Humming/ShortConv decode with FlashInfer forced for Hopper. This avoids
+# the FA3 FP16-output/FP8-KV contract failure seen in R20 while retaining FP16.
 services:
   model:
-    image: docker.io/ptquanh/sandbox-runtime:phase1
+    image: docker.io/taze05/lfm25-h200-ers@sha256:875149397f46ac2b6f0cc9c66f47950bb9c26c8511aca4845dbba69f172c21f6
     entrypoint:
       - python3
       - -m
@@ -14,10 +15,11 @@ services:
       - --max-model-len=32768
       - --tensor-parallel-size=1
       - --gpu-memory-utilization=0.95
-      - --dtype=bfloat16
+      - --dtype=float16
       - --quantization=online_int4
       - --kv-cache-dtype=fp8
-      - --mamba-cache-dtype=bfloat16
+      - --mamba-cache-dtype=float16
+      - --attention-backend=FLASHINFER
       - --enable-prefix-caching
       - --mamba-cache-mode=align
       - --block-size=16
@@ -35,13 +37,14 @@ services:
       - --disable-uvicorn-access-log
     environment:
       BTS_ONLINE_HUMMING_BLOCKS: "1"
+      BTS_ONLINE_HUMMING_LM_HEAD: "1"
       VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
-      BTS_ONLINE_INT4_BACKEND: marlin
+      VLLM_USE_V2_MODEL_RUNNER: "0"
+      VLLM_USE_FASTOKENS: "1"
       BTS_ONLINE_INT4_GROUP_SIZE: "128"
+      BTS_ONLINE_INT4_BACKEND: marlin
       BTS_ONLINE_INT4_LM_HEAD: "1"
       BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
-      VLLM_USE_V2_MODEL_RUNNER: "1"
-      VLLM_USE_FASTOKENS: "1"
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"
       HF_DATASETS_OFFLINE: "1"
@@ -64,5 +67,4 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities:
-                - gpu
+              capabilities: [gpu]
