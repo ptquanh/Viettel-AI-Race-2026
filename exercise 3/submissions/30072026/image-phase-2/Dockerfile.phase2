@@ -1,0 +1,11 @@
+# Sử dụng base image là image Phase 1 (đã có CUDA Graph optimization)
+FROM docker.io/ptquanh/sandbox-runtime:phase1
+
+# Copy script patch Phase 2 vào container
+COPY phase2_patch.py /tmp/phase2_patch.py
+
+# Chạy script để patch vLLM source code (thêm Fused Kernel)
+RUN python3 /tmp/phase2_patch.py
+
+# Đặt biến môi trường để bật Fused Kernel (tắt fallback)
+ENV VLLM_USE_FUSED_DECODE="1"
