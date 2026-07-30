@@ -1,0 +1,68 @@
+services:
+  model:
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=32768
+      - --tensor-parallel-size=1
+      - --gpu-memory-utilization=0.95
+      - --dtype=bfloat16
+      - --quantization=online_int4
+      - --kv-cache-dtype=bfloat16
+      - --mamba-cache-dtype=bfloat16
+      - --enable-prefix-caching
+      - --mamba-cache-mode=align
+      - --block-size=16
+      - --mamba-block-size=16
+      - --prefix-match-unit=16
+      - --prefix-caching-hash-algo=xxhash
+      - --no-disable-cascade-attn
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=1024
+      - --max-num-seqs=256
+      - --async-scheduling
+      - --optimization-level=3
+      - --performance-mode=interactivity
+      - --disable-log-stats
+      - --disable-uvicorn-access-log
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities:
+                - gpu
+              driver: nvidia
+              count: 1
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    environment:
+      BTS_ONLINE_INT4_BACKEND: cutlass_w4a8
+      BTS_ONLINE_INT4_GROUP_SIZE: "128"
+      BTS_ONLINE_INT4_LM_HEAD: "1"
+      BTS_ONLINE_INT4_LM_HEAD_BACKEND: auto
+      DO_NOT_TRACK: "1"
+      HF_DATASETS_OFFLINE: "1"
+      HF_HUB_OFFLINE: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUNBUFFERED: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      TRANSFORMERS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      VLLM_USE_FASTOKENS: "1"
+      VLLM_USE_V2_MODEL_RUNNER: "0"
+    image: docker.io/taze05/lfm25-h200-ers@sha256:ea97f9202d175232de56d2c7614480e301ae593b7b91ed2f00c65a814d14e323
+    ports:
+      - mode: ingress
+        target: 8000
+        published: "8000"
+        protocol: tcp
+    shm_size: "2147483648"
+    stop_grace_period: 30s
