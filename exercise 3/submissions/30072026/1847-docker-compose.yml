@@ -1,10 +1,11 @@
-# SLOT 3: CUDA GRAPH FULL MODE FIX (Target: 70+ ERS)
-# Cố gắng fix lỗi Pydantic của teammate (Slot 1740) bằng cách bỏ "level": 3 khỏi JSON.
-# Base: Kỷ lục trễ đuôi (sha256:d739, TTFT P95=66ms)
-# Sử dụng CUDA graph FULL mode để capture toàn bộ prefill + decode
+# Final high-upside submission:
+# - exact immutable R14 image behind the verified 68.38 ERS run
+# - V2 model runner to reduce host-side scheduling/input-preparation overhead
+# - moderate stream coalescing to reduce JSON/SSE work while preserving the
+#   first token, final token, all token IDs, and the organizer's TPOT interval
 services:
   model:
-    image: docker.io/taze05/lfm25-h200-ers@sha256:d73916a08bbe36cfff6414cb59a5c4de01e4582070d7f1261fafb921cec0f3a6
+    image: docker.io/taze05/lfm25-h200-ers@sha256:2f1c6a6e529508932a7db35994f605696fabb6500af3019a49dea9fa148553e9
     entrypoint:
       - python3
       - -m
@@ -17,10 +18,10 @@ services:
       - --max-model-len=32768
       - --tensor-parallel-size=1
       - --gpu-memory-utilization=0.95
-      - --dtype=bfloat16
+      - --dtype=float16
       - --quantization=online_int4
       - --kv-cache-dtype=fp8
-      - --mamba-cache-dtype=bfloat16
+      - --mamba-cache-dtype=float16
       - --enable-prefix-caching
       - --mamba-cache-mode=align
       - --block-size=16
@@ -32,13 +33,12 @@ services:
       - --max-num-batched-tokens=1024
       - --max-num-seqs=256
       - --async-scheduling
+      - --stream-interval=4
       - --optimization-level=3
       - --performance-mode=interactivity
-      - --compilation-config={"cudagraph_mode":"FULL","max_cudagraph_capture_size":1024,"cudagraph_capture_sizes":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,40,48,56,64,72,80,88,96,104,112,120,128,160,192,224,256,320,384,448,512,576,640,704,768,832,896,960,1024]}
       - --disable-log-stats
       - --disable-uvicorn-access-log
     environment:
-      VLLM_HUMMING_USE_F16_ACCUM: "1"
       BTS_ONLINE_HUMMING_BLOCKS: "1"
       VLLM_HUMMING_ONLINE_QUANT_CONFIG: '{"dtype":"int4","group_size":0}'
       BTS_ONLINE_INT4_GROUP_SIZE: "128"
