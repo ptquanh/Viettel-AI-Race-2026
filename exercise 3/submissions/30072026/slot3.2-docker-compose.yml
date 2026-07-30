@@ -1,0 +1,130 @@
+# SLOT 3: CUDA GRAPH FULL MODE FIX (Target: 70+ ERS)
+# Kế thừa 100% từ Kỷ lục điểm cao nhất (Slot 0851 - 68.38 ERS)
+# - Base Image: sha256:2f1c
+# - Quantization: fp8 (giống hệt 0851)
+# - KV Cache: bfloat16 (giống hệt 0851)
+# Nâng cấp:
+# - Bật V2 Model Runner
+# - Thêm Cuda Graph Full Mode Capture
+services:
+  model:
+    image: docker.io/taze05/lfm25-h200-ers@sha256:2f1c6a6e529508932a7db35994f605696fabb6500af3019a49dea9fa148553e9
+    entrypoint:
+      - python3
+      - -m
+      - vllm.entrypoints.openai.api_server
+    command:
+      - --model=/model
+      - --served-model-name=LFM2.5-1.2B-Instruct
+      - --host=0.0.0.0
+      - --port=8000
+      - --max-model-len=32768
+      - --tensor-parallel-size=1
+      - --gpu-memory-utilization=0.90
+      - --dtype=bfloat16
+      - --quantization=fp8
+      - --kv-cache-dtype=bfloat16
+      - --mamba-cache-dtype=bfloat16
+      - --enable-prefix-caching
+      - --mamba-cache-mode=align
+      - --block-size=16
+      - --mamba-block-size=16
+      - --prefix-match-unit=16
+      - --prefix-caching-hash-algo=xxhash
+      - --no-disable-cascade-attn
+      - --enable-chunked-prefill
+      - --max-num-batched-tokens=1024
+      - --max-num-seqs=256
+      - --async-scheduling
+      - --optimization-level=3
+      - --performance-mode=interactivity
+      - --max-cudagraph-capture-size=1024
+      - --cudagraph-capture-sizes
+      - "1"
+      - "2"
+      - "3"
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+      - "8"
+      - "9"
+      - "10"
+      - "11"
+      - "12"
+      - "13"
+      - "14"
+      - "15"
+      - "16"
+      - "17"
+      - "18"
+      - "19"
+      - "20"
+      - "21"
+      - "22"
+      - "23"
+      - "24"
+      - "25"
+      - "26"
+      - "27"
+      - "28"
+      - "29"
+      - "30"
+      - "31"
+      - "32"
+      - "40"
+      - "48"
+      - "56"
+      - "64"
+      - "72"
+      - "80"
+      - "88"
+      - "96"
+      - "104"
+      - "112"
+      - "120"
+      - "128"
+      - "160"
+      - "192"
+      - "224"
+      - "256"
+      - "320"
+      - "384"
+      - "448"
+      - "512"
+      - "576"
+      - "640"
+      - "704"
+      - "768"
+      - "832"
+      - "896"
+      - "960"
+      - "1024"
+      - --disable-log-stats
+      - --disable-uvicorn-access-log
+    environment:
+      VLLM_USE_V2_MODEL_RUNNER: "1"
+      VLLM_USE_FASTOKENS: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      HF_DATASETS_OFFLINE: "1"
+      VLLM_NO_USAGE_STATS: "1"
+      DO_NOT_TRACK: "1"
+      TOKENIZERS_PARALLELISM: "false"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8000:8000"
+    shm_size: "2g"
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
